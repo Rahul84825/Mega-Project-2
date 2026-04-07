@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api, { getProducts } from "../services/api";
+import { socket } from "../services/socket";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("products");
@@ -7,8 +8,39 @@ export default function AdminDashboard() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: "", price: "", category: "", stock: "" });
+  const highlightTimerRef = useRef(null);
+
+  const getOrderId = (order) => order?.id || order?._id || null;
+
+  const triggerNewOrderAlert = (order) => {
+    const orderId = getOrderId(order) || Date.now().toString();
+
+    setOrders((prev) => {
+      if (prev.some((existing) => getOrderId(existing) === orderId)) {
+        return prev;
+      }
+
+      return [{ ...order, _id: orderId }, ...prev];
+    });
+
+    setHighlightedOrderId(orderId);
+
+    if (highlightTimerRef.current) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedOrderId(null);
+    }, 2000);
+
+    const audio = new Audio("/notification.mp3");
+    audio.play().catch(() => {
+      // Ignore autoplay restrictions or missing audio playback support.
+    });
+  };
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -29,6 +61,38 @@ export default function AdminDashboard() {
     if (otpVerified) {
       fetchAdminData();
     }
+  }, [otpVerified]);
+
+  useEffect(() => {
+    if (!otpVerified) {
+      return undefined;
+    }
+
+    const handleNewOrder = (order) => {
+      if (!order || typeof order !== "object" || Array.isArray(order)) {
+        return;
+      }
+
+      triggerNewOrderAlert(order);
+    };
+
+    socket.auth = { role: "admin" };
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.off("newOrder", handleNewOrder);
+    socket.on("newOrder", handleNewOrder);
+
+    return () => {
+      socket.off("newOrder", handleNewOrder);
+      socket.disconnect();
+
+      if (highlightTimerRef.current) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
   }, [otpVerified]);
 
   const handleOtp = (val, idx) => {
@@ -236,7 +300,20 @@ export default function AdminDashboard() {
               {orders.map((o) => {
                 const orderId = o.id || o._id;
                 return (
-                  <div key={orderId} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(244,160,36,0.1)", padding: 24, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+                  <div
+                    key={orderId}
+                    style={{
+                      background: highlightedOrderId === orderId ? "rgba(244,160,36,0.16)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${highlightedOrderId === orderId ? "rgba(244,160,36,0.55)" : "rgba(244,160,36,0.1)"}`,
+                      boxShadow: highlightedOrderId === orderId ? "0 0 0 1px rgba(244,160,36,0.25), 0 0 28px rgba(244,160,36,0.25)" : "none",
+                      padding: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 24,
+                      flexWrap: "wrap",
+                      transition: "background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease"
+                    }}
+                  >
                     <div style={{ flex: "0 0 100px" }}>
                       <div style={{ fontSize: 11, color: "var(--saffron)", letterSpacing: 1 }}>{orderId}</div>
                       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>{o.date}</div>
