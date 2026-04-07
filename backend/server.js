@@ -1,9 +1,9 @@
 import http from "http";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import app from "./app.js";
+import { initializeSocket } from "./socket.js";
 
 dotenv.config();
 
@@ -12,20 +12,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 const httpServer = http.createServer(app);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "*",
-    credentials: true
-  }
-});
-
-io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-
-  socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-  });
-});
+initializeSocket(httpServer);
 
 const connectDB = async () => {
   if (!MONGODB_URI) {
