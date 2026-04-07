@@ -8,7 +8,7 @@ export default function Navbar({ page, setPage }) {
     <nav style={{ background: "var(--charcoal)", color: "white", position: "sticky", top: 0, zIndex: 100 }}>
       <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", height: 68 }}>
         <div onClick={() => setPage("home")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 26, lineHeight: 1 }}>🪔</span>
+          <span style={{ fontSize: 26, lineHeight: 1 }}><img src="../assets/image.png" alt="Mithai World" style={{ width: 40, height: 40 }} /></span>
           <div>
             <div className="serif" style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1, color: "var(--saffron)" }}>Mithai World</div>
             <div style={{ fontSize: 9, letterSpacing: 3, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Premium Indian Sweets</div>

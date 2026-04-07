@@ -5,6 +5,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import HomePage from "./pages/HomePage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import GlobalStyle from "./utils/GlobalStyle";
 
@@ -12,6 +13,7 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [products, setProducts] = useState([]);
+  const [paymentInfo, setPaymentInfo] = useState(null);
 
   const renderPage = () => {
     switch (page) {
@@ -42,7 +44,9 @@ export default function App() {
       case "cart":
         return <CartPage setPage={setPage} />;
       case "checkout":
-        return <CheckoutPage setPage={setPage} />;
+        return <CheckoutPage setPage={setPage} setPaymentInfo={setPaymentInfo} />;
+      case "payment-success":
+        return <PaymentSuccessPage setPage={setPage} paymentInfo={paymentInfo} onReturnHome={() => setPaymentInfo(null)} />;
       case "admin":
         return <AdminDashboard />;
       default:
