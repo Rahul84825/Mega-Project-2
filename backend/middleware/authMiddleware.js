@@ -17,3 +17,13 @@ export const protect = (req, res, next) => {
     return res.status(401).json({ message: "Token invalid or expired" });
   }
 };
+
+export const requireAdmin = (req, res, next) => {
+  const role = req.user?.role || req.user?.isAdmin;
+
+  if (role === "admin" || role === true) {
+    return next();
+  }
+
+  return res.status(403).json({ message: "Admin access required" });
+};

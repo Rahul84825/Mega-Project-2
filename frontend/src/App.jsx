@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import { CartProvider } from "./context/CartContext";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -13,7 +13,26 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [products, setProducts] = useState([]);
-  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [paymentInfo, setPaymentInfo] = useState(() => {
+    try {
+      const storedOrder = localStorage.getItem("mithai-world-current-order");
+      return storedOrder ? JSON.parse(storedOrder) : null;
+    } catch (_error) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (paymentInfo) {
+        localStorage.setItem("mithai-world-current-order", JSON.stringify(paymentInfo));
+      } else {
+        localStorage.removeItem("mithai-world-current-order");
+      }
+    } catch (_error) {
+      // Ignore storage errors in constrained environments.
+    }
+  }, [paymentInfo]);
 
   const renderPage = () => {
     switch (page) {
@@ -46,7 +65,7 @@ export default function App() {
       case "checkout":
         return <CheckoutPage setPage={setPage} setPaymentInfo={setPaymentInfo} />;
       case "payment-success":
-        return <PaymentSuccessPage setPage={setPage} paymentInfo={paymentInfo} onReturnHome={() => setPaymentInfo(null)} />;
+        return <PaymentSuccessPage setPage={setPage} paymentInfo={paymentInfo} setPaymentInfo={setPaymentInfo} onReturnHome={() => setPaymentInfo(null)} />;
       case "admin":
         return <AdminDashboard />;
       default:

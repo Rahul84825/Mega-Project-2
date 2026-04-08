@@ -19,4 +19,19 @@ export const createOrder = async (payload) => {
   return data;
 };
 
+export const getOrders = async () => {
+  const { data } = await api.get("/orders");
+  return data?.orders || data || [];
+};
+
+export const updateDeliveryStatus = async (payload) => {
+  const { data } = await api.patch("/orders/delivery-status", payload);
+  return data;
+};
+
+export const verifyDeliveryOTP = async (payload) => {
+  const { data } = await api.post("/orders/verify-delivery", payload);
+  return data;
+};
+
 export default api;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import api, { getProducts } from "../services/api";
+import api, { getOrders, getProducts, updateDeliveryStatus, verifyDeliveryOTP } from "../services/api";
 import { socket } from "../services/socket";
 
 export default function AdminDashboard() {
@@ -8,6 +8,8 @@ export default function AdminDashboard() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [deliveryOtpByOrder, setDeliveryOtpByOrder] = useState({});
+  const [adminNotice, setAdminNotice] = useState("");
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: "", price: "", category: "", stock: "" });
@@ -42,15 +44,49 @@ export default function AdminDashboard() {
     });
   };
 
+  const upsertOrder = (order, highlight = false) => {
+    const orderId = getOrderId(order);
+
+    if (!orderId) {
+      return;
+    }
+
+    setOrders((prev) => {
+      const existingIndex = prev.findIndex((existing) => getOrderId(existing) === orderId);
+
+      if (existingIndex === -1) {
+        return [{ ...order, _id: orderId }, ...prev];
+      }
+
+      return prev.map((existing) => (getOrderId(existing) === orderId ? { ...existing, ...order, _id: orderId } : existing));
+    });
+
+    if (highlight) {
+      setHighlightedOrderId(orderId);
+
+      if (highlightTimerRef.current) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+
+      highlightTimerRef.current = window.setTimeout(() => {
+        setHighlightedOrderId(null);
+      }, 2000);
+    }
+  };
+
+  const showAdminNotice = (text) => {
+    setAdminNotice(text);
+    window.setTimeout(() => setAdminNotice(""), 2500);
+  };
+
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [productsData, ordersResponse] = await Promise.all([
+        const [productsData, ordersData] = await Promise.all([
           getProducts(),
-          api.get("/orders")
+          getOrders()
         ]);
         setProducts(Array.isArray(productsData) ? productsData : []);
-        const ordersData = ordersResponse?.data?.orders || ordersResponse?.data || [];
         setOrders(Array.isArray(ordersData) ? ordersData : []);
       } catch (_error) {
         setProducts([]);
@@ -74,6 +110,15 @@ export default function AdminDashboard() {
       }
 
       triggerNewOrderAlert(order);
+      upsertOrder(order, true);
+    };
+
+    const handleOrderUpdated = (order) => {
+      if (!order || typeof order !== "object" || Array.isArray(order)) {
+        return;
+      }
+
+      upsertOrder(order, true);
     };
 
     socket.auth = { role: "admin" };
@@ -83,10 +128,13 @@ export default function AdminDashboard() {
     }
 
     socket.off("newOrder", handleNewOrder);
+    socket.off("orderUpdated", handleOrderUpdated);
     socket.on("newOrder", handleNewOrder);
+    socket.on("orderUpdated", handleOrderUpdated);
 
     return () => {
       socket.off("newOrder", handleNewOrder);
+      socket.off("orderUpdated", handleOrderUpdated);
       socket.disconnect();
 
       if (highlightTimerRef.current) {
@@ -145,15 +193,73 @@ export default function AdminDashboard() {
     setProducts((prev) => prev.filter((x) => x._id !== id));
   };
 
-  const updateOrderStatus = async (id, status) => {
-    // Placeholder: replace with real admin order status update endpoint.
-    try {
-      await api.patch(`/orders/${id}`, { status });
-    } catch (_error) {
-      // Ignore API error in placeholder mode and update UI optimistically.
+  const markOrderOutForDelivery = async (order) => {
+    const orderId = getOrderId(order);
+
+    if (!orderId) {
+      return;
     }
-    setOrders((prev) => prev.map((x) => (x.id === id || x._id === id ? { ...x, status } : x)));
+
+    try {
+      const response = await updateDeliveryStatus({ orderId, deliveryStatus: "out_for_delivery" });
+
+      if (!response?.success) {
+        throw new Error(response?.message || "Failed to mark order as out for delivery");
+      }
+
+      upsertOrder(response.order || { ...order, deliveryStatus: "out_for_delivery" }, true);
+      showAdminNotice("OTP sent to customer");
+    } catch (error) {
+      showAdminNotice(error?.response?.data?.message || error.message || "Failed to update delivery status");
+    }
   };
+
+  const handleOtpInputChange = (orderId, value) => {
+    setDeliveryOtpByOrder((prev) => ({
+      ...prev,
+      [orderId]: value.replace(/\D/g, "").slice(0, 4)
+    }));
+  };
+
+  const verifyDeliveryOtp = async (order) => {
+    const orderId = getOrderId(order);
+    const otpValue = deliveryOtpByOrder[orderId] || "";
+
+    if (!orderId) {
+      return;
+    }
+
+    if (!otpValue) {
+      showAdminNotice("Enter the OTP first");
+      return;
+    }
+
+    try {
+      const response = await verifyDeliveryOTP({ orderId, otp: otpValue });
+
+      if (!response?.success) {
+        throw new Error(response?.message || "Failed to verify OTP");
+      }
+
+      upsertOrder(response.order || { ...order, deliveryStatus: "delivered", deliveryVerified: true }, true);
+      setDeliveryOtpByOrder((prev) => ({ ...prev, [orderId]: "" }));
+      showAdminNotice("OTP verified. Order marked delivered");
+    } catch (error) {
+      showAdminNotice(error?.response?.data?.message || error.message || "Failed to verify OTP");
+    }
+  };
+
+  const getDeliveryLabel = (status) => ({
+    pending: "Pending",
+    out_for_delivery: "Out for Delivery",
+    delivered: "Delivered"
+  }[status] || "Pending");
+
+  const getDeliveryColor = (status) => ({
+    pending: "#B7950B",
+    out_for_delivery: "#1A5276",
+    delivered: "#2C6E49"
+  }[status] || "#888");
 
   if (!otpVerified) {
     return (
@@ -201,6 +307,12 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+
+        {adminNotice && (
+          <div style={{ marginBottom: 20, padding: "12px 16px", background: "rgba(244,160,36,0.12)", color: "var(--saffron)", border: "1px solid rgba(244,160,36,0.25)", fontSize: 13 }}>
+            {adminNotice}
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: "1px solid rgba(244,160,36,0.15)" }}>
           {["products", "orders"].map((t) => (
@@ -299,6 +411,8 @@ export default function AdminDashboard() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {orders.map((o) => {
                 const orderId = o.id || o._id;
+                const deliveryStatus = o.deliveryStatus || "pending";
+
                 return (
                   <div
                     key={orderId}
@@ -314,33 +428,82 @@ export default function AdminDashboard() {
                       transition: "background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease"
                     }}
                   >
-                    <div style={{ flex: "0 0 100px" }}>
+                    <div style={{ minWidth: 120 }}>
                       <div style={{ fontSize: 11, color: "var(--saffron)", letterSpacing: 1 }}>{orderId}</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>{o.date}</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>{o.items?.length || o.items || 0} items</div>
                     </div>
-                    <div style={{ flex: 1 }}>
+
+                    <div style={{ flex: 1, minWidth: 180 }}>
                       <div style={{ color: "white", fontWeight: 500 }}>{o.customer?.name || o.customer || "Customer"}</div>
-                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{o.items?.length || o.items || 0} items</div>
+                      <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                        <span className="badge" style={{ background: `${getDeliveryColor(deliveryStatus)}22`, color: getDeliveryColor(deliveryStatus), textTransform: "capitalize" }}>
+                          {getDeliveryLabel(deliveryStatus)}
+                        </span>
+                        {o.deliveryVerified && (
+                          <span className="badge" style={{ background: "rgba(44,110,73,0.16)", color: "#2C6E49" }}>
+                            OTP Verified
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="serif" style={{ fontSize: 22, color: "var(--saffron)", fontWeight: 700 }}>₹{o.total || 0}</div>
-                    <select
-                      value={o.status || "Pending"}
-                      onChange={(e) => updateOrderStatus(orderId, e.target.value)}
-                      style={{
-                        background: "transparent",
-                        border: `1.5px solid ${statusColor(o.status || "Pending")}40`,
-                        color: statusColor(o.status || "Pending"),
-                        padding: "8px 14px",
-                        fontSize: 12,
-                        cursor: "pointer",
-                        fontFamily: "DM Sans, sans-serif",
-                        outline: "none"
-                      }}
-                    >
-                      {["Pending", "Processing", "Shipped", "Delivered"].map((s) => (
-                        <option key={s} style={{ background: "#1A0F0A" }}>{s}</option>
-                      ))}
-                    </select>
+
+                    <div className="serif" style={{ fontSize: 22, color: "var(--saffron)", fontWeight: 700 }}>
+                      ₹{o.total || o.amount || 0}
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 260 }}>
+                      <button
+                        onClick={() => markOrderOutForDelivery(o)}
+                        disabled={deliveryStatus === "out_for_delivery" || deliveryStatus === "delivered"}
+                        style={{
+                          background: deliveryStatus === "out_for_delivery" || deliveryStatus === "delivered" ? "rgba(255,255,255,0.08)" : "var(--saffron)",
+                          border: "none",
+                          color: deliveryStatus === "out_for_delivery" || deliveryStatus === "delivered" ? "rgba(255,255,255,0.45)" : "#1A0F0A",
+                          padding: "10px 14px",
+                          fontSize: 12,
+                          cursor: deliveryStatus === "out_for_delivery" || deliveryStatus === "delivered" ? "not-allowed" : "pointer",
+                          fontFamily: "DM Sans, sans-serif",
+                          fontWeight: 700
+                        }}
+                      >
+                        {deliveryStatus === "out_for_delivery" ? "OTP Sent" : deliveryStatus === "delivered" ? "Delivered" : "Mark as Out for Delivery"}
+                      </button>
+
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          value={deliveryOtpByOrder[orderId] || ""}
+                          onChange={(e) => handleOtpInputChange(orderId, e.target.value)}
+                          placeholder="Enter OTP"
+                          inputMode="numeric"
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(244,160,36,0.18)",
+                            color: "white",
+                            padding: "10px 12px",
+                            fontSize: 13,
+                            outline: "none"
+                          }}
+                        />
+
+                        <button
+                          onClick={() => verifyDeliveryOtp(o)}
+                          style={{
+                            background: "transparent",
+                            border: "1px solid rgba(244,160,36,0.35)",
+                            color: "var(--saffron)",
+                            padding: "10px 14px",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            fontFamily: "DM Sans, sans-serif",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          Verify OTP
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 );
               })}

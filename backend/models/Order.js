@@ -26,6 +26,21 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: "paid"
     },
+    deliveryStatus: {
+      type: String,
+      enum: ["pending", "out_for_delivery", "delivered"],
+      default: "pending"
+    },
+    deliveryOTP: {
+      type: String
+    },
+    otpExpiresAt: {
+      type: Date
+    },
+    deliveryVerified: {
+      type: Boolean,
+      default: false
+    },
     razorpayOrderId: {
       type: String,
       unique: true,

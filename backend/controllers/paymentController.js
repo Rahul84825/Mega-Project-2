@@ -46,6 +46,15 @@ const extractOrderData = (body) => {
   return {};
 };
 
+const sanitizeOrderPayload = (orderData) => {
+  const sanitizedOrderData = { ...orderData };
+  delete sanitizedOrderData.deliveryStatus;
+  delete sanitizedOrderData.deliveryOTP;
+  delete sanitizedOrderData.otpExpiresAt;
+  delete sanitizedOrderData.deliveryVerified;
+  return sanitizedOrderData;
+};
+
 export const createPaymentOrder = async (req, res) => {
   try {
     const { amount, currency = "INR", receipt } = req.body;
@@ -130,7 +139,7 @@ export const verifyPayment = async (req, res) => {
     }
 
     const createdOrder = await Order.create({
-      ...orderData,
+      ...sanitizeOrderPayload(orderData),
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency || orderData.currency || "INR",
       status: orderData.status || "Pending",
