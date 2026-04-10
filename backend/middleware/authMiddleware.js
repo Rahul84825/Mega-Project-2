@@ -18,12 +18,12 @@ export const protect = (req, res, next) => {
   }
 };
 
-export const requireAdmin = (req, res, next) => {
-  const role = req.user?.role || req.user?.isAdmin;
-
-  if (role === "admin" || role === true) {
+export const adminOnly = (req, res, next) => {
+  if (req.user?.isAdmin) {
     return next();
   }
 
   return res.status(403).json({ message: "Admin access required" });
 };
+
+export const requireAdmin = adminOnly;

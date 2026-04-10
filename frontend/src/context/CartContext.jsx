@@ -22,6 +22,8 @@ function cartReducer(state, action) {
       );
     case "CLEAR":
       return [];
+    case "REPLACE":
+      return Array.isArray(action.payload) ? action.payload : state;
     default:
       return state;
   }
@@ -42,8 +44,30 @@ export function CartProvider({ children }) {
   const [cart, dispatch] = useReducer(cartReducer, [], loadInitialCart);
 
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch (_error) {
+      // Ignore write failures in constrained environments.
+    }
   }, [cart]);
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== CART_STORAGE_KEY) {
+        return;
+      }
+
+      try {
+        const nextCart = event.newValue ? JSON.parse(event.newValue) : [];
+        dispatch({ type: "REPLACE", payload: Array.isArray(nextCart) ? nextCart : [] });
+      } catch (_error) {
+        dispatch({ type: "REPLACE", payload: [] });
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   return (
     <CartContext.Provider value={{ cart, dispatch }}>

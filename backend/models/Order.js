@@ -32,10 +32,20 @@ const orderSchema = new mongoose.Schema(
       default: "pending"
     },
     deliveryOTP: {
-      type: String
+      type: String,
+      select: false
     },
     otpExpiresAt: {
-      type: Date
+      type: Date,
+      select: false
+    },
+    otpResendCount: {
+      type: Number,
+      default: 0
+    },
+    otpLastSentAt: {
+      type: Date,
+      default: null
     },
     deliveryVerified: {
       type: Boolean,
@@ -61,6 +71,22 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+orderSchema.set("toJSON", {
+  transform: (_doc, ret) => {
+    delete ret.deliveryOTP;
+    delete ret.otpExpiresAt;
+    return ret;
+  }
+});
+
+orderSchema.set("toObject", {
+  transform: (_doc, ret) => {
+    delete ret.deliveryOTP;
+    delete ret.otpExpiresAt;
+    return ret;
+  }
+});
 
 const Order = mongoose.model("Order", orderSchema);
 

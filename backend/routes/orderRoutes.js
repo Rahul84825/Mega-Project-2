@@ -1,10 +1,22 @@
 import { Router } from "express";
-import { getOrders, updateDeliveryStatus, verifyDeliveryOTP } from "../controllers/orderController.js";
+import { getOrders, resendDeliveryOTP, updateDeliveryStatus, verifyDeliveryOTP } from "../controllers/orderController.js";
+import { adminOnly, protect } from "../middleware/authMiddleware.js";
+import { otpLimiter, otpResendLimiter } from "../middleware/rateLimiters.js";
+import { validateRequest } from "../middleware/validateRequest.js";
+import {
+	deliveryOtpValidation,
+	deliveryStatusValidation,
+	orderCreateValidation,
+	resendDeliveryOtpValidation
+} from "../validators/index.js";
+import { createOrder } from "../controllers/orderController.js";
 
 const router = Router();
 
 router.get("/", getOrders);
-router.post("/verify-delivery", verifyDeliveryOTP);
-router.patch("/delivery-status", updateDeliveryStatus);
+router.post("/", orderCreateValidation, validateRequest, createOrder);
+router.post("/verify-delivery", otpLimiter, deliveryOtpValidation, validateRequest, verifyDeliveryOTP);
+router.post("/resend-otp", otpResendLimiter, resendDeliveryOtpValidation, validateRequest, resendDeliveryOTP);
+router.patch("/delivery-status", protect, adminOnly, deliveryStatusValidation, validateRequest, updateDeliveryStatus);
 
 export default router;

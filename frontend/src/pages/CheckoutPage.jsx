@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
-import api from "../services/api";
+import api, { getApiErrorMessage } from "../services/api";
 
 let razorpayScriptPromise;
 
@@ -45,6 +45,7 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
   const [step, setStep] = useState(1);
   const [processing, setProcessing] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const [scriptLoading, setScriptLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const isMountedRef = useRef(true);
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -55,6 +56,7 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
     loadRazorpayScript().then((loaded) => {
       if (isMountedRef.current) {
         setScriptReady(loaded);
+        setScriptLoading(false);
       }
     });
 
@@ -64,6 +66,19 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
   }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const requiredAddressFields = ["name", "phone", "email", "address", "city", "pincode", "state"];
+  const isAddressValid = requiredAddressFields.every((key) => String(form[key] || "").trim().length > 0);
+
+  const continueToPayment = () => {
+    if (!isAddressValid) {
+      setErrorMessage("Please complete all delivery details before continuing.");
+      return;
+    }
+
+    setErrorMessage("");
+    setStep(2);
+  };
 
   const handlePayment = async () => {
     if (!scriptReady || !window.Razorpay) {
@@ -137,10 +152,10 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
 
             dispatch({ type: "CLEAR" });
             setPaymentInfo?.(verifyResponse.order);
-            setPage("payment-success");
+            setPage("order-success");
           } catch (verifyError) {
             if (isMountedRef.current) {
-              setErrorMessage(verifyError?.response?.data?.message || verifyError.message || "Payment verification failed.");
+              setErrorMessage(getApiErrorMessage(verifyError, "Payment verification failed."));
             }
           } finally {
             if (isMountedRef.current) {
@@ -160,7 +175,7 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
       razorpay.open();
     } catch (error) {
       if (isMountedRef.current) {
-        setErrorMessage(error?.response?.data?.message || error.message || "Could not start payment.");
+        setErrorMessage(getApiErrorMessage(error, "Could not start payment."));
       }
     } finally {
       if (isMountedRef.current) {
@@ -240,7 +255,7 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
                     </select>
                   </div>
                 </div>
-                <button className="btn-primary" onClick={() => setStep(2)} style={{ marginTop: 28, padding: "14px 36px" }}>Continue to Payment →</button>
+                <button className="btn-primary" disabled={processing} onClick={continueToPayment} style={{ marginTop: 28, padding: "14px 36px", opacity: processing ? 0.7 : 1, cursor: processing ? "not-allowed" : "pointer" }}>Continue to Payment →</button>
               </>
             ) : (
               <>
@@ -278,12 +293,12 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
                       Processing...
                     </>
                   ) : (
-                    <>{scriptReady ? `💳 Pay ₹${total} via Razorpay` : "Loading Razorpay..."}</>
+                    <>{scriptReady ? `💳 Pay ₹${total} via Razorpay` : scriptLoading ? "Loading Razorpay..." : "Payment Gateway Unavailable"}</>
                   )}
                 </button>
                 {errorMessage && <div style={{ marginTop: 12, color: "#B00020", fontSize: 13 }}>{errorMessage}</div>}
                 <style>{`@keyframes spin { to { transform:rotate(360deg) } }`}</style>
-                <button className="btn-outline" onClick={() => setStep(1)} style={{ width: "100%", padding: "13px", marginTop: 12, fontSize: 12 }}>← Back to Address</button>
+                <button className="btn-outline" disabled={processing} onClick={() => setStep(1)} style={{ width: "100%", padding: "13px", marginTop: 12, fontSize: 12, opacity: processing ? 0.7 : 1, cursor: processing ? "not-allowed" : "pointer" }}>← Back to Address</button>
               </>
             )}
           </div>

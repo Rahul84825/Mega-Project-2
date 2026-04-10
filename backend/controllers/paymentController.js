@@ -2,6 +2,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import Order from "../models/Order.js";
 import { getIo } from "../socket.js";
+import { logger } from "../utils/logger.js";
 
 const getRazorpayClient = () => {
   const keyId = process.env.RAZORPAY_KEY_ID;
@@ -72,6 +73,11 @@ export const createPaymentOrder = async (req, res) => {
       amount: amountInPaise,
       currency,
       receipt: receipt || `receipt_${Date.now()}`
+    });
+
+    logger.info("Razorpay order created", {
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount
     });
 
     return res.status(201).json({
@@ -157,6 +163,11 @@ export const verifyPayment = async (req, res) => {
     if (io) {
       io.emit("newOrder", createdOrder.toObject());
     }
+
+    logger.info("Payment verified and order created", {
+      orderId: createdOrder._id,
+      razorpayOrderId: razorpay_order_id
+    });
 
     return res.status(200).json({
       success: true,

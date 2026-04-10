@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+.navbar-root {
+	@apply sticky top-0 z-50 w-full border-b border-white/10;
+	background: linear-gradient(135deg, #0f0d0b 0%, #1a0e0d 58%, #2a0d0d 100%);
+}
+
+.nav-link {
+	@apply inline-flex cursor-pointer items-center gap-[3px] whitespace-nowrap border-0 bg-transparent px-[10px] py-[6px] text-[11px] font-bold tracking-[0.13em] transition-colors duration-150;
+}
+
+.nav-link:hover {
+	color: #e8883a;
+	opacity: 0.8;
+}
+
+.icon-btn {
+	@apply relative flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[#f5ede0] transition-colors duration-150 hover:bg-white/5;
+}
+
+.dropdown-card {
+	@apply rounded-[14px] border transition-all duration-200;
+	background: linear-gradient(180deg, #1a1611 0%, #140c0b 100%);
+	border-color: rgba(201, 168, 76, 0.25);
+}
+
+.mobile-item {
+	@apply mb-[2px] flex w-full cursor-pointer items-center rounded-[10px] border-0 px-[14px] py-[13px] text-xs font-bold tracking-[0.14em] transition-colors duration-150;
+}
+
+.mobile-item:hover {
+	@apply bg-white/5;
+}

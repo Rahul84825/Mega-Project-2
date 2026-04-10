@@ -2,9 +2,12 @@ import crypto from "crypto";
 import Order from "../models/Order.js";
 import { getIo } from "../socket.js";
 import { sendDeliveryOTP } from "../utils/sendOTP.js";
+import { logger } from "../utils/logger.js";
 
 const DELIVERY_STATUSES = ["pending", "out_for_delivery", "delivered"];
 const DELIVERY_OTP_TTL_MINUTES = 15;
+const OTP_RESEND_MIN_INTERVAL_MS = 30 * 1000;
+const OTP_RESEND_MAX_ATTEMPTS = 3;
 
 const isValidOrderPayload = (orderData) => {
   return Boolean(orderData && typeof orderData === "object" && !Array.isArray(orderData));
@@ -43,6 +46,10 @@ export const createOrder = async (req, res) => {
     if (io) {
       io.emit("newOrder", orderData);
     }
+
+    logger.info("Order created", {
+      orderId: orderData._id
+    });
 
     return res.status(201).json({
       success: true,
@@ -104,21 +111,31 @@ export const updateDeliveryStatus = async (req, res) => {
 
     if (deliveryStatus === "out_for_delivery") {
       const deliveryOTP = generateDeliveryOTP();
+      const now = new Date();
       order.deliveryOTP = deliveryOTP;
       order.otpExpiresAt = new Date(Date.now() + DELIVERY_OTP_TTL_MINUTES * 60 * 1000);
+      order.otpResendCount = 0;
+      order.otpLastSentAt = now;
       order.deliveryVerified = false;
 
       await order.save();
       await sendDeliveryOTP(order, deliveryOTP);
+      logger.info("Delivery OTP generated", {
+        orderId: String(order._id)
+      });
     } else if (deliveryStatus === "delivered") {
       order.deliveryVerified = true;
       order.deliveryOTP = undefined;
       order.otpExpiresAt = undefined;
+      order.otpResendCount = 0;
+      order.otpLastSentAt = undefined;
       await order.save();
     } else {
       order.deliveryVerified = false;
       order.deliveryOTP = undefined;
       order.otpExpiresAt = undefined;
+      order.otpResendCount = 0;
+      order.otpLastSentAt = undefined;
       await order.save();
     }
 
@@ -128,6 +145,11 @@ export const updateDeliveryStatus = async (req, res) => {
     if (io) {
       io.emit("orderUpdated", sanitizedOrder);
     }
+
+    logger.info("Delivery status updated", {
+      orderId: String(order._id),
+      deliveryStatus
+    });
 
     return res.status(200).json({
       success: true,
@@ -153,7 +175,7 @@ export const verifyDeliveryOTP = async (req, res) => {
       });
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).select("+deliveryOTP +otpExpiresAt");
 
     if (!order) {
       return res.status(404).json({
@@ -173,6 +195,8 @@ export const verifyDeliveryOTP = async (req, res) => {
       order.deliveryOTP = undefined;
       order.otpExpiresAt = undefined;
       order.deliveryVerified = false;
+      order.otpResendCount = 0;
+      order.otpLastSentAt = undefined;
       await order.save();
 
       return res.status(400).json({
@@ -192,6 +216,8 @@ export const verifyDeliveryOTP = async (req, res) => {
     order.deliveryStatus = "delivered";
     order.deliveryOTP = undefined;
     order.otpExpiresAt = undefined;
+    order.otpResendCount = 0;
+    order.otpLastSentAt = undefined;
     await order.save();
 
     const io = getIo();
@@ -200,6 +226,10 @@ export const verifyDeliveryOTP = async (req, res) => {
     if (io) {
       io.emit("orderUpdated", sanitizedOrder);
     }
+
+    logger.info("Delivery OTP verified", {
+      orderId: String(order._id)
+    });
 
     return res.status(200).json({
       success: true,
@@ -210,6 +240,102 @@ export const verifyDeliveryOTP = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to verify delivery OTP"
+    });
+  }
+};
+
+export const resendDeliveryOTP = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "orderId is required"
+      });
+    }
+
+    const order = await Order.findById(orderId).select("+deliveryOTP +otpExpiresAt");
+
+    if (!order) {
+      logger.warn("Delivery OTP resend failed: order not found", { orderId });
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    if (order.deliveryStatus !== "out_for_delivery") {
+      logger.warn("Delivery OTP resend denied: invalid order state", {
+        orderId: String(order._id),
+        deliveryStatus: order.deliveryStatus
+      });
+      return res.status(400).json({
+        success: false,
+        message: "Delivery OTP can only be resent when order is out for delivery"
+      });
+    }
+
+    if ((order.otpResendCount || 0) >= OTP_RESEND_MAX_ATTEMPTS) {
+      logger.warn("Delivery OTP resend denied: max attempts reached", {
+        orderId: String(order._id),
+        otpResendCount: order.otpResendCount || 0
+      });
+      return res.status(429).json({
+        success: false,
+        message: "Maximum resend attempts reached"
+      });
+    }
+
+    if (order.otpLastSentAt) {
+      const elapsedMs = Date.now() - new Date(order.otpLastSentAt).getTime();
+      if (elapsedMs < OTP_RESEND_MIN_INTERVAL_MS) {
+        logger.warn("Delivery OTP resend denied: cooldown active", {
+          orderId: String(order._id),
+          elapsedMs
+        });
+        return res.status(429).json({
+          success: false,
+          message: "Please wait before requesting OTP again"
+        });
+      }
+    }
+
+    const deliveryOTP = generateDeliveryOTP();
+    const now = new Date();
+    order.deliveryOTP = deliveryOTP;
+    order.otpExpiresAt = new Date(now.getTime() + DELIVERY_OTP_TTL_MINUTES * 60 * 1000);
+    order.otpResendCount = (order.otpResendCount || 0) + 1;
+    order.otpLastSentAt = now;
+    order.deliveryVerified = false;
+    await order.save();
+
+    await sendDeliveryOTP(order, deliveryOTP);
+    logger.info("Delivery OTP resent", {
+      orderId: String(order._id),
+      otpResendCount: order.otpResendCount
+    });
+
+    const io = getIo();
+    const sanitizedOrder = sanitizeOrder(order);
+
+    if (io) {
+      io.emit("orderUpdated", sanitizedOrder);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP resent successfully",
+      order: sanitizedOrder
+    });
+  } catch (error) {
+    logger.error("Delivery OTP resend failed", {
+      message: error.message
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to resend delivery OTP"
     });
   }
 };
