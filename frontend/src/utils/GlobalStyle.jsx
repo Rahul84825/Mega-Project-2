@@ -6,18 +6,23 @@ export default function GlobalStyle() {
     style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
       :root {
-        --saffron: #F4A024;
-        --burgundy: #8B1A1A;
-        --cream: #FDF8F0;
-        --gold: #D4A017;
-        --charcoal: #2C1810;
-        --muted: #8B7355;
+        --saffron: #E8883A;
+        --burgundy: #6A350F;
+        --cream: #FFF3E0;
+        --gold: #C9A84C;
+        --charcoal: #3B2417;
+        --muted: #7A634A;
+        --surface: #FFF8EE;
+        --surface-strong: #FFF1D9;
+        --surface-border: rgba(83, 44, 22, 0.14);
       }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--charcoal); }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { background: var(--cream); }
+      body { margin: 0; font-family: 'DM Sans', sans-serif; background: linear-gradient(180deg, #fff6e9 0%, #fff3e0 100%); color: var(--charcoal); }
+      #root { min-height: 100vh; background: linear-gradient(180deg, #fff6e9 0%, #fff3e0 100%); }
       h1,h2,h3,.serif { font-family: 'Cormorant Garamond', serif; }
       .card-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-      .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(139,26,26,0.15); }
+      .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(83,44,22,0.12); }
       .btn-primary {
         background: var(--burgundy);
         color: white;
@@ -31,7 +36,7 @@ export default function GlobalStyle() {
         padding: 12px 24px;
         transition: all 0.25s ease;
       }
-      .btn-primary:hover { background: var(--charcoal); }
+      .btn-primary:hover { background: #4f280c; }
       .btn-outline {
         background: transparent;
         border: 1.5px solid var(--burgundy);
@@ -48,8 +53,8 @@ export default function GlobalStyle() {
       .btn-outline:hover { background: var(--burgundy); color: white; }
       .input-field {
         width: 100%;
-        border: 1.5px solid #E8DDD0;
-        background: white;
+        border: 1.5px solid var(--surface-border);
+        background: var(--surface);
         padding: 12px 16px;
         font-family: 'DM Sans', sans-serif;
         font-size: 14px;
@@ -71,7 +76,7 @@ export default function GlobalStyle() {
       .ornament { color: var(--saffron); font-size: 20px; }
       .pattern-bg {
         background-color: var(--cream);
-        background-image: radial-gradient(circle, rgba(212,160,23,0.08) 1px, transparent 1px);
+        background-image: radial-gradient(circle, rgba(201,168,76,0.09) 1px, transparent 1px);
         background-size: 24px 24px;
       }
       ::-webkit-scrollbar { width: 5px; }

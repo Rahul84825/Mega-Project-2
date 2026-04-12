@@ -1,8 +1,13 @@
 import axios from "axios";
 
+const API = import.meta.env.VITE_API_URL;
+const API_ROOT = (API || "http://localhost:5000").replace(/\/+$/, "").replace(/\/api$/i, "");
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+  baseURL: `${API_ROOT}/api`
 });
+
+const authUrl = (path) => `${API_ROOT}/api/auth${path}`;
 
 export const setApiAuthToken = (token) => {
   if (token) {
@@ -26,18 +31,63 @@ export const getProducts = async () => {
   return data?.products || data || [];
 };
 
+export const getCategories = async () => {
+  const { data } = await api.get("/categories");
+  return data?.categories || data || [];
+};
+
+export const createCategory = async (payload) => {
+  const { data } = await api.post("/categories", payload);
+  return data?.category || data || null;
+};
+
+export const updateCategory = async (slug, payload) => {
+  const { data } = await api.put(`/categories/${slug}`, payload);
+  return data?.category || data || null;
+};
+
+export const deleteCategory = async (slug) => {
+  const { data } = await api.delete(`/categories/${slug}`);
+  return data;
+};
+
+export const getHeroSlides = async () => {
+  const { data } = await api.get("/hero-slides");
+  return data?.slides || data || [];
+};
+
+export const getHeroSlidesAdmin = async () => {
+  const { data } = await api.get("/hero-slides/admin");
+  return data?.slides || data || [];
+};
+
+export const createHeroSlide = async (payload) => {
+  const { data } = await api.post("/hero-slides", payload);
+  return data?.slide || data || null;
+};
+
+export const updateHeroSlide = async (id, payload) => {
+  const { data } = await api.patch(`/hero-slides/${id}`, payload);
+  return data?.slide || data || null;
+};
+
+export const deleteHeroSlide = async (id) => {
+  const { data } = await api.delete(`/hero-slides/${id}`);
+  return data;
+};
+
 export const loginUser = async (payload) => {
-  const { data } = await api.post("/auth/login", payload);
+  const { data } = await api.post(authUrl("/login"), payload);
   return data;
 };
 
 export const registerUser = async (payload) => {
-  const { data } = await api.post("/auth/register", payload);
+  const { data } = await api.post(authUrl("/register"), payload);
   return data;
 };
 
 export const loginWithGoogle = async (payload) => {
-  const { data } = await api.post("/auth/google", payload);
+  const { data } = await api.post(authUrl("/google"), payload);
   return data;
 };
 

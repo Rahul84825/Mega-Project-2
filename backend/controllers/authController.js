@@ -26,6 +26,13 @@ const buildUserPayload = (user) => ({
   updatedAt: user.updatedAt
 });
 
+const buildLoginUserPayload = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  isAdmin: user.isAdmin === true
+});
+
 const getGoogleClient = () => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
@@ -95,7 +102,7 @@ export const loginUser = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       token,
-      user: buildUserPayload(user)
+      user: buildLoginUserPayload(user)
     });
   } catch (error) {
     return next(error);

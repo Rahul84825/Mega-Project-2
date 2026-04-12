@@ -20,19 +20,19 @@ export const googleAuthValidation = [
 
 export const productValidation = [
   body("name").trim().isLength(safeString(2, 120)).withMessage("Product name is required").escape(),
-  body("price").isFloat({ gt: 0 }).withMessage("Price must be a number greater than zero").toFloat(),
-  body("category").trim().isLength(safeString(2, 60)).withMessage("Category is required").escape(),
+  body("price").optional({ nullable: true }).isFloat({ gt: 0 }).withMessage("Price must be a number greater than zero").toFloat(),
+  body("category").trim().matches(/^[a-z0-9-]{1,80}$/).withMessage("Category must be a valid slug"),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a non-negative integer").toInt(),
-  body("image").optional().isURL().withMessage("Image must be a valid URL").trim(),
+  body("image").optional({ checkFalsy: true }).isURL().withMessage("Image must be a valid URL").trim(),
   body("description").optional().isLength(safeString(0, 500)).withMessage("Description is too long").trim().escape()
 ];
 
 export const updateProductValidation = [
   body("name").optional().trim().isLength(safeString(2, 120)).withMessage("Product name must be between 2 and 120 characters").escape(),
   body("price").optional().isFloat({ gt: 0 }).withMessage("Price must be a number greater than zero").toFloat(),
-  body("category").optional().trim().isLength(safeString(2, 60)).withMessage("Category must be between 2 and 60 characters").escape(),
+  body("category").optional().trim().matches(/^[a-z0-9-]{1,80}$/).withMessage("Category must be a valid slug"),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a non-negative integer").toInt(),
-  body("image").optional().isURL().withMessage("Image must be a valid URL").trim(),
+  body("image").optional({ checkFalsy: true }).isURL().withMessage("Image must be a valid URL").trim(),
   body("description").optional().isLength(safeString(0, 500)).withMessage("Description is too long").trim().escape()
 ];
 
@@ -72,4 +72,23 @@ export const deliveryOtpValidation = [
 
 export const resendDeliveryOtpValidation = [
   body("orderId").trim().matches(mongoIdPattern).withMessage("orderId must be a valid MongoDB id")
+];
+
+export const categoryCreateValidation = [
+  body("name").trim().isLength(safeString(2, 60)).withMessage("Category name must be between 2 and 60 characters"),
+  body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),
+  body("isFeatured").optional().isBoolean().withMessage("isFeatured must be a boolean").toBoolean()
+];
+
+export const categoryUpdateValidation = [
+  body("name").optional().trim().isLength(safeString(2, 60)).withMessage("Category name must be between 2 and 60 characters"),
+  body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),
+  body("isFeatured").optional().isBoolean().withMessage("isFeatured must be a boolean").toBoolean()
+];
+
+export const categoryIdValidation = [
+  param("id")
+    .trim()
+    .matches(/^[0-9a-fA-F]{24}$/)
+    .withMessage("Invalid category id")
 ];

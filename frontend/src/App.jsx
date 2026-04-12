@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import AdminHeroBannerManager from "./admin/AdminHeroBannerManager";
+import AdminCategories from "./admin/AdminCategories";
+import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/AdminDashboard";
+import AdminOffers from "./admin/AdminOffers";
+import AdminOrders from "./admin/AdminOrders";
+import AdminProductForm from "./admin/AdminProductForm";
+import AdminProducts from "./admin/AdminProducts";
+import CartDrawer from "./components/CartDrawer";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { CartProvider } from "./context/CartContext";
+import { ProductProvider } from "./context/ProductContext";
 import Login from "./pages/Login";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -19,6 +28,7 @@ export default function App() {
 
   const [page, setPage] = useState(getInitialPage);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [products, setProducts] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState(() => {
     try {
@@ -69,6 +79,18 @@ export default function App() {
   };
 
   const renderPage = () => {
+    const renderCatalogPage = (category, title) => (
+      <HomePage
+        setPage={setPageWithRoute}
+        setSelectedProductId={setSelectedProductId}
+        products={products}
+        setProducts={setProducts}
+        showHero={false}
+        initialCategory={category}
+        catalogTitle={title}
+      />
+    );
+
     switch (page) {
       case "home":
         return (
@@ -79,6 +101,10 @@ export default function App() {
             setProducts={setProducts}
           />
         );
+      case "all":
+        return renderCatalogPage("all", "All Products");
+      case "category":
+        return renderCatalogPage(selectedCategory || "all", "Products");
       case "product":
         return selectedProductId ? (
           <ProductDetailPage
@@ -123,18 +149,31 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
-          path="/admin/*"
+          path="/admin"
           element={
             <ProtectedRoute adminOnly>
-              <AdminDashboard />
+              <ProductProvider>
+                <AdminLayout />
+              </ProductProvider>
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="products/add" element={<AdminProductForm mode="add" />} />
+          <Route path="products/edit/:id" element={<AdminProductForm mode="edit" />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="offers" element={<AdminOffers />} />
+          <Route path="hero-banners" element={<AdminHeroBannerManager />} />
+          <Route path="brands" element={<Navigate to="/admin/products" replace />} />
+        </Route>
         <Route
           path="*"
           element={
             <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
-              <Navbar page={page} setPage={setPageWithRoute} />
+              <Navbar page={page} selectedCategory={selectedCategory} setPage={setPageWithRoute} setCategory={setSelectedCategory} />
+              <CartDrawer setPage={setPageWithRoute} />
               {renderPage()}
               <footer style={{ background: "var(--charcoal)", padding: "32px 32px", textAlign: "center" }}>
                 <div className="serif" style={{ fontSize: 22, color: "var(--saffron)", marginBottom: 8 }}>Mithai World</div>

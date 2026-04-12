@@ -37,7 +37,13 @@ export default function Login() {
   const location = useLocation();
   const { login, isAuthenticated, isAdmin } = useAuth();
 
-  const destination = location.state?.from || (isAdmin ? "/admin" : "/");
+  const destination = location.state?.from || (isAdmin === true ? "/admin" : "/");
+
+  const clearStaleAuth = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("mithai-world-auth");
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -67,12 +73,18 @@ export default function Login() {
             try {
               setGoogleLoading(true);
               setError("");
+              clearStaleAuth();
               const data = await loginWithGoogle({ idToken: response.credential });
+              console.log("Login response:", data);
               if (data?.token && data?.user) {
                 login(data.user, data.token);
-                navigate(data.user?.isAdmin ? "/admin" : "/", { replace: true });
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+                console.log("Stored user:", localStorage.getItem("user"));
+                navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
               }
             } catch (googleError) {
+              console.error("Google login failed:", googleError);
               if (isMounted) {
                 setError(getApiErrorMessage(googleError, "Google login failed."));
               }
@@ -112,13 +124,19 @@ export default function Login() {
     try {
       setLoading(true);
       setError("");
+      clearStaleAuth();
       const data = await loginUser(form);
+      console.log("Login response:", data);
 
       if (data?.token && data?.user) {
         login(data.user, data.token);
-        navigate(data.user?.isAdmin ? "/admin" : "/", { replace: true });
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        console.log("Stored user:", localStorage.getItem("user"));
+        navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
       }
     } catch (submitError) {
+      console.error("Login failed:", submitError);
       setError(getApiErrorMessage(submitError, "Unable to sign in."));
     } finally {
       setLoading(false);

@@ -80,6 +80,65 @@ export const getOrders = async (_req, res) => {
   }
 };
 
+export const updateOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payload = { ...req.body };
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    if (payload.status) {
+      order.status = payload.status;
+    }
+
+    if (payload.paymentStatus) {
+      order.paymentStatus = payload.paymentStatus;
+    }
+
+    if (payload.deliveryStatus) {
+      order.deliveryStatus = payload.deliveryStatus;
+    }
+
+    if (typeof payload.deliveryVerified === "boolean") {
+      order.deliveryVerified = payload.deliveryVerified;
+    }
+
+    if (payload.status === "delivered" || payload.deliveryStatus === "delivered") {
+      order.status = "delivered";
+      order.deliveryStatus = "delivered";
+      order.deliveryVerified = true;
+      order.deliveryOTP = undefined;
+      order.otpExpiresAt = undefined;
+      order.otpResendCount = 0;
+      order.otpLastSentAt = undefined;
+    }
+
+    await order.save();
+
+    const io = getIo();
+    const sanitizedOrder = sanitizeOrder(order);
+    if (io) {
+      io.emit("orderUpdated", sanitizedOrder);
+    }
+
+    return res.status(200).json({
+      success: true,
+      order: sanitizedOrder
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update order"
+    });
+  }
+};
+
 export const updateDeliveryStatus = async (req, res) => {
   try {
     const { orderId, deliveryStatus } = req.body;

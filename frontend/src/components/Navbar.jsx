@@ -11,7 +11,7 @@
  *  • Fully separate mobile bar — no breakpoint conflicts
  */
 
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   Menu,
@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { getCategories } from "../services/api";
 import brandLogo from "../assets/image.png";
 
 /* ─── Design tokens ─────────────────────────────────── */
@@ -39,19 +40,7 @@ const C = {
   muted: "rgba(59,36,23,0.68)",
 };
 
-/* ─── Static data ────────────────────────────────────── */
-const NAV = [
-  { label: "ALL", key: "home" },
-  { label: "SWEETS", key: "sweets" },
-  { label: "SNACKS", key: "snacks" },
-  { label: "NAMKEEN", key: "namkeen" },
-  { label: "BAKERY", key: "bakery" },
-];
-
-const SWEETS = [
-  "Halwa", "Bengali Sweets", "Pedha", "Gulab Jamun", "Sugarfree",
-  "Dryfruit Sweets", "Shrikhand", "Burfi", "Others", "Laddu",
-];
+const toSlug = (value) => String(value || "").trim().toLowerCase();
 
 /* ─── Tiny icon-button helper ────────────────────────── */
 function IBtn({ label, onClick, badge, children }) {
@@ -107,8 +96,8 @@ function IBtn({ label, onClick, badge, children }) {
 /* ═══════════════════════════════════════════════════════
    NAVBAR
 ═══════════════════════════════════════════════════════ */
-export default function Navbar({ page, setPage, setCategory }) {
-  const { cart } = useCart();
+export default function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
+  const { cart, toggleCart } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -118,17 +107,89 @@ export default function Navbar({ page, setPage, setCategory }) {
   const [sweetsOpen, setSweetsOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
   const searchRef = useRef(null);
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const list = await getCategories();
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((item) => ({ name: item?.name || "", slug: toSlug(item?.slug) }))
+          .filter((item) => Boolean(item.name && item.slug));
+        setCategories(normalized);
+      } catch (_error) {
+        setCategories([]);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  const navItems = useMemo(() => [{ name: "ALL PRODUCTS", slug: "all" }, ...categories], [categories]);
+  const sweetsCategory = useMemo(() => categories.find((item) => item.slug === "sweets") || null, [categories]);
+  const normalizedSelectedCategory = toSlug(selectedCategory || "all");
+
   const closeAll = () => { setMobileOpen(false); setSweetsOpen(false); };
-  const go = (key) => { setPage(key); closeAll(); setSearchOpen(false); };
-  const cat = (name) => { setPage("sweets"); setCategory?.(name); closeAll(); setDropOpen(false); };
-  const authAction = isAuthenticated
-    ? () => { logout(); setPage("home"); navigate("/login"); }
-    : () => navigate("/login");
+  const go = (slug) => {
+    const normalizedSlug = toSlug(slug);
+    console.log("[Navbar] Category clicked:", normalizedSlug);
+
+    if (normalizedSlug === "all") {
+      setPage("all");
+      setCategory?.("all");
+    } else {
+      setPage("category");
+      setCategory?.(normalizedSlug);
+    }
+    closeAll();
+    setSearchOpen(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const cat = (slug) => {
+    const normalizedSlug = toSlug(slug);
+    console.log("[Navbar] Category clicked from sweets dropdown:", normalizedSlug);
+    setPage("category");
+    setCategory?.(normalizedSlug);
+    closeAll();
+    setDropOpen(false);
+    setSearchOpen(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleProfileClick = () => {
+    if (isAuthenticated) {
+      setProfileOpen(!profileOpen);
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setPage("home");
+    setProfileOpen(false);
+    navigate("/login");
+  };
 
   /* Nav link style */
-  const nlStyle = (key) => ({
+  const isCategoryActive = (slug) => {
+    if (slug === "all") {
+      return page === "all" || page === "home" || (page === "category" && normalizedSelectedCategory === "all");
+    }
+
+    return (page === "category" && normalizedSelectedCategory === slug) || page === slug;
+  };
+
+  const nlStyle = (slug) => {
+    const active = isCategoryActive(slug);
+    return ({
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
@@ -136,14 +197,15 @@ export default function Navbar({ page, setPage, setCategory }) {
     fontSize: "12px",
     fontWeight: "700",
     letterSpacing: "0.13em",
-    color: page === key ? C.saffron : C.muted,
+    color: active ? C.saffron : C.muted,
     background: "transparent",
     border: "none",
-    borderBottom: page === key ? `2px solid ${C.saffron}` : "2px solid transparent",
+    borderBottom: active ? `2px solid ${C.saffron}` : "2px solid transparent",
     cursor: "pointer",
     whiteSpace: "nowrap",
     transition: "color .15s, border-color .15s",
   });
+  };
 
   return (
     <>
@@ -184,7 +246,7 @@ export default function Navbar({ page, setPage, setCategory }) {
             <button
               type="button"
               aria-label="Go to home"
-              onClick={() => go("home")}
+              onClick={() => go("all")}
               style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
               <img
@@ -202,21 +264,26 @@ export default function Navbar({ page, setPage, setCategory }) {
 
           {/* Col 2 — nav (true center via auto column) */}
           <ul style={{ display: "flex", alignItems: "center", gap: "4px", listStyle: "none", margin: 0, padding: 0 }}>
-            {NAV.map((item) => {
-              if (item.key !== "sweets") return (
-                <li key={item.key}>
-                  <button type="button" className="nl" onClick={() => go(item.key)} style={nlStyle(item.key)}>
-                    {item.label}
+            {navItems.map((item) => {
+              if (item.slug !== "sweets") return (
+                <li key={item.slug}>
+                  <button type="button" className="nl" onClick={() => go(item.slug)} style={nlStyle(item.slug)}>
+                    {item.name.toUpperCase()}
                   </button>
                 </li>
               );
+
+              if (!sweetsCategory) {
+                return null;
+              }
+
               return (
-                <li key={item.key} style={{ position: "relative" }}
+                <li key={item.slug} style={{ position: "relative" }}
                   onMouseEnter={() => setDropOpen(true)}
                   onMouseLeave={() => setDropOpen(false)}
                 >
                   <button type="button" className="nl" onClick={() => go("sweets")} style={nlStyle("sweets")}>
-                    SWEETS
+                    {sweetsCategory.name.toUpperCase()}
                     <ChevronDown size={11} style={{ transform: dropOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s", flexShrink: 0 }} />
                   </button>
 
@@ -237,12 +304,11 @@ export default function Navbar({ page, setPage, setCategory }) {
                     transition: "opacity .18s, transform .18s, visibility .18s",
                   }}>
                     <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.18em", color: C.gold, textTransform: "uppercase", marginBottom: "14px" }}>
-                      Sweet Categories
+                      Sweet Collections
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "5px" }}>
-                      {SWEETS.map((name) => (
-                        <button key={name} type="button" className="dc"
-                          onClick={() => cat(name)}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "5px" }}>
+                      <button key={sweetsCategory.slug} type="button" className="dc"
+                          onClick={() => cat(sweetsCategory.slug)}
                           style={{
                             padding: "10px 8px", borderRadius: "8px", border: "none",
                             background: "transparent", color: C.cream,
@@ -250,9 +316,8 @@ export default function Navbar({ page, setPage, setCategory }) {
                             cursor: "pointer", transition: "background .12s, color .12s, box-shadow .12s",
                           }}
                         >
-                          {name}
+                          {sweetsCategory.name}
                         </button>
-                      ))}
                     </div>
                   </div>
                 </li>
@@ -289,13 +354,79 @@ export default function Navbar({ page, setPage, setCategory }) {
               />
             </div>
 
-            <IBtn label="Cart" onClick={() => go("cart")} badge={qty}>
+            <IBtn label="Cart" onClick={() => { toggleCart(); }} badge={qty}>
               <ShoppingBag size={17} />
             </IBtn>
 
-            <IBtn label={isAuthenticated ? "Logout" : "Login"} onClick={authAction}>
-              <User size={17} />
-            </IBtn>
+            <div style={{ position: "relative" }}>
+              <IBtn label={isAuthenticated ? "Profile" : "Login"} onClick={handleProfileClick}>
+                <User size={17} />
+              </IBtn>
+
+              {isAuthenticated && (
+                <div style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  background: C.bgCard,
+                  border: `1px solid ${C.borderGold}`,
+                  borderRadius: "10px",
+                  minWidth: "200px",
+                  zIndex: 1000,
+                  opacity: profileOpen ? 1 : 0,
+                  visibility: profileOpen ? "visible" : "hidden",
+                  transition: "opacity .18s, visibility .18s",
+                  overflow: "hidden",
+                  boxShadow: profileOpen ? "0 8px 24px rgba(0,0,0,0.12)" : "none",
+                }}>
+                  <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, fontSize: "13px", color: C.cream }}>
+                    <div style={{ fontWeight: "600" }}>{user?.name || "User"}</div>
+                    <div style={{ fontSize: "11px", color: C.muted, marginTop: "4px" }}>{user?.email}</div>
+                  </div>
+                  {user?.isAdmin === true && (
+                    <button
+                      type="button"
+                      onClick={() => { setProfileOpen(false); navigate("/admin"); }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 16px",
+                        background: "transparent",
+                        border: "none",
+                        textAlign: "left",
+                        color: C.cream,
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        transition: "background .15s",
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = C.bgActive}
+                      onMouseLeave={(e) => e.target.style.background = "transparent"}
+                    >
+                      📊 Admin Dashboard
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      background: "transparent",
+                      border: "none",
+                      textAlign: "left",
+                      color: "#c41e3a",
+                      fontSize: "13px",
+                      fontWeight: "500",
+                      cursor: "pointer",
+                      transition: "background .15s",
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = "rgba(196, 30, 58, 0.08)"}
+                    onMouseLeave={(e) => e.target.style.background = "transparent"}
+                  >
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
 
             {isAuthenticated && (
               <span style={{
@@ -315,7 +446,7 @@ export default function Navbar({ page, setPage, setCategory }) {
             MOBILE BAR  (below lg)
         ════════════════════════════════════════ */}
         <div className="mw-mb" style={{ alignItems: "center", justifyContent: "space-between", height: "92px", padding: "0 16px" }}>
-          <button type="button" onClick={() => go("home")}
+          <button type="button" onClick={() => go("all")}
             style={{ display: "flex", alignItems: "center", gap: "10px", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             <img
@@ -329,10 +460,10 @@ export default function Navbar({ page, setPage, setCategory }) {
             <IBtn label="Search" onClick={() => setSearchOpen((v) => !v)}>
               <Search size={17} />
             </IBtn>
-            <IBtn label="Cart" onClick={() => go("cart")} badge={qty}>
+            <IBtn label="Cart" onClick={() => { toggleCart(); }} badge={qty}>
               <ShoppingBag size={17} />
             </IBtn>
-            <IBtn label={isAuthenticated ? "Logout" : "Login"} onClick={authAction}>
+            <IBtn label={isAuthenticated ? "Profile" : "Login"} onClick={() => { if(isAuthenticated) setProfileOpen(!profileOpen); else navigate("/login"); }}>
               <User size={17} />
             </IBtn>
             <IBtn label="Menu" onClick={() => setMobileOpen((v) => !v)}>
@@ -342,17 +473,18 @@ export default function Navbar({ page, setPage, setCategory }) {
         </div>
 
         {/* Mobile search bar */}
-        <div style={{
+        <div className="mw-mb" style={{
           overflow: "hidden",
           maxHeight: searchOpen ? "70px" : "0",
           transition: "max-height .22s ease",
           borderTop: searchOpen ? `1px solid ${C.border}` : "none",
+          width: "100%",
         }}>
-          <div style={{ padding: "10px 16px" }}>
+          <div style={{ padding: "10px 16px", width: "100%" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: "8px",
               background: "rgba(255,255,255,0.78)", borderRadius: "10px",
-              padding: "0 12px", height: "40px", border: `1px solid ${C.border}`,
+              padding: "0 12px", height: "40px", border: `1px solid ${C.border}`, width: "100%",
             }}>
               <Search size={15} color={C.muted} />
               <input className="si" placeholder="Search sweets, snacks…" style={{ width: "100%" }}
@@ -376,30 +508,30 @@ export default function Navbar({ page, setPage, setCategory }) {
           <div style={{ padding: "12px 12px 24px" }}>
 
             {/* Nav links */}
-            {NAV.map((item) => {
-              const active = page === item.key || (item.key === "sweets" && page === "sweets");
+            {navItems.map((item) => {
+              const active = isCategoryActive(item.slug);
 
-              if (item.key !== "sweets") return (
-                <button key={item.key} type="button" className="mi"
-                  onClick={() => go(item.key)}
+              if (item.slug !== "sweets") return (
+                <button key={item.slug} type="button" className="mi"
+                  onClick={() => go(item.slug)}
                   style={{
                     display: "flex", alignItems: "center", width: "100%",
                     padding: "13px 14px", borderRadius: "10px", border: "none",
-                    background: page === item.key ? C.bgActive : "transparent",
-                    color: page === item.key ? C.saffron : C.cream,
+                    background: active ? C.bgActive : "transparent",
+                    color: active ? C.saffron : C.cream,
                     fontSize: "12px", fontWeight: "700", letterSpacing: "0.14em",
                     cursor: "pointer", transition: "background .12s, color .12s", marginBottom: "2px",
-                    borderLeft: page === item.key ? `3px solid ${C.saffron}` : "3px solid transparent",
+                    borderLeft: active ? `3px solid ${C.saffron}` : "3px solid transparent",
                   }}
                 >
-                  {item.label}
+                  {item.name.toUpperCase()}
                 </button>
               );
 
               return (
-                <div key={item.key} style={{ marginBottom: "2px" }}>
+                <div key={item.slug} style={{ marginBottom: "2px" }}>
                   <button type="button" className="mi"
-                    onClick={() => setSweetsOpen((v) => !v)}
+                    onClick={() => go("sweets")}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       width: "100%", padding: "13px 14px", borderRadius: "10px", border: "none",
@@ -410,15 +542,14 @@ export default function Navbar({ page, setPage, setCategory }) {
                       borderLeft: active ? `3px solid ${C.saffron}` : "3px solid transparent",
                     }}
                   >
-                    SWEETS
+                    {(sweetsCategory?.name || "SWEETS").toUpperCase()}
                     <ChevronDown size={13} style={{ transform: sweetsOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s" }} />
                   </button>
 
-                  <div style={{ overflow: "hidden", maxHeight: sweetsOpen ? "380px" : "0", transition: "max-height .28s ease" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", padding: "6px 8px 8px" }}>
-                      {SWEETS.map((name) => (
-                        <button key={name} type="button" className="dc"
-                          onClick={() => cat(name)}
+                  <div style={{ overflow: "hidden", maxHeight: sweetsOpen ? "120px" : "0", transition: "max-height .28s ease" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "4px", padding: "6px 8px 8px" }}>
+                      <button key={sweetsCategory?.slug || "sweets"} type="button" className="dc"
+                          onClick={() => cat("sweets")}
                           style={{
                             padding: "10px 12px", borderRadius: "8px", border: "none",
                             background: "rgba(232,136,58,0.09)", color: C.cream,
@@ -426,9 +557,8 @@ export default function Navbar({ page, setPage, setCategory }) {
                             cursor: "pointer", transition: "background .12s, color .12s, box-shadow .12s",
                           }}
                         >
-                          {name}
+                          {sweetsCategory?.name || "Sweets"}
                         </button>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -439,21 +569,39 @@ export default function Navbar({ page, setPage, setCategory }) {
             <div style={{ marginTop: "10px" }}>
               {isAuthenticated ? (
                 <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`,
+                  display: "flex", flexDirection: "column", gap: "8px",
                 }}>
-                  <span style={{ fontSize: "12px", color: C.muted }}>
-                    Hi, <span style={{ color: C.cream, fontWeight: "600" }}>{user?.name?.split(" ")[0]}</span>
-                  </span>
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`,
+                  }}>
+                    <span style={{ fontSize: "12px", color: C.muted }}>
+                      Hi, <span style={{ color: C.cream, fontWeight: "600" }}>{user?.name?.split(" ")[0]}</span>
+                    </span>
+                  </div>
+                  {user?.isAdmin === true && (
+                    <button type="button"
+                      onClick={() => { closeAll(); navigate("/admin"); }}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                        width: "100%", padding: "11px", borderRadius: "10px", border: `1px solid ${C.border}`,
+                        background: "transparent",
+                        color: C.saffron, fontSize: "12px", fontWeight: "700", letterSpacing: "0.06em", cursor: "pointer",
+                      }}
+                    >
+                      📊 Admin Dashboard
+                    </button>
+                  )}
                   <button type="button"
-                    onClick={() => { logout(); setPage("home"); navigate("/login"); }}
+                    onClick={() => { handleLogout(); closeAll(); }}
                     style={{
-                      padding: "6px 14px", borderRadius: "8px",
-                      border: `1px solid ${C.border}`, background: "transparent",
-                      color: C.cream, fontSize: "11px", fontWeight: "700", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                      width: "100%", padding: "11px", borderRadius: "10px", border: "none",
+                      background: "#c41e3a", color: "white",
+                      fontSize: "12px", fontWeight: "700", letterSpacing: "0.06em", cursor: "pointer",
                     }}
                   >
-                    Logout
+                    🚪 Logout
                   </button>
                 </div>
               ) : (

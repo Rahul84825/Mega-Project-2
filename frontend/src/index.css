@@ -1,8 +1,10 @@
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 .navbar-root {
 	@apply sticky top-0 z-50 w-full border-b border-white/10;
-	background: linear-gradient(135deg, #0f0d0b 0%, #1a0e0d 58%, #2a0d0d 100%);
+	background: linear-gradient(180deg, #fff6e9 0%, #fff3e0 100%);
 }
 
 .nav-link {
@@ -10,18 +12,18 @@
 }
 
 .nav-link:hover {
-	color: #e8883a;
+	color: #6a350f;
 	opacity: 0.8;
 }
 
 .icon-btn {
-	@apply relative flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[#f5ede0] transition-colors duration-150 hover:bg-white/5;
+	@apply relative flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[#6a350f] transition-colors duration-150 hover:bg-black/5;
 }
 
 .dropdown-card {
 	@apply rounded-[14px] border transition-all duration-200;
-	background: linear-gradient(180deg, #1a1611 0%, #140c0b 100%);
-	border-color: rgba(201, 168, 76, 0.25);
+	background: linear-gradient(180deg, #fffaf3 0%, #fff4e4 100%);
+	border-color: rgba(83, 44, 22, 0.14);
 }
 
 .mobile-item {
@@ -29,5 +31,5 @@
 }
 
 .mobile-item:hover {
-	@apply bg-white/5;
+	@apply bg-black/5;
 }

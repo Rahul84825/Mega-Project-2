@@ -20,11 +20,12 @@ export default function Register() {
 
       if (data?.token && data?.user) {
         login(data.user, data.token);
-        navigate(data.user?.isAdmin ? "/admin" : "/", { replace: true });
+        navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
       } else {
         navigate("/login", { replace: true });
       }
     } catch (submitError) {
+      console.error("Registration failed:", submitError);
       setError(getApiErrorMessage(submitError, "Unable to create account."));
     } finally {
       setLoading(false);

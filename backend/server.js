@@ -6,11 +6,11 @@ import { initializeSocket } from "./socket.js";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 5001;
-const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_URI_FALLBACK =
-  process.env.MONGODB_URI_FALLBACK || "mongodb://127.0.0.1:27017/mithai_world";
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
+// Fallback URI using direct hosts (non-SRV) for DNS resolver stability
+const MONGODB_URI_FALLBACK = "mongodb://activegamer789_db_user:Ci8H1Si9R4kSLHvG@ac-uobfb3v-shard-00-00.b2fiqdd.mongodb.net:27017,ac-uobfb3v-shard-00-01.b2fiqdd.mongodb.net:27017,ac-uobfb3v-shard-00-02.b2fiqdd.mongodb.net:27017/?ssl=true&replicaSet=atlas-tuwzmv-shard-0&authSource=admin&appName=Mithai-world";
 // Create the Node HTTP server from the configured Express app.
 const server = http.createServer(app);
 
@@ -27,44 +27,33 @@ server.on("error", (error) => {
 initializeSocket(server);
 
 const connectDB = async () => {
-  if (!MONGODB_URI) {
-    throw new Error("MONGODB_URI is not set in environment variables");
+  // Try primary URI first, fallback to direct URI if SRV fails
+  const urisToTry = [
+    MONGODB_URI,
+    MONGODB_URI_FALLBACK
+  ].filter(Boolean);
+
+  if (urisToTry.length === 0) {
+    throw new Error("No MongoDB URIs available");
   }
 
-  const connect = async (uri) => {
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000
-    });
-  };
-
-  try {
-    await connect(MONGODB_URI);
-    console.log("MongoDB connected successfully");
-    return true;
-  } catch (error) {
-    const canFallbackToLocal =
-      process.env.NODE_ENV !== "production" &&
-      MONGODB_URI.startsWith("mongodb+srv://") &&
-      MONGODB_URI_FALLBACK;
-
-    if (canFallbackToLocal && /querySrv\s+ECONNREFUSED/i.test(error.message)) {
-      console.warn(
-        "MongoDB Atlas SRV DNS lookup failed. Falling back to local MongoDB URI for development..."
-      );
-
-      try {
-        await connect(MONGODB_URI_FALLBACK);
-        console.log("MongoDB connected successfully using fallback URI");
-        return true;
-      } catch (fallbackError) {
-        console.error("MongoDB fallback connection failed:", fallbackError.message);
-        throw fallbackError;
-      }
+  let lastError;
+  for (const uri of urisToTry) {
+    try {
+      console.log("Attempting MongoDB connection...");
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 5000
+      });
+      console.log("✅ MongoDB connected successfully");
+      return true;
+    } catch (error) {
+      lastError = error;
+      console.error("❌ Connection attempt failed:", error.message);
     }
-
-    console.error("MongoDB connection failed:", error.message);
-    throw error;
   }
+
+  console.error("❌ All MongoDB connection attempts failed");
+  throw lastError;
 };
 
 const boot = async () => {

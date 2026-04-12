@@ -7,6 +7,11 @@ import authRoutes from "./routes/authRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import productsRoutes from "./routes/productsRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import heroSlideRoutes from "./routes/heroSlideRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import User from "./models/User.js";
+import { adminOnly, protect } from "./middleware/authMiddleware.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { sanitizeRequestData } from "./middleware/requestSanitizer.js";
 
@@ -50,6 +55,21 @@ app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", productsRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/hero-slides", heroSlideRoutes);
+app.use("/api/upload", uploadRoutes);
+
+app.get("/api/admin/stats", protect, adminOnly, async (_req, res, next) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    return res.status(200).json({
+      success: true,
+      totalUsers
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 // Centralized 404 and error serialization.
 app.use(notFoundHandler);

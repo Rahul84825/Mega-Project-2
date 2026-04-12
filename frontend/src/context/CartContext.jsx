@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer } from "react";
+import { createContext, useContext, useEffect, useReducer, useState } from "react";
 
 const CartContext = createContext(null);
 const CART_STORAGE_KEY = "mithai-world-cart";
@@ -42,6 +42,7 @@ const loadInitialCart = () => {
 
 export function CartProvider({ children }) {
   const [cart, dispatch] = useReducer(cartReducer, [], loadInitialCart);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -69,8 +70,20 @@ export function CartProvider({ children }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  const toggleCart = () => {
+    setIsCartOpen((open) => !open);
+  };
+
+  const openCart = () => {
+    setIsCartOpen(true);
+  };
+
+  const closeCart = () => {
+    setIsCartOpen(false);
+  };
+
   return (
-    <CartContext.Provider value={{ cart, dispatch }}>
+    <CartContext.Provider value={{ cart, dispatch, isCartOpen, toggleCart, openCart, closeCart }}>
       {children}
     </CartContext.Provider>
   );
