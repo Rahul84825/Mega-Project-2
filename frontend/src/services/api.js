@@ -41,8 +41,48 @@ export const createCategory = async (payload) => {
   return data?.category || data || null;
 };
 
+export const createCategoryWithImage = async (name, imageFile, showInNavbar = false, showInHomepage = false, is_active = true) => {
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("is_active", is_active);
+  formData.append("showInNavbar", showInNavbar);
+  formData.append("showInHomepage", showInHomepage);
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  const { data } = await api.post("/categories", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
+  return data?.category || data || null;
+};
+
 export const updateCategory = async (slug, payload) => {
   const { data } = await api.put(`/categories/${slug}`, payload);
+  return data?.category || data || null;
+};
+
+export const updateCategoryWithImage = async (id, name, imageFile, showInNavbar = false, showInHomepage = false, is_active = true) => {
+  const formData = new FormData();
+  if (name !== undefined) {
+    formData.append("name", name);
+  }
+  if (is_active !== undefined) {
+    formData.append("is_active", is_active);
+  }
+  formData.append("showInNavbar", showInNavbar);
+  formData.append("showInHomepage", showInHomepage);
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  const { data } = await api.put(`/categories/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
   return data?.category || data || null;
 };
 

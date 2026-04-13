@@ -12,8 +12,11 @@ const normalizeCategory = (category) => ({
   id: category?.id || category?._id || "",
   name: String(category?.name || "").trim(),
   slug: String(category?.slug || "").trim().toLowerCase(),
+  image: category?.image || null,
   is_active: category?.is_active ?? category?.isActive ?? category?.active ?? true,
-  isFeatured: Boolean(category?.isFeatured ?? category?.showInNavbar ?? false)
+  showInNavbar: category?.showInNavbar ?? category?.isFeatured ?? false,
+  showInHomepage: category?.showInHomepage ?? false,
+  order: Number(category?.order || 0)
 });
 
 const normalizeProduct = (product) => {
@@ -224,10 +227,10 @@ export function ProductProvider({ children }) {
       if (!existing) {
         throw new Error("Category not found");
       }
-      console.log("⭐ Toggling category featured status:", id);
-      return updateCategory(id, { isFeatured: !Boolean(existing.isFeatured) });
+      console.log("⭐ Toggling category navbar visibility:", id);
+      return updateCategory(id, { showInNavbar: !Boolean(existing.showInNavbar) });
     } catch (error) {
-      console.error("❌ Error toggling category featured:", error);
+      console.error("❌ Error toggling category navbar visibility:", error);
       throw error;
     }
   }, [categories, updateCategory]);

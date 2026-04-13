@@ -14,13 +14,25 @@ const categorySchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
+    image: {
+      type: String,
+      default: null
+    },
     is_active: {
       type: Boolean,
       default: true
     },
-    isFeatured: {
+    showInNavbar: {
       type: Boolean,
       default: false
+    },
+    showInHomepage: {
+      type: Boolean,
+      default: false
+    },
+    order: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }

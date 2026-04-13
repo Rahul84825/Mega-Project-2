@@ -67,3 +67,18 @@ export const uploadMultipleImages = async (req, res, next) => {
     return next(error);
   }
 };
+
+// Upload category image to Cloudinary
+export const uploadCategoryImage = async (buffer) => {
+  if (!buffer) {
+    return null;
+  }
+
+  try {
+    const result = await uploadBufferToCloudinary(buffer, "mithai-world/categories");
+    return result?.secure_url || null;
+  } catch (error) {
+    console.error("❌ Error uploading category image:", error);
+    throw error;
+  }
+};

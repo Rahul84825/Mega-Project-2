@@ -11,7 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { getCategories } from "../services/api";
+import { useProducts } from "../context/ProductContext";
 import brandLogo from "../assets/image.png";
 
 /* ─── Design tokens ─────────────────────────────────── */
@@ -87,39 +87,33 @@ function IBtn({ label, onClick, badge, children }) {
 function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
   const { cart, toggleCart } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const { categories: allCategories } = useProducts();
   const navigate = useNavigate();
 
   const qty = cart.reduce((s, i) => s + i.qty, 0);
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sweetsOpen, setSweetsOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
   const searchRef = useRef(null);
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const list = await getCategories();
-        const normalized = (Array.isArray(list) ? list : [])
-          .map((item) => ({ name: item?.name || "", slug: toSlug(item?.slug) }))
-          .filter((item) => Boolean(item.name && item.slug));
-        setCategories(normalized);
-      } catch (_error) {
-        setCategories([]);
-      }
-    };
+  // Filter categories that should show in navbar
+  const navbarCategories = useMemo(
+    () =>
+      (allCategories || [])
+        .filter((cat) => cat.showInNavbar && cat.is_active)
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+        .map((item) => ({ name: item?.name || "", slug: toSlug(item?.slug) }))
+        .filter((item) => Boolean(item.name && item.slug)),
+    [allCategories]
+  );
 
-    loadCategories();
-  }, []);
-
-  const navItems = useMemo(() => [{ name: "ALL PRODUCTS", slug: "all" }, ...categories], [categories]);
-  const sweetsCategory = useMemo(() => categories.find((item) => item.slug === "sweets") || null, [categories]);
+  const navItems = useMemo(() => [{ name: "ALL PRODUCTS", slug: "all" }, ...navbarCategories], [navbarCategories]);
+  const firstNavCategory = useMemo(() => navbarCategories[0] || null, [navbarCategories]);
   const normalizedSelectedCategory = toSlug(selectedCategory || "all");
 
-  const closeAll = () => { setMobileOpen(false); setSweetsOpen(false); };
+  const closeAll = () => { setMobileOpen(false); };
   const go = (slug) => {
     const normalizedSlug = toSlug(slug);
     console.log("[Navbar] Category clicked:", normalizedSlug);
@@ -264,7 +258,7 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
                 </li>
               );
 
-              if (!sweetsCategory) {
+              if (!firstNavCategory) {
                 return null;
               }
 
@@ -273,8 +267,8 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
                   onMouseEnter={() => setDropOpen(true)}
                   onMouseLeave={() => setDropOpen(false)}
                 >
-                  <button type="button" className="nl" onClick={() => go("sweets")} style={nlStyle("sweets")}>
-                    {sweetsCategory.name.toUpperCase()}
+                  <button type="button" className="nl" onClick={() => go(firstNavCategory.slug)} style={nlStyle(firstNavCategory.slug)}>
+                    {firstNavCategory.name.toUpperCase()}
                     <ChevronDown size={11} style={{ transform: dropOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s", flexShrink: 0 }} />
                   </button>
 
@@ -295,11 +289,12 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
                     transition: "opacity .18s, transform .18s, visibility .18s",
                   }}>
                     <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.18em", color: C.gold, textTransform: "uppercase", marginBottom: "14px" }}>
-                      Sweet Collections
+                      {firstNavCategory.name} Collection
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "5px" }}>
-                      <button key={sweetsCategory.slug} type="button" className="dc"
-                          onClick={() => cat(sweetsCategory.slug)}
+                      {navbarCategories.map((navCat) => (
+                        <button key={navCat.slug} type="button" className="dc"
+                          onClick={() => cat(navCat.slug)}
                           style={{
                             padding: "10px 8px", borderRadius: "8px", border: "none",
                             background: "transparent", color: C.cream,
@@ -307,8 +302,9 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
                             cursor: "pointer", transition: "background .12s, color .12s, box-shadow .12s",
                           }}
                         >
-                          {sweetsCategory.name}
+                          {navCat.name}
                         </button>
+                      ))}
                     </div>
                   </div>
                 </li>
@@ -522,25 +518,26 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
               return (
                 <div key={item.slug} style={{ marginBottom: "2px" }}>
                   <button type="button" className="mi"
-                    onClick={() => go("sweets")}
+                    onClick={() => firstNavCategory && go(firstNavCategory.slug)}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       width: "100%", padding: "13px 14px", borderRadius: "10px", border: "none",
-                      background: active ? C.bgActive : "transparent",
-                      color: active ? C.saffron : C.cream,
+                      background: (firstNavCategory && isCategoryActive(firstNavCategory.slug)) ? C.bgActive : "transparent",
+                      color: (firstNavCategory && isCategoryActive(firstNavCategory.slug)) ? C.saffron : C.cream,
                       fontSize: "12px", fontWeight: "700", letterSpacing: "0.14em", cursor: "pointer",
                       transition: "background .12s, color .12s",
-                      borderLeft: active ? `3px solid ${C.saffron}` : "3px solid transparent",
+                      borderLeft: (firstNavCategory && isCategoryActive(firstNavCategory.slug)) ? `3px solid ${C.saffron}` : "3px solid transparent",
                     }}
                   >
-                    {(sweetsCategory?.name || "SWEETS").toUpperCase()}
-                    <ChevronDown size={13} style={{ transform: sweetsOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s" }} />
+                    {(firstNavCategory?.name || "CATEGORIES").toUpperCase()}
+                    <ChevronDown size={13} style={{ transform: dropOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s" }} />
                   </button>
 
-                  <div style={{ overflow: "hidden", maxHeight: sweetsOpen ? "120px" : "0", transition: "max-height .28s ease" }}>
+                  <div style={{ overflow: "hidden", maxHeight: dropOpen && firstNavCategory ? "200px" : "0", transition: "max-height .28s ease" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "4px", padding: "6px 8px 8px" }}>
-                      <button key={sweetsCategory?.slug || "sweets"} type="button" className="dc"
-                          onClick={() => cat("sweets")}
+                      {navbarCategories.map((navCat) => (
+                        <button key={navCat.slug} type="button" className="dc"
+                          onClick={() => cat(navCat.slug)}
                           style={{
                             padding: "10px 12px", borderRadius: "8px", border: "none",
                             background: "rgba(232,136,58,0.09)", color: C.cream,
@@ -548,8 +545,9 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
                             cursor: "pointer", transition: "background .12s, color .12s, box-shadow .12s",
                           }}
                         >
-                          {sweetsCategory?.name || "Sweets"}
+                          {navCat.name}
                         </button>
+                      ))}
                     </div>
                   </div>
                 </div>

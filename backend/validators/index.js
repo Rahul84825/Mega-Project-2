@@ -77,13 +77,17 @@ export const resendDeliveryOtpValidation = [
 export const categoryCreateValidation = [
   body("name").trim().isLength(safeString(2, 60)).withMessage("Category name must be between 2 and 60 characters"),
   body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),
-  body("isFeatured").optional().isBoolean().withMessage("isFeatured must be a boolean").toBoolean()
+  body("showInNavbar").optional().isBoolean().withMessage("showInNavbar must be a boolean").toBoolean(),
+  body("showInHomepage").optional().isBoolean().withMessage("showInHomepage must be a boolean").toBoolean(),
+  body("order").optional().isInt({ min: 0 }).withMessage("order must be a non-negative integer").toInt()
 ];
 
 export const categoryUpdateValidation = [
   body("name").optional().trim().isLength(safeString(2, 60)).withMessage("Category name must be between 2 and 60 characters"),
   body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),
-  body("isFeatured").optional().isBoolean().withMessage("isFeatured must be a boolean").toBoolean()
+  body("showInNavbar").optional().isBoolean().withMessage("showInNavbar must be a boolean").toBoolean(),
+  body("showInHomepage").optional().isBoolean().withMessage("showInHomepage must be a boolean").toBoolean(),
+  body("order").optional().isInt({ min: 0 }).withMessage("order must be a non-negative integer").toInt()
 ];
 
 export const categoryIdValidation = [

@@ -1,5 +1,6 @@
 import Category from "../models/Category.js";
 import Product from "../models/Product.js";
+import { uploadCategoryImage } from "./uploadController.js";
 
 const toSlug = (name) =>
   String(name || "")
@@ -11,7 +12,7 @@ const toSlug = (name) =>
 
 export const getCategories = async (_req, res, next) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
+    const categories = await Category.find().sort({ order: 1, name: 1 });
     return res.status(200).json({
       success: true,
       categories
@@ -23,7 +24,7 @@ export const getCategories = async (_req, res, next) => {
 
 export const createCategory = async (req, res, next) => {
   try {
-    const { name, slug: slugInput, is_active = true, isFeatured = false } = req.body || {};
+    const { name, slug: slugInput, is_active = true, showInNavbar = false, showInHomepage = false, order = 0 } = req.body || {};
     const slug = toSlug(slugInput || name);
 
     if (!slug) {
@@ -41,11 +42,28 @@ export const createCategory = async (req, res, next) => {
       });
     }
 
+    // Handle image upload if file is provided
+    let imageUrl = null;
+    if (req.file?.buffer) {
+      try {
+        imageUrl = await uploadCategoryImage(req.file.buffer);
+      } catch (error) {
+        console.error("❌ Image upload failed:", error);
+        return res.status(400).json({
+          success: false,
+          message: "Image upload failed: " + (error.message || "Unknown error")
+        });
+      }
+    }
+
     const category = await Category.create({
       name: String(name || "").trim(),
       slug,
+      image: imageUrl,
       is_active: Boolean(is_active),
-      isFeatured: Boolean(isFeatured)
+      showInNavbar: Boolean(showInNavbar),
+      showInHomepage: Boolean(showInHomepage),
+      order: Number(order || 0)
     });
 
     return res.status(201).json({
@@ -60,7 +78,7 @@ export const createCategory = async (req, res, next) => {
 export const updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, is_active, isFeatured } = req.body || {};
+    const { name, is_active, showInNavbar, showInHomepage, order } = req.body || {};
 
     const existing = await Category.findById(id);
     if (!existing) {
@@ -96,8 +114,28 @@ export const updateCategory = async (req, res, next) => {
     if (is_active !== undefined) {
       updates.is_active = Boolean(is_active);
     }
-    if (isFeatured !== undefined) {
-      updates.isFeatured = Boolean(isFeatured);
+    if (showInNavbar !== undefined) {
+      updates.showInNavbar = Boolean(showInNavbar);
+    }
+    if (showInHomepage !== undefined) {
+      updates.showInHomepage = Boolean(showInHomepage);
+    }
+    if (order !== undefined) {
+      updates.order = Number(order || 0);
+    }
+
+    // Handle image upload if file is provided
+    if (req.file?.buffer) {
+      try {
+        const imageUrl = await uploadCategoryImage(req.file.buffer);
+        updates.image = imageUrl;
+      } catch (error) {
+        console.error("❌ Image upload failed:", error);
+        return res.status(400).json({
+          success: false,
+          message: "Image upload failed: " + (error.message || "Unknown error")
+        });
+      }
     }
 
     const category = await Category.findOneAndUpdate({ _id: existing._id }, updates, {
