@@ -75,7 +75,7 @@ export default function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInf
     [order]
   );
 
-  const amount = order?.amount ? (order.amount / 100).toFixed(2) : null;
+  const amount = order?.amount ? String(Math.round(order.amount / 100)) : null;
   const deliveryStatus = order?.deliveryStatus || "pending";
 
   useEffect(() => {

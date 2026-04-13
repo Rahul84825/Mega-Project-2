@@ -54,6 +54,8 @@ export const validateVariants = (variants) => {
     const originalPrice = Number(variant.originalPrice);
     if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
       fieldErrors[`${variant.id}.originalPrice`] = "Original price must be a positive number";
+    } else if (!Number.isInteger(originalPrice)) {
+      fieldErrors[`${variant.id}.originalPrice`] = "Original price must be a whole number";
     }
 
     const discountPercent = Number(variant.discountPercent);
@@ -88,7 +90,7 @@ export const buildProductPayload = (form, variants) => {
   const normalizedVariants = (variants || []).map((variant) => ({
     id: String(variant.id),
     label: String(variant.label || "").trim(),
-    originalPrice: Math.round(Number(variant.originalPrice || 0)),
+    originalPrice: Math.max(0, Math.floor(Number(variant.originalPrice || 0))),
     discountPercent: Math.round(Number(variant.discountPercent || 0) * 100) / 100,
     stock: Math.max(0, Math.floor(Number(variant.stock || 0))),
   }));

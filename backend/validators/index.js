@@ -20,7 +20,7 @@ export const googleAuthValidation = [
 
 export const productValidation = [
   body("name").trim().isLength(safeString(2, 120)).withMessage("Product name is required").escape(),
-  body("price").optional({ nullable: true }).isFloat({ gt: 0 }).withMessage("Price must be a number greater than zero").toFloat(),
+  body("price").optional({ nullable: true }).isInt({ min: 1 }).withMessage("Price must be a whole number (no decimals allowed)").toInt(),
   body("category").trim().matches(/^[a-z0-9-]{1,80}$/).withMessage("Category must be a valid slug"),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a non-negative integer").toInt(),
   body("image").optional({ checkFalsy: true }).isURL().withMessage("Image must be a valid URL").trim(),
@@ -29,7 +29,7 @@ export const productValidation = [
 
 export const updateProductValidation = [
   body("name").optional().trim().isLength(safeString(2, 120)).withMessage("Product name must be between 2 and 120 characters").escape(),
-  body("price").optional().isFloat({ gt: 0 }).withMessage("Price must be a number greater than zero").toFloat(),
+  body("price").optional().isInt({ min: 1 }).withMessage("Price must be a whole number (no decimals allowed)").toInt(),
   body("category").optional().trim().matches(/^[a-z0-9-]{1,80}$/).withMessage("Category must be a valid slug"),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a non-negative integer").toInt(),
   body("image").optional({ checkFalsy: true }).isURL().withMessage("Image must be a valid URL").trim(),

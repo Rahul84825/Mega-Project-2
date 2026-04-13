@@ -36,7 +36,12 @@ const productSchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      default: 0
+      required: true,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Price must be an integer"
+      }
     },
     category: {
       type: String,

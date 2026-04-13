@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
-import api, { getApiErrorMessage } from "../services/api";
+import api, { getApiErrorMessage, getProducts } from "../services/api";
 
 let razorpayScriptPromise;
 
@@ -39,7 +39,7 @@ const loadRazorpayScript = () => {
   return razorpayScriptPromise;
 };
 
-export default function CheckoutPage({ setPage, setPaymentInfo }) {
+export default function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
   const { cart, dispatch } = useCart();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" });
   const [step, setStep] = useState(1);
@@ -70,9 +70,28 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
   const requiredAddressFields = ["name", "phone", "email", "address", "city", "pincode", "state"];
   const isAddressValid = requiredAddressFields.every((key) => String(form[key] || "").trim().length > 0);
 
+  // Validate that all cart items have sufficient stock
+  const validateCartStock = () => {
+    for (const item of cart) {
+      if (!item.stock || item.stock <= 0) {
+        return `${item.name} is no longer in stock`;
+      }
+      if (item.qty > item.stock) {
+        return `Only ${item.stock} ${item.name} available, but you have ${item.qty} in cart`;
+      }
+    }
+    return null;
+  };
+
   const continueToPayment = () => {
     if (!isAddressValid) {
       setErrorMessage("Please complete all delivery details before continuing.");
+      return;
+    }
+
+    const stockError = validateCartStock();
+    if (stockError) {
+      setErrorMessage(stockError);
       return;
     }
 
@@ -148,6 +167,11 @@ export default function CheckoutPage({ setPage, setPaymentInfo }) {
 
             if (!verifyResponse?.success) {
               throw new Error(verifyResponse?.message || "Payment verification failed");
+            }
+
+            if (typeof setProducts === "function") {
+              const refreshedProducts = await getProducts();
+              setProducts(Array.isArray(refreshedProducts) ? refreshedProducts : []);
             }
 
             dispatch({ type: "CLEAR" });

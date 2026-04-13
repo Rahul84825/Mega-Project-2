@@ -58,7 +58,12 @@ export default function ProductDetailPage({ productId, setPage, products }) {
     );
   }
 
+  const isOutOfStock = Number(product.stock || 0) <= 0;
+
   const handleAdd = () => {
+    if (isOutOfStock) {
+      return;
+    }
     for (let i = 0; i < qty; i += 1) dispatch({ type: "ADD", product });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -90,12 +95,12 @@ export default function ProductDetailPage({ productId, setPage, products }) {
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>Stock: {product.stock} boxes available</div>
               <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24 }}>
                 <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #E8DDD0", background: "white" }}>
-                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "var(--burgundy)" }}>−</button>
+                  <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock ? 0.5 : 1 }}>−</button>
                   <span style={{ width: 44, textAlign: "center", fontWeight: 600 }}>{qty}</span>
-                  <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "var(--burgundy)" }}>+</button>
+                  <button disabled={isOutOfStock || qty >= product.stock} onClick={() => setQty((q) => Math.min(product.stock, q + 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || qty >= product.stock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || qty >= product.stock ? 0.5 : 1 }}>+</button>
                 </div>
-                <button className="btn-primary" onClick={handleAdd} style={{ flex: 1, padding: "13px 28px", background: added ? "#2C6E49" : "var(--burgundy)" }}>
-                  {added ? "✓ Added to Cart" : `Add ${qty} to Cart — ₹${product.price * qty}`}
+                <button className="btn-primary" onClick={handleAdd} disabled={isOutOfStock} style={{ flex: 1, padding: "13px 28px", background: isOutOfStock ? "#b7b7b7" : added ? "#2C6E49" : "var(--burgundy)", cursor: isOutOfStock ? "not-allowed" : "pointer" }}>
+                  {isOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : `Add ${qty} to Cart — ₹${product.price * qty}`}
                 </button>
               </div>
             </div>

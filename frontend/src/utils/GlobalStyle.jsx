@@ -4,7 +4,7 @@ export default function GlobalStyle() {
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700;800&display=swap');
       :root {
         --saffron: #E8883A;
         --burgundy: #6A350F;
@@ -20,7 +20,7 @@ export default function GlobalStyle() {
       html { background: var(--cream); }
       body { margin: 0; font-family: 'DM Sans', sans-serif; background: linear-gradient(180deg, #fff6e9 0%, #fff3e0 100%); color: var(--charcoal); }
       #root { min-height: 100vh; background: linear-gradient(180deg, #fff6e9 0%, #fff3e0 100%); }
-      h1,h2,h3,.serif { font-family: 'Cormorant Garamond', serif; }
+      h1,h2,h3,h4,h5,h6,.serif { font-family: 'DM Sans', sans-serif; }
       .card-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
       .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(83,44,22,0.12); }
       .btn-primary {

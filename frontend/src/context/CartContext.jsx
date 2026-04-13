@@ -6,10 +6,16 @@ const CART_STORAGE_KEY = "mithai-world-cart";
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD": {
+      // Prevent adding if stock is 0 or less
+      if (!action.product || action.product.stock <= 0) {
+        return state;
+      }
       const existing = state.find((i) => i._id === action.product._id);
       if (existing) {
+        // Don't exceed stock limit
+        const newQty = Math.min(existing.qty + 1, action.product.stock);
         return state.map((i) =>
-          i._id === action.product._id ? { ...i, qty: i.qty + 1 } : i
+          i._id === action.product._id ? { ...i, qty: newQty } : i
         );
       }
       return [...state, { ...action.product, qty: 1 }];
@@ -18,7 +24,7 @@ function cartReducer(state, action) {
       return state.filter((i) => i._id !== action.id);
     case "UPDATE_QTY":
       return state.map((i) =>
-        i._id === action.id ? { ...i, qty: Math.max(1, action.qty) } : i
+        i._id === action.id ? { ...i, qty: Math.max(1, Math.min(action.qty, i.stock || 1)) } : i
       );
     case "CLEAR":
       return [];

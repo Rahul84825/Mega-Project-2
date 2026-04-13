@@ -1,15 +1,3 @@
-/**
- * Navbar.jsx — "Dark Editorial Mithai"
- *
- * Design language:
- *  • Deep charcoal (#0f0d0b) base — feels premium, not just dark
- *  • Saffron (#e8883a) as the single accent — warm, Indian, distinctive
- *  • Gold (#c9a84c) for secondary glows and labels
- *  • Underline-bar active state — editorial, not pill/capsule
- *  • Inline expanding search — no modal, no overlay
- *  • 3-column CSS grid on desktop — mathematically centered nav
- *  • Fully separate mobile bar — no breakpoint conflicts
- */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -136,8 +124,11 @@ export default function Navbar({ page, selectedCategory = "all", setPage, setCat
     const normalizedSlug = toSlug(slug);
     console.log("[Navbar] Category clicked:", normalizedSlug);
 
-    if (normalizedSlug === "all") {
-      setPage("all");
+    if (normalizedSlug === "home") {
+      setPage("home");
+      setCategory?.("all");
+    } else if (normalizedSlug === "all") {
+      setPage("home");
       setCategory?.("all");
     } else {
       setPage("category");
@@ -246,7 +237,7 @@ export default function Navbar({ page, selectedCategory = "all", setPage, setCat
             <button
               type="button"
               aria-label="Go to home"
-              onClick={() => go("all")}
+              onClick={() => go("home")}
               style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
               <img
@@ -446,7 +437,7 @@ export default function Navbar({ page, selectedCategory = "all", setPage, setCat
             MOBILE BAR  (below lg)
         ════════════════════════════════════════ */}
         <div className="mw-mb" style={{ alignItems: "center", justifyContent: "space-between", height: "92px", padding: "0 16px" }}>
-          <button type="button" onClick={() => go("all")}
+          <button type="button" onClick={() => go("home")}
             style={{ display: "flex", alignItems: "center", gap: "10px", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             <img

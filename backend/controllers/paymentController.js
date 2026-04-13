@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import Order from "../models/Order.js";
+import Product from "../models/Product.js";
 import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
 
@@ -144,6 +145,31 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
+    const orderItems = Array.isArray(orderData.items) ? orderData.items : [];
+    const normalizedOrderItems = [];
+
+    for (const item of orderItems) {
+      const productId = item?.productId || item?._id || item?.id;
+      const requestedQty = Number(item?.qty || 0);
+
+      if (!productId || !Number.isFinite(requestedQty) || requestedQty <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid order item payload"
+        });
+      }
+
+      const product = await Product.findById(productId).select("name stock");
+      if (!product || product.stock < requestedQty) {
+        return res.status(409).json({
+          success: false,
+          message: `${item?.name || product?.name || "Product"} is out of stock or has insufficient quantity`
+        });
+      }
+
+      normalizedOrderItems.push({ productId, requestedQty, name: product.name });
+    }
+
     const createdOrder = await Order.create({
       ...sanitizeOrderPayload(orderData),
       amount: razorpayOrder.amount,
@@ -158,6 +184,30 @@ export const verifyPayment = async (req, res) => {
         ...orderData.metadata
       }
     });
+
+    for (const item of normalizedOrderItems) {
+      const stockUpdate = await Product.updateOne(
+        { _id: item.productId, stock: { $gte: item.requestedQty } },
+        { $inc: { stock: -item.requestedQty } }
+      );
+
+      if (stockUpdate.modifiedCount === 0) {
+        return res.status(409).json({
+          success: false,
+          message: `${item.name || "Product"} went out of stock during checkout`
+        });
+      }
+    }
+
+    await Product.updateMany(
+      { stock: { $lte: 0 } },
+      { $set: { inStock: false, stock: 0 } }
+    );
+
+    await Product.updateMany(
+      { stock: { $gt: 0 } },
+      { $set: { inStock: true } }
+    );
 
     const io = getIo();
     if (io) {

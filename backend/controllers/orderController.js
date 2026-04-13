@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import Order from "../models/Order.js";
+import Product from "../models/Product.js";
 import { getIo } from "../socket.js";
 import { sendDeliveryOTP } from "../utils/sendOTP.js";
 import { logger } from "../utils/logger.js";
@@ -39,22 +40,74 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    orderData._id = orderData._id || Date.now().toString();
-    orderData.createdAt = orderData.createdAt || new Date().toISOString();
+    const orderItems = Array.isArray(orderData.items) ? orderData.items : [];
+    const normalizedOrderItems = [];
+
+    for (const item of orderItems) {
+      const productId = item?.productId || item?._id || item?.id;
+      const requestedQty = Number(item?.qty || 0);
+
+      if (!productId || !Number.isFinite(requestedQty) || requestedQty <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid order item payload"
+        });
+      }
+
+      const product = await Product.findById(productId).select("name stock");
+      if (!product || product.stock < requestedQty) {
+        return res.status(409).json({
+          success: false,
+          message: `${item?.name || product?.name || "Product"} is out of stock or has insufficient quantity`
+        });
+      }
+
+      normalizedOrderItems.push({ productId, requestedQty, name: product.name });
+    }
+
+    const createdOrder = await Order.create({
+      ...orderData,
+      status: orderData.status || "Pending",
+      paymentStatus: orderData.paymentStatus || "paid"
+    });
+
+    for (const item of normalizedOrderItems) {
+      const stockCheckResult = await Product.updateOne(
+        { _id: item.productId, stock: { $gte: item.requestedQty } },
+        { $inc: { stock: -item.requestedQty } }
+      );
+
+      if (stockCheckResult.modifiedCount === 0) {
+        return res.status(409).json({
+          success: false,
+          message: `${item.name || "Product"} went out of stock during checkout`
+        });
+      }
+    }
+
+    await Product.updateMany(
+      { stock: { $lte: 0 } },
+      { $set: { inStock: false, stock: 0 } }
+    );
+
+    await Product.updateMany(
+      { stock: { $gt: 0 } },
+      { $set: { inStock: true } }
+    );
 
     const io = getIo();
     if (io) {
-      io.emit("newOrder", orderData);
+      io.emit("newOrder", sanitizeOrder(createdOrder));
     }
 
     logger.info("Order created", {
-      orderId: orderData._id
+      orderId: createdOrder._id
     });
 
     return res.status(201).json({
       success: true,
       message: "Order created successfully",
-      order: orderData
+      order: sanitizeOrder(createdOrder)
     });
   } catch (error) {
     return res.status(500).json({

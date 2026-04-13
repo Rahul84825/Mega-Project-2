@@ -123,7 +123,7 @@ export default function App() {
       case "cart":
         return <CartPage setPage={setPageWithRoute} />;
       case "checkout":
-        return <CheckoutPage setPage={setPageWithRoute} setPaymentInfo={setPaymentInfo} />;
+        return <CheckoutPage setPage={setPageWithRoute} setPaymentInfo={setPaymentInfo} setProducts={setProducts} />;
       case "order-success":
         return <OrderSuccessPage setPage={setPageWithRoute} paymentInfo={paymentInfo} />;
       case "payment-success":

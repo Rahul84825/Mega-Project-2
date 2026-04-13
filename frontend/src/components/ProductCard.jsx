@@ -5,11 +5,15 @@ export default function ProductCard({ product, onClick }) {
   const { dispatch } = useCart();
   const [added, setAdded] = useState(false);
 
+  const isOutOfStock = product.stock === 0;
+
   const handleAdd = (e) => {
     e.stopPropagation();
-    dispatch({ type: "ADD", product });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    if (!isOutOfStock) {
+      dispatch({ type: "ADD", product });
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    }
   };
 
   return (
@@ -21,7 +25,8 @@ export default function ProductCard({ product, onClick }) {
         cursor: "pointer",
         overflow: "hidden",
         border: "1px solid rgba(212,160,23,0.15)",
-        boxShadow: "0 2px 12px rgba(44,24,16,0.06)"
+        boxShadow: "0 2px 12px rgba(44,24,16,0.06)",
+        opacity: isOutOfStock ? 0.6 : 1
       }}
     >
       <div style={{ position: "relative", overflow: "hidden", height: 200 }}>
@@ -30,7 +35,7 @@ export default function ProductCard({ product, onClick }) {
           alt={product.name}
           style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
           onMouseOver={(e) => {
-            e.target.style.transform = "scale(1.08)";
+            if (!isOutOfStock) e.target.style.transform = "scale(1.08)";
           }}
           onMouseOut={(e) => {
             e.target.style.transform = "scale(1)";
@@ -39,7 +44,11 @@ export default function ProductCard({ product, onClick }) {
         <div style={{ position: "absolute", top: 12, left: 12 }}>
           <span className="badge" style={{ background: "var(--saffron)", color: "var(--charcoal)", fontSize: 10, fontWeight: 600 }}>{product.category}</span>
         </div>
-        {product.stock < 15 && (
+        {isOutOfStock ? (
+          <div style={{ position: "absolute", top: 12, right: 12 }}>
+            <span className="badge" style={{ background: "#8B1E3F", color: "white", fontSize: 10 }}>Out of Stock</span>
+          </div>
+        ) : product.stock < 15 && (
           <div style={{ position: "absolute", top: 12, right: 12 }}>
             <span className="badge" style={{ background: "var(--burgundy)", color: "white", fontSize: 10 }}>Low Stock</span>
           </div>
@@ -55,13 +64,15 @@ export default function ProductCard({ product, onClick }) {
           <button
             className="btn-primary"
             onClick={handleAdd}
+            disabled={isOutOfStock}
             style={{
               padding: "9px 18px",
               fontSize: 11,
-              background: added ? "#2C6E49" : "var(--burgundy)"
+              background: isOutOfStock ? "#ccc" : added ? "#2C6E49" : "var(--burgundy)",
+              cursor: isOutOfStock ? "not-allowed" : "pointer"
             }}
           >
-            {added ? "✓ Added" : "+ Add"}
+            {isOutOfStock ? "Out of Stock" : added ? "✓ Added" : "+ Add"}
           </button>
         </div>
       </div>

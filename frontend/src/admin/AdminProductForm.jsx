@@ -14,6 +14,19 @@ const EMPTY_FORM = {
 const ADD_PRODUCT_DRAFT_KEY = "admin.addProductForm.draft.v1";
 const MAX_VARIANT_PRICE = 10000000;
 
+const toSafeIntegerString = (value, { min = 0 } = {}) => {
+  if (value === "" || value === null || value === undefined) {
+    return "";
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "";
+  }
+
+  return String(Math.max(min, Math.floor(numeric)));
+};
+
 const readAddProductDraft = () => {
   try {
     const raw = localStorage.getItem(ADD_PRODUCT_DRAFT_KEY);
@@ -72,9 +85,9 @@ const AdminProductForm = ({ mode = "add" }) => {
     return variants.map((variant) => ({
       id: String(variant?.id || variant?._id || createVariantId()),
       label: variant?.label || "",
-      originalPrice: variant?.originalPrice ?? variant?.price ?? "",
+      originalPrice: toSafeIntegerString(variant?.originalPrice ?? variant?.price ?? "", { min: 0 }),
       discountPercent: String(variant?.discountPercent ?? "0"),
-      stock: variant?.stock !== undefined && variant?.stock !== null ? String(variant.stock) : "0",
+      stock: toSafeIntegerString(variant?.stock !== undefined && variant?.stock !== null ? variant.stock : "0", { min: 0 }),
     }));
   };
 
@@ -99,6 +112,8 @@ const AdminProductForm = ({ mode = "add" }) => {
       const originalPrice = Number(variant.originalPrice);
       if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
         fieldErrors[`${variant.id}.originalPrice`] = "Price must be > 0";
+      } else if (!Number.isInteger(originalPrice)) {
+        fieldErrors[`${variant.id}.originalPrice`] = "Price must be a whole number";
       } else if (originalPrice > MAX_VARIANT_PRICE) {
         fieldErrors[`${variant.id}.originalPrice`] = `Price cannot exceed ${MAX_VARIANT_PRICE.toLocaleString("en-IN")}`;
       }
@@ -111,6 +126,8 @@ const AdminProductForm = ({ mode = "add" }) => {
       const stock = Number(variant.stock);
       if (!Number.isFinite(stock) || stock < 0) {
         fieldErrors[`${variant.id}.stock`] = "Stock must be >= 0";
+      } else if (!Number.isInteger(stock)) {
+        fieldErrors[`${variant.id}.stock`] = "Stock must be a whole number";
       }
     }
 
@@ -354,7 +371,7 @@ const AdminProductForm = ({ mode = "add" }) => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
 
-    // Final payload normalization ensures numeric types and stable 2-decimal precision.
+    // Final payload normalization ensures integer-only prices and stock.
     const normalizedVariants = (form.variants || []).map((variant) => {
       const originalPriceNumber = Number(variant.originalPrice);
       const discountPercentNumber = Number(variant.discountPercent);
@@ -363,7 +380,7 @@ const AdminProductForm = ({ mode = "add" }) => {
       return {
         id: String(variant.id),
         label: String(variant.label || "").trim(),
-        originalPrice: Math.round((Number.isFinite(originalPriceNumber) ? originalPriceNumber : 0) * 100) / 100,
+        originalPrice: Math.max(0, Math.floor(Number.isFinite(originalPriceNumber) ? originalPriceNumber : 0)),
         discountPercent: Math.round((Number.isFinite(discountPercentNumber) ? discountPercentNumber : 0) * 100) / 100,
         stock: Math.max(0, Math.floor(Number.isFinite(stockNumber) ? stockNumber : 0)),
       };
@@ -593,10 +610,10 @@ const AdminProductForm = ({ mode = "add" }) => {
                     <div>
                       <input
                         type="number"
-                        min="1"
-                        step="0.01"
+                        min="0"
+                        step="1"
                         value={variant.originalPrice}
-                        onChange={(e) => updateVariant(variant.id, "originalPrice", e.target.value)}
+                        onChange={(e) => updateVariant(variant.id, "originalPrice", toSafeIntegerString(e.target.value, { min: 0 }))}
                         placeholder="999"
                         className={inputClass(!!variantErrors[`${variant.id}.originalPrice`])}
                       />
@@ -632,8 +649,9 @@ const AdminProductForm = ({ mode = "add" }) => {
                       <input
                         type="number"
                         min="0"
+                        step="1"
                         value={variant.stock}
-                        onChange={(e) => updateVariant(variant.id, "stock", e.target.value)}
+                        onChange={(e) => updateVariant(variant.id, "stock", toSafeIntegerString(e.target.value, { min: 0 }))}
                         placeholder="0"
                         className={inputClass(!!variantErrors[`${variant.id}.stock`])}
                       />
