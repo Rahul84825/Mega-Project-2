@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { registerUser as registerApi, getApiErrorMessage } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
-export default function Register() {
+function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -92,3 +92,5 @@ export default function Register() {
     </div>
   );
 }
+
+export default Register;

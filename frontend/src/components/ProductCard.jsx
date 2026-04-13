@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 
-export default function ProductCard({ product, onClick }) {
+function ProductCard({ product, onClick }) {
   const { dispatch } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -79,3 +79,5 @@ export default function ProductCard({ product, onClick }) {
     </div>
   );
 }
+
+export default ProductCard;

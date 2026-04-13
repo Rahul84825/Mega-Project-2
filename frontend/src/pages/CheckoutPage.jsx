@@ -39,7 +39,7 @@ const loadRazorpayScript = () => {
   return razorpayScriptPromise;
 };
 
-export default function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
+function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
   const { cart, dispatch } = useCart();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" });
   const [step, setStep] = useState(1);
@@ -350,3 +350,5 @@ export default function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
     </div>
   );
 }
+
+export default CheckoutPage;

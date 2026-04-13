@@ -22,7 +22,7 @@ const normalizeOrder = (order) => {
   return order;
 };
 
-export default function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInfo, onReturnHome }) {
+function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInfo, onReturnHome }) {
   const [order, setOrder] = useState(() => normalizeOrder(paymentInfo));
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState("");
@@ -316,3 +316,5 @@ export default function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInf
     </div>
   );
 }
+
+export default PaymentSuccessPage;

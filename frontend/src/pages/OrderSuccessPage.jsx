@@ -1,4 +1,4 @@
-export default function OrderSuccessPage({ setPage, paymentInfo }) {
+function OrderSuccessPage({ setPage, paymentInfo }) {
   const orderId = paymentInfo?.razorpayOrderId || paymentInfo?.razorpay_order_id || paymentInfo?.orderId || paymentInfo?._id;
   const itemCount = Array.isArray(paymentInfo?.items) ? paymentInfo.items.reduce((sum, item) => sum + (item?.qty || 1), 0) : 0;
 
@@ -34,3 +34,5 @@ export default function OrderSuccessPage({ setPage, paymentInfo }) {
     </div>
   );
 }
+
+export default OrderSuccessPage;

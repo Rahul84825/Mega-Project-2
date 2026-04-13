@@ -27,7 +27,7 @@ const loadGoogleScript = () => {
   });
 };
 
-export default function Login() {
+function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -205,3 +205,5 @@ export default function Login() {
     </div>
   );
 }
+
+export default Login;

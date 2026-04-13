@@ -4,7 +4,7 @@ import { getCategories, getProducts } from "../services/api";
 
 const normalizeSlug = (value) => String(value || "").trim().toLowerCase();
 
-export default function NewArrivals({ setPage, setSelectedProductId, products, setProducts, initialCategory = "all", title = "New Arrivals" }) {
+function NewArrivals({ setPage, setSelectedProductId, products, setProducts, initialCategory = "all", title = "New Arrivals" }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(normalizeSlug(initialCategory) || "all");
   const [categoryOptions, setCategoryOptions] = useState([]);
@@ -176,3 +176,5 @@ export default function NewArrivals({ setPage, setSelectedProductId, products, s
     </div>
   );
 }
+
+export default NewArrivals;

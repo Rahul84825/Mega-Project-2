@@ -84,7 +84,7 @@ function IBtn({ label, onClick, badge, children }) {
 /* ═══════════════════════════════════════════════════════
    NAVBAR
 ═══════════════════════════════════════════════════════ */
-export default function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
+function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
   const { cart, toggleCart } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -616,3 +616,5 @@ export default function Navbar({ page, selectedCategory = "all", setPage, setCat
     </>
   );
 }
+
+export default Navbar;

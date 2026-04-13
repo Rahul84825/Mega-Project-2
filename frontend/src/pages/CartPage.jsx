@@ -1,6 +1,6 @@
 import { useCart } from "../context/CartContext";
 
-export default function CartPage({ setPage }) {
+function CartPage({ setPage }) {
   const { cart, dispatch } = useCart();
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const delivery = subtotal > 999 ? 0 : 60;
@@ -68,3 +68,5 @@ export default function CartPage({ setPage }) {
     </div>
   );
 }
+
+export default CartPage;

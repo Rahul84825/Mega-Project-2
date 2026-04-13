@@ -3,7 +3,7 @@ import ProductCard from "../components/ProductCard";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
 
-export default function ProductDetailPage({ productId, setPage, products }) {
+function ProductDetailPage({ productId, setPage, products }) {
   const { dispatch } = useCart();
   const [product, setProduct] = useState(null);
   const [qty, setQty] = useState(1);
@@ -130,3 +130,5 @@ export default function ProductDetailPage({ productId, setPage, products }) {
     </div>
   );
 }
+
+export default ProductDetailPage;

@@ -2,7 +2,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/priceCalculator";
 
-export default function CartItem({ item }) {
+function CartItem({ item }) {
   const { dispatch } = useCart();
   const qty = Number(item?.qty) || 1;
   const stock = Number(item?.stock) || 1;
@@ -70,3 +70,5 @@ export default function CartItem({ item }) {
     </div>
   );
 }
+
+export default CartItem;

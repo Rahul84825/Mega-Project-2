@@ -5,7 +5,7 @@ import { useCart } from "../context/CartContext";
 import CartItem from "./CartItem";
 import { formatPrice } from "../utils/priceCalculator";
 
-export default function CartDrawer({ setPage }) {
+function CartDrawer({ setPage }) {
   const { cart, isCartOpen, closeCart } = useCart();
 
   const cartTotal = useMemo(
@@ -164,3 +164,5 @@ export default function CartDrawer({ setPage }) {
     document.body
   );
 }
+
+export default CartDrawer;

@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute({ children, adminOnly = false }) {
+function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
 
@@ -15,3 +15,5 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
 
   return children;
 }
+
+export default ProtectedRoute;

@@ -23,7 +23,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import Register from "./pages/Register";
 import GlobalStyle from "./utils/GlobalStyle";
 
-export default function App() {
+function App() {
   const getInitialPage = () => (window.location.pathname.startsWith("/admin") ? "admin" : "home");
 
   const [page, setPage] = useState(getInitialPage);
@@ -186,3 +186,5 @@ export default function App() {
     </CartProvider>
   );
 }
+
+export default App;

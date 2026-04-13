@@ -1,7 +1,7 @@
 import HeroSection from "../components/HeroSection";
 import NewArrivals from "../components/NewArrivals";
 
-export default function HomePage({
+function HomePage({
   setPage,
   setSelectedProductId,
   products,
@@ -24,3 +24,5 @@ export default function HomePage({
     </div>
   );
 }
+
+export default HomePage;

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export default function GlobalStyle() {
+function GlobalStyle() {
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -89,3 +89,5 @@ export default function GlobalStyle() {
 
   return null;
 }
+
+export default GlobalStyle;

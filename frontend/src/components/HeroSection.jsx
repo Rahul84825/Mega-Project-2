@@ -27,7 +27,7 @@ const HERO_CONTENT = {
   ctaSecondary: "Our Story"
 };
 
-export default function HeroSection() {
+function HeroSection() {
   const [slides, setSlides] = useState(FALLBACK_SLIDES);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -215,3 +215,5 @@ export default function HeroSection() {
     </div>
   );
 }
+
+export default HeroSection;
