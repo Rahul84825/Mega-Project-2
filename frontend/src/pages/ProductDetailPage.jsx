@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
+import { calculatePriceWithGST } from "../utils/priceCalculator";
 
 const toSlug = (value) =>
   String(value || "")
@@ -17,6 +18,8 @@ function ProductDetailPage({ productId, setPage, products }) {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [showAllVariants, setShowAllVariants] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -67,6 +70,32 @@ function ProductDetailPage({ productId, setPage, products }) {
       .slice(0, 3);
   }, [product, products]);
 
+  const variants = useMemo(() => {
+    const incoming = Array.isArray(product?.variants) ? product.variants : [];
+    const normalized = incoming
+      .map((variant, index) => {
+        const value = Number(variant?.price ?? variant?.originalPrice ?? 0);
+        return {
+          id: String(variant?.id || variant?._id || `variant_${index + 1}`),
+          label: String(variant?.label || `Variant ${index + 1}`).trim(),
+          price: Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+        };
+      })
+      .filter((variant) => variant.price > 0);
+
+    if (normalized.length) {
+      return normalized;
+    }
+
+    const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
+    return [{ id: "default", label: "Default", price: Math.round(fallbackPrice) }];
+  }, [product]);
+
+  useEffect(() => {
+    setSelectedVariantId(variants[0]?.id || "");
+    setShowAllVariants(false);
+  }, [variants, product?._id, product?.id]);
+
   if (loading) {
     return (
       <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "40px 32px" }}>
@@ -88,13 +117,33 @@ function ProductDetailPage({ productId, setPage, products }) {
     );
   }
 
-  const isOutOfStock = Number(product.stock || 0) <= 0;
+  const isOutOfStock = product?.inStock === false || Number(product?.stock || 1) <= 0;
+  const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
+  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
+  const finalPrice = calculatePriceWithGST(selectedVariant?.price || 0, gstPercent);
+  const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
+  const extraCount = Math.max(0, variants.length - 2);
 
   const handleAdd = () => {
     if (isOutOfStock) {
       return;
     }
-    for (let i = 0; i < qty; i += 1) dispatch({ type: "ADD", product });
+    const productId = product?._id || product?.id || product?.name || "product";
+    const cartItemId = `${productId}::${selectedVariant?.id || "default"}`;
+    for (let i = 0; i < qty; i += 1) {
+      dispatch({
+        type: "ADD",
+        product: {
+          ...product,
+          cartItemId,
+          selectedVariantId: selectedVariant?.id,
+          variantLabel: selectedVariant?.label || "Default",
+          basePrice: selectedVariant?.price || 0,
+          price: finalPrice,
+          stock: Number(product?.stock || 99)
+        }
+      });
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -118,8 +167,75 @@ function ProductDetailPage({ productId, setPage, products }) {
           <div>
             <span className="badge" style={{ background: "rgba(244,160,36,0.15)", color: "var(--saffron)", marginBottom: 16, display: "inline-block", letterSpacing: 2, fontSize: 11, textTransform: "uppercase" }}>{product.category}</span>
             <h1 className="serif" style={{ fontSize: 48, fontWeight: 700, lineHeight: 1.1, marginBottom: 12 }}>{product.name}</h1>
-            <div style={{ fontSize: 36, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif", fontWeight: 700, marginBottom: 8 }}>₹{product.price}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 32 }}>Per 250g premium box · Free delivery above ₹999</div>
+            
+            {variants.length > 0 && (
+              <div style={{ marginBottom: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {visibleVariants.map((variant) => {
+                  const isActive = selectedVariant?.id === variant.id;
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        fontSize: "13px",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: 500,
+                        background: isActive ? "var(--burgundy)" : "rgba(212,160,23,0.15)",
+                        color: isActive ? "white" : "var(--charcoal)",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      {variant.label}
+                    </button>
+                  );
+                })}
+                {extraCount > 0 && !showAllVariants && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllVariants(true)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      fontSize: "13px",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      background: "rgba(212,160,23,0.15)",
+                      color: "var(--charcoal)",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    +{extraCount}
+                  </button>
+                )}
+                {extraCount > 0 && showAllVariants && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllVariants(false)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      fontSize: "13px",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      background: "rgba(212,160,23,0.15)",
+                      color: "var(--charcoal)",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    Show less
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div style={{ fontSize: 36, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif", fontWeight: 700, marginBottom: 8 }}>₹{finalPrice}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 32 }}>incl. GST · Free delivery above ₹999</div>
 
             <div style={{ borderTop: "1px solid rgba(212,160,23,0.2)", paddingTop: 24, marginBottom: 32 }}>
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>Stock: {product.stock} boxes available</div>
@@ -130,7 +246,7 @@ function ProductDetailPage({ productId, setPage, products }) {
                   <button disabled={isOutOfStock || qty >= product.stock} onClick={() => setQty((q) => Math.min(product.stock, q + 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || qty >= product.stock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || qty >= product.stock ? 0.5 : 1 }}>+</button>
                 </div>
                 <button className="btn-primary" onClick={handleAdd} disabled={isOutOfStock} style={{ flex: 1, padding: "13px 28px", background: isOutOfStock ? "#b7b7b7" : added ? "#2C6E49" : "var(--burgundy)", cursor: isOutOfStock ? "not-allowed" : "pointer" }}>
-                  {isOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : `Add ${qty} to Cart — ₹${product.price * qty}`}
+                  {isOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : `Add ${qty} to Cart — ₹${finalPrice * qty}`}
                 </button>
               </div>
             </div>
