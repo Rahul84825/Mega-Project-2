@@ -20,11 +20,11 @@ export const googleAuthValidation = [
 
 export const productValidation = [
   body("name").trim().isLength(safeString(2, 120)).withMessage("Product name is required").escape(),
-  body("basePrice").optional({ nullable: true }).isInt({ min: 1 }).withMessage("Base price must be a whole number (no decimals allowed)").toInt(),
   body("gstPercent").optional({ nullable: true }).isFloat({ min: 0, max: 100 }).withMessage("GST must be between 0 and 100").toFloat(),
   body("variants").optional().isArray({ min: 1 }).withMessage("Variants must be a non-empty array"),
   body("variants.*.label").optional().trim().isLength(safeString(1, 30)).withMessage("Variant label is required"),
-  body("variants.*.price").optional().isInt({ min: 1 }).withMessage("Variant price must be a whole number").toInt(),
+  body("variants.*.mrp").optional().isInt({ min: 1 }).withMessage("Variant MRP must be a whole number").toInt(),
+  body("variants.*.sellingPrice").optional().isInt({ min: 1 }).withMessage("Variant selling price must be a whole number").toInt(),
   body("category").trim().matches(/^[a-z0-9-]{1,80}$/).withMessage("Category must be a valid slug"),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a non-negative integer").toInt(),
   body("image").optional({ checkFalsy: true }).isURL().withMessage("Image must be a valid URL").trim(),
@@ -33,11 +33,11 @@ export const productValidation = [
 
 export const updateProductValidation = [
   body("name").optional().trim().isLength(safeString(2, 120)).withMessage("Product name must be between 2 and 120 characters").escape(),
-  body("basePrice").optional().isInt({ min: 1 }).withMessage("Base price must be a whole number (no decimals allowed)").toInt(),
   body("gstPercent").optional().isFloat({ min: 0, max: 100 }).withMessage("GST must be between 0 and 100").toFloat(),
   body("variants").optional().isArray({ min: 1 }).withMessage("Variants must be a non-empty array"),
   body("variants.*.label").optional().trim().isLength(safeString(1, 30)).withMessage("Variant label is required"),
-  body("variants.*.price").optional().isInt({ min: 1 }).withMessage("Variant price must be a whole number").toInt(),
+  body("variants.*.mrp").optional().isInt({ min: 1 }).withMessage("Variant MRP must be a whole number").toInt(),
+  body("variants.*.sellingPrice").optional().isInt({ min: 1 }).withMessage("Variant selling price must be a whole number").toInt(),
   body("category").optional().trim().matches(/^[a-z0-9-]{1,80}$/).withMessage("Category must be a valid slug"),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a non-negative integer").toInt(),
   body("image").optional({ checkFalsy: true }).isURL().withMessage("Image must be a valid URL").trim(),

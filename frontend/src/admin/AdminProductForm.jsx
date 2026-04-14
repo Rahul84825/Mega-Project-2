@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, UploadCloud, AlertCircle, CheckCircle2, X, Plus, Trash2 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { api } from "../utils/api";
-import { calculatePriceWithGST, formatPrice } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateDiscount, formatPrice } from "../utils/priceCalculator";
 
 const EMPTY_FORM = {
   name: "", category: "",
@@ -66,21 +66,24 @@ const AdminProductForm = ({ mode = "add" }) => {
   const createEmptyVariant = () => ({
     id: createVariantId(),
     label: "",
-    price: "",
+    mrp: "",
+    sellingPrice: "",
   });
 
   const normalizeIncomingVariantsLocal = (variants, fallbackPrice = "") => {
     if (!Array.isArray(variants) || variants.length === 0) {
       return [{
         id: createVariantId(),
-        label: "Default",
-        price: fallbackPrice !== "" ? String(fallbackPrice) : "",
+        mrp: fallbackPrice !== "" ? String(fallbackPrice) : "",
+        sellingPrice: fallbackPrice !== "" ? String(fallbackPrice) : "",
       }];
     }
 
     return variants.map((variant) => ({
       id: String(variant?.id || variant?._id || createVariantId()),
       label: variant?.label || "",
+      mrp: toSafeIntegerString(variant?.mrp ?? "", { min: 0 }),
+      sellingPrice: toSafeIntegerString(variant?.sellingPrice ?? ,
       price: toSafeIntegerString(variant?.price ?? variant?.originalPrice ?? "", { min: 0 }),
     }));
   };
@@ -103,13 +106,27 @@ const AdminProductForm = ({ mode = "add" }) => {
         fieldErrors[`${variant.id}.label`] = "Label is required";
       }
 
-      const variantPrice = Number(variant.price);
-      if (!Number.isFinite(variantPrice) || variantPrice <= 0) {
-        fieldErrors[`${variant.id}.price`] = "Price must be > 0";
-      } else if (!Number.isInteger(variantPrice)) {
-        fieldErrors[`${variant.id}.price`] = "Price must be a whole number";
-      } else if (variantPrice > MAX_VARIANT_PRICE) {
-        fieldErrors[`${variant.id}.price`] = `Price cannot exceed ${MAX_VARIANT_PRICE.toLocaleString("en-IN")}`;
+      const mrp = Number(variant.mrp);
+      if (!Number.isFinite(mrp) || mrp <= 0) {
+        fieldErrors[`${variant.id}.mrp`] = "MRP must be > 0";
+      } else if (!Number.isInteger(mrp)) {
+        fieldErrors[`${variant.id}.mrp`] = "MRP must be a whole number";
+      } else if (mrp > MAX_VARIANT_PRICE) {
+        fieldErrors[`${variant.id}.mrp`] = `MRP cannot exceed ${MAX_VARIANT_PRICE.toLocaleString("en-IN")}`;
+      }
+
+      const sellingPrice = Number(variant.sellingPrice);
+      if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
+        fieldErrors[`${variant.id}.sellingPrice`] = "Selling price must be > 0";
+      } else if (!Number.isInteger(sellingPrice)) {
+        fieldErrors[`${variant.id}.sellingPrice`] = "Selling price must be a whole number";
+      } else if (sellingPrice > MAX_VARIANT_PRICE) {
+        fieldErrors[`${variant.id}.sellingPrice`] = `Selling price cannot exceed ${MAX_VARIANT_PRICE.toLocaleString("en-IN")}`;
+      }
+
+      // Validate sellingPrice <= mrp
+      if (Number.isFinite(mrp) && mrp > 0 && Number.isFinite(sellingPrice) && sellingPrice > 0 && sellingPrice > mrp) {
+        fieldErrors[`${variant.id}.sellingPrice`] = "Selling price cannot be greater than MRP";
       }
     }
 
@@ -198,7 +215,8 @@ const AdminProductForm = ({ mode = "add" }) => {
       variants: (form.variants || []).map((variant) => ({
         id: String(variant.id || ""),
         label: String(variant.label || ""),
-        price: String(variant.price ?? ""),
+        mrp: String(variant.mrp ?? ""),
+        sellingPrice: String(variant.sellingPrice ?? ""),
       })),
     };
 
@@ -355,19 +373,15 @@ const AdminProductForm = ({ mode = "add" }) => {
 
     // Final payload normalization ensures integer-only pricing fields.
     const normalizedVariants = (form.variants || []).map((variant) => {
-      const variantPriceNumber = Number(variant.price);
+      const mrp = Math.max(0, Math.floor(Number.isFinite(Number(variant.mrp)) ? Number(variant.mrp) : 0));
+      const sellingPrice = Math.max(0, Math.floor(Number.isFinite(Number(variant.sellingPrice)) ? Number(variant.sellingPrice) : 0));
 
       return {
         label: String(variant.label || "").trim(),
-        price: Math.max(0, Math.floor(Number.isFinite(variantPriceNumber) ? variantPriceNumber : 0)),
+        mrp,
+        sellingPrice,
       };
-    });
-
-    const sortedVariantPrices = normalizedVariants
-      .map((variant) => variant.price)
-      .filter((price) => price > 0)
-      .sort((a, b) => a - b);
-    const basePrice = sortedVariantPrices[0] || 0;
+    }).filter((v) => v.mrp > 0 && v.sellingPrice > 0);
 
     const payload = {
       name: form.name,
@@ -378,7 +392,6 @@ const AdminProductForm = ({ mode = "add" }) => {
       tags: (form.tags || "").split(",").map((t) => t.trim()).filter(Boolean),
       inStock: !!form.inStock,
       isHero: !!form.isHero,
-      basePrice,
       gstPercent: Math.round((Number(form.gstPercent || 0) + Number.EPSILON) * 100) / 100,
       variants: normalizedVariants,
     };
@@ -565,7 +578,7 @@ const AdminProductForm = ({ mode = "add" }) => {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[13px] font-bold text-[#6d4c41]">Product Variants <span className="text-rose-400">*</span></p>
-              <p className="text-[11px] text-[#6d4c41]">Add sizes/weights with base price before GST.</p>
+              <p className="text-[11px] text-[#6d4c41]">Add sizes/weights with MRP and selling price.</p>
             </div>
             <button
               type="button"
@@ -579,18 +592,24 @@ const AdminProductForm = ({ mode = "add" }) => {
           {errors.variants && <p className="text-[11px] font-bold text-rose-500">{errors.variants}</p>}
 
           <div className="rounded-xl border border-[#e0c3a3] overflow-hidden">
-            <div className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-2 bg-[#fff8ec] px-3 py-2 text-[11px] font-bold text-[#6d4c41] uppercase tracking-wide">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_auto] gap-2 bg-[#fff8ec] px-3 py-2 text-[10px] font-bold text-[#6d4c41] uppercase tracking-wide">
               <span>Label</span>
-              <span>Price (Before GST)</span>
-              <span>Price incl. GST</span>
+              <span>MRP</span>
+              <span>Selling Price</span>
+              <span className="text-green-600">Discount</span>
+              <span>Final (incl. GST)</span>
               <span className="text-right">Action</span>
             </div>
 
             <div className="divide-y divide-[#c9a84c]/10">
               {(form.variants || []).map((variant) => {
-                const finalPrice = calculatePriceWithGST(Number(variant.price) || 0, Number(form.gstPercent || 0));
+                const mrp = Number(variant.mrp) || 0;
+                const sellingPrice = Number(variant.sellingPrice) || 0;
+                const discount = calculateDiscount(mrp, sellingPrice);
+                const finalPrice = calculateFinalPriceWithGST(sellingPrice, Number(form.gstPercent || 0));
+                
                 return (
-                  <div key={variant.id} className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-2 px-3 py-3 items-start">
+                  <div key={variant.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_auto] gap-2 px-3 py-3 items-start">
                     <div>
                       <input
                         type="text"
@@ -609,14 +628,33 @@ const AdminProductForm = ({ mode = "add" }) => {
                         type="number"
                         min="0"
                         step="1"
-                        value={variant.price}
-                        onChange={(e) => updateVariant(variant.id, "price", toSafeIntegerString(e.target.value, { min: 0 }))}
+                        value={variant.mrp}
+                        onChange={(e) => updateVariant(variant.id, "mrp", toSafeIntegerString(e.target.value, { min: 0 }))}
                         placeholder="999"
-                        className={inputClass(!!variantErrors[`${variant.id}.price`])}
+                        className={inputClass(!!variantErrors[`${variant.id}.mrp`])}
                       />
-                      {variantErrors[`${variant.id}.price`] && (
-                        <p className="text-[10px] font-semibold text-rose-500 mt-1">{variantErrors[`${variant.id}.price`]}</p>
+                      {variantErrors[`${variant.id}.mrp`] && (
+                        <p className="text-[10px] font-semibold text-rose-500 mt-1">{variantErrors[`${variant.id}.mrp`]}</p>
                       )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={variant.sellingPrice}
+                        onChange={(e) => updateVariant(variant.id, "sellingPrice", toSafeIntegerString(e.target.value, { min: 0 }))}
+                        placeholder="799"
+                        className={inputClass(!!variantErrors[`${variant.id}.sellingPrice`])}
+                      />
+                      {variantErrors[`${variant.id}.sellingPrice`] && (
+                        <p className="text-[10px] font-semibold text-rose-500 mt-1">{variantErrors[`${variant.id}.sellingPrice`]}</p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 text-sm font-bold text-green-600">
+                      {discount > 0 ? `₹${discount}` : "-"}
                     </div>
 
                     <div className="pt-3 text-sm font-bold text-[#3b2f2f]">

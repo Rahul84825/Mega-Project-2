@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
-import { calculatePriceWithGST } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateDiscount } from "../utils/priceCalculator";
 
 const toSlug = (value) =>
   String(value || "")
@@ -74,21 +74,23 @@ function ProductDetailPage({ productId, setPage, products }) {
     const incoming = Array.isArray(product?.variants) ? product.variants : [];
     const normalized = incoming
       .map((variant, index) => {
-        const value = Number(variant?.price ?? variant?.originalPrice ?? 0);
+        const mrp = Number(variant?.mrp ?? variant?.price ?? 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
         return {
           id: String(variant?.id || variant?._id || `variant_${index + 1}`),
           label: String(variant?.label || `Variant ${index + 1}`).trim(),
-          price: Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+          mrp: Number.isFinite(mrp) ? Math.max(0, Math.round(mrp)) : 0,
+          sellingPrice: Number.isFinite(sellingPrice) ? Math.max(0, Math.round(sellingPrice)) : 0
         };
       })
-      .filter((variant) => variant.price > 0);
+      .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
 
     if (normalized.length) {
       return normalized;
     }
 
     const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
-    return [{ id: "default", label: "Default", price: Math.round(fallbackPrice) }];
+    return [{ id: "default", label: "Default", mrp: Math.round(fallbackPrice), sellingPrice: Math.round(fallbackPrice) }];
   }, [product]);
 
   useEffect(() => {
@@ -120,7 +122,8 @@ function ProductDetailPage({ productId, setPage, products }) {
   const isOutOfStock = product?.inStock === false || Number(product?.stock || 1) <= 0;
   const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
   const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
-  const finalPrice = calculatePriceWithGST(selectedVariant?.price || 0, gstPercent);
+  const discount = calculateDiscount(selectedVariant?.mrp || 0, selectedVariant?.sellingPrice || 0);
+  const finalPrice = calculateFinalPriceWithGST(selectedVariant?.sellingPrice || 0, gstPercent);
   const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
   const extraCount = Math.max(0, variants.length - 2);
 
@@ -138,7 +141,7 @@ function ProductDetailPage({ productId, setPage, products }) {
           cartItemId,
           selectedVariantId: selectedVariant?.id,
           variantLabel: selectedVariant?.label || "Default",
-          basePrice: selectedVariant?.price || 0,
+          basePrice: selectedVariant?.sellingPrice || 0,
           price: finalPrice,
           stock: Number(product?.stock || 99)
         }
@@ -235,6 +238,18 @@ function ProductDetailPage({ productId, setPage, products }) {
             )}
 
             <div style={{ fontSize: 36, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif", fontWeight: 700, marginBottom: 8 }}>₹{finalPrice}</div>
+            {selectedVariant?.mrp > 0 && (
+              <>
+                <div style={{ fontSize: 14, color: "var(--muted)", textDecoration: "line-through", marginBottom: 4 }}>
+                  MRP ₹{selectedVariant.mrp}
+                </div>
+                {discount > 0 && (
+                  <div style={{ fontSize: 13, color: "var(--burgundy)", fontWeight: 600, marginBottom: 16 }}>
+                    Save ₹{discount}
+                  </div>
+                )}
+              </>
+            )}
             <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 32 }}>incl. GST · Free delivery above ₹999</div>
 
             <div style={{ borderTop: "1px solid rgba(212,160,23,0.2)", paddingTop: 24, marginBottom: 32 }}>

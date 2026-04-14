@@ -13,6 +13,19 @@ export const calculatePriceWithGST = (basePrice, gstPercent) => {
   return Math.max(0, Math.round(price + (price * safeGst) / 100));
 };
 
+export const calculateDiscount = (mrp, sellingPrice) => {
+  const malePrice = Math.max(0, Number(mrp) || 0);
+  const sPrice = Math.max(0, Number(sellingPrice) || 0);
+  return Math.max(0, malePrice - sPrice);
+};
+
+export const calculateFinalPriceWithGST = (sellingPrice, gstPercent) => {
+  const price = Number(sellingPrice) || 0;
+  const gst = Number(gstPercent) || 0;
+  const safeGst = Math.max(0, Math.min(gst, 100));
+  return Math.max(0, Math.round(price + (price * safeGst) / 100));
+};
+
 export const formatPrice = (value) => {
   const amount = Math.max(0, Math.round(Number(value) || 0));
   return amount.toLocaleString("en-IN", {

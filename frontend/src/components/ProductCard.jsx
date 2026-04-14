@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
-import { calculatePriceWithGST } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateDiscount } from "../utils/priceCalculator";
 
 function ProductCard({ product, onClick }) {
   const { dispatch } = useCart();
@@ -12,21 +12,24 @@ function ProductCard({ product, onClick }) {
     const incoming = Array.isArray(product?.variants) ? product.variants : [];
     const normalized = incoming
       .map((variant, index) => {
-        const value = Number(variant?.price ?? variant?.originalPrice ?? 0);
+        const mrp = Number(variant?.mrp ?? variant?.price ?? 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
         return {
           id: String(variant?.id || variant?._id || `variant_${index + 1}`),
           label: String(variant?.label || `Variant ${index + 1}`).trim(),
-          price: Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+          mrp: Number.isFinite(mrp) ? Math.max(0, Math.round(mrp)) : 0,
+          sellingPrice: Number.isFinite(sellingPrice) ? Math.max(0, Math.round(sellingPrice)) : 0
         };
       })
-      .filter((variant) => variant.price > 0);
+      .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
 
     if (normalized.length) {
       return normalized;
     }
 
+    // Fallback for old structure
     const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
-    return [{ id: "default", label: "Default", price: Math.round(fallbackPrice) }];
+    return [{ id: "default", label: "Default", mrp: Math.round(fallbackPrice), sellingPrice: Math.round(fallbackPrice) }];
   }, [product]);
 
   useEffect(() => {
@@ -36,7 +39,8 @@ function ProductCard({ product, onClick }) {
 
   const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
   const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
-  const finalPrice = calculatePriceWithGST(selectedVariant?.price || 0, gstPercent);
+  const discount = calculateDiscount(selectedVariant?.mrp || 0, selectedVariant?.sellingPrice || 0);
+  const finalPrice = calculateFinalPriceWithGST(selectedVariant?.sellingPrice || 0, gstPercent);
   const isOutOfStock = product?.inStock === false || Number(product?.stock || 1) <= 0;
   const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
   const extraCount = Math.max(0, variants.length - 2);
@@ -53,7 +57,7 @@ function ProductCard({ product, onClick }) {
           cartItemId,
           selectedVariantId: selectedVariant?.id,
           variantLabel: selectedVariant?.label || "Default",
-          basePrice: selectedVariant?.price || 0,
+          basePrice: selectedVariant?.sellingPrice || 0,
           price: finalPrice,
           stock: Number(product?.stock || 99)
         }
@@ -69,12 +73,17 @@ function ProductCard({ product, onClick }) {
       onClick={onClick}
       style={{ cursor: "pointer", opacity: isOutOfStock ? 0.6 : 1 }}
     >
-      <div className="rounded-xl overflow-hidden h-[200px]">
+      <div className="rounded-xl overflow-hidden h-[200px] relative">
         <img
           src={product.image}
           alt={product.name}
           className="w-full h-full rounded-xl object-cover"
         />
+        {discount > 0 && (
+          <div className="absolute top-3 right-3 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">
+            ₹{discount} OFF
+          </div>
+        )}
       </div>
       <div className="pt-3">
         <h3 className="text-lg font-semibold text-[#3b2f2f] leading-tight">{product.name}</h3>
@@ -124,8 +133,14 @@ function ProductCard({ product, onClick }) {
           )}
         </div>
 
-        <div className="mt-3 text-2xl font-bold text-[#3b2f2f]">₹ {finalPrice}</div>
-        <p className="text-xs text-gray-500">incl. GST</p>
+        <div className="mt-3">
+          <div className="text-2xl font-bold text-[#3b2f2f]">₹ {finalPrice}</div>
+          {selectedVariant?.mrp > 0 && (
+            <div className="text-xs text-gray-400 line-through">
+              MRP ₹{selectedVariant.mrp}
+            </div>
+          )}
+        </div>
 
         <button
           type="button"

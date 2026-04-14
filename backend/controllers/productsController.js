@@ -22,23 +22,19 @@ const normalizeVariants = (variants) => {
 
   return variants
     .map((variant) => {
-      const price = Math.max(0, Math.floor(normalizeNumber(variant?.price ?? variant?.originalPrice, 0)));
+      const mrp = Math.max(0, Math.floor(normalizeNumber(variant?.mrp, 0)));
+      const sellingPrice = Math.max(0, Math.floor(normalizeNumber(variant?.sellingPrice ?? variant?.price, 0)));
 
       return {
         label: String(variant?.label || "Default").trim(),
-        price
+        mrp,
+        sellingPrice
       };
     })
-    .filter((variant) => variant.price > 0);
+    .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
 };
 
-const deriveBasePriceFromVariants = (variants = []) => {
-  if (!variants.length) {
-    return 0;
-  }
 
-  return Math.min(...variants.map((variant) => Math.max(0, Math.floor(normalizeNumber(variant.price, 0)))));
-};
 
 const normalizeImages = (image, images = []) => {
   const normalized = Array.from(new Set([image, ...(Array.isArray(images) ? images : [])].filter(Boolean)));
@@ -111,7 +107,6 @@ export const getProductById = async (req, res, next) => {
 
 export const createProduct = async (req, res, next) => {
   try {
-    const basePrice = Number(req.body?.basePrice ?? req.body?.price);
     const {
       name,
       category,
@@ -134,23 +129,34 @@ export const createProduct = async (req, res, next) => {
       });
     }
 
-    if ((req.body?.basePrice !== undefined || req.body?.price !== undefined) && !isWholeNumber(basePrice)) {
-      return res.status(400).json({
-        success: false,
-        message: "Base price must be a whole number (no decimals allowed)"
-      });
-    }
-
+    // Validate variant mrp and sellingPrice fields
     if (Array.isArray(variants)) {
       const hasDecimalVariantPrice = variants.some(
-        (variant) => (variant?.price !== undefined || variant?.originalPrice !== undefined)
-          && !isWholeNumber(variant?.price ?? variant?.originalPrice)
+        (variant) => {
+          const mrp = variant?.mrp;
+          const sellingPrice = variant?.sellingPrice ?? variant?.price;
+          return (mrp !== undefined && !isWholeNumber(mrp)) || (sellingPrice !== undefined && !isWholeNumber(sellingPrice));
+        }
       );
 
       if (hasDecimalVariantPrice) {
         return res.status(400).json({
           success: false,
-          message: "Price must be a whole number (no decimals allowed)"
+          message: "Variant prices must be whole numbers (no decimals allowed)"
+        });
+      }
+
+      // Validate sellingPrice <= mrp
+      const invalidVariant = variants.find((variant) => {
+        const mrp = Number(variant?.mrp || 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price || 0);
+        return mrp > 0 && sellingPrice > 0 && sellingPrice > mrp;
+      });
+
+      if (invalidVariant) {
+        return res.status(400).json({
+          success: false,
+          message: "Selling price cannot be greater than MRP"
         });
       }
     }
@@ -172,38 +178,20 @@ export const createProduct = async (req, res, next) => {
     }
 
     const normalizedVariants = normalizeVariants(variants);
-    const resolvedBasePrice = normalizedVariants.length
-      ? deriveBasePriceFromVariants(normalizedVariants)
-      : Math.max(0, Math.floor(normalizeNumber(basePrice, 0)));
     const resolvedStock = Math.max(0, Math.floor(normalizeNumber(stock, 0)));
     const resolvedInStock = typeof inStock === "boolean" ? inStock : resolvedStock > 0;
     const resolvedImages = normalizeImages(uploadedImageUrl, images);
     const resolvedGstPercent = Math.round((clampGstPercent(gstPercent) + Number.EPSILON) * 100) / 100;
 
-    if (!Number.isInteger(resolvedBasePrice)) {
-      return res.status(400).json({
-        success: false,
-        message: "Base price must be a whole number (no decimals allowed)"
-      });
-    }
-
     if (!normalizedVariants.length) {
       return res.status(400).json({
         success: false,
-        message: "At least one variant is required"
-      });
-    }
-
-    if (resolvedBasePrice <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "basePrice must be greater than zero"
+        message: "At least one variant with both MRP and selling price is required"
       });
     }
 
     const product = await Product.create({
       name,
-      basePrice: resolvedBasePrice,
       gstPercent: resolvedGstPercent,
       category: linkedCategory.slug,
       stock: resolvedStock,
@@ -290,55 +278,53 @@ export const updateProduct = async (req, res, next) => {
       }
     }
 
-    if (payload.basePrice !== undefined || payload.price !== undefined) {
-      const incomingBasePrice = Number(req.body?.basePrice ?? payload.basePrice ?? payload.price);
-
-      if (!Number.isInteger(incomingBasePrice)) {
-        return res.status(400).json({
-          success: false,
-          message: "Base price must be a whole number (no decimals allowed)"
-        });
-      }
-
-      payload.basePrice = incomingBasePrice;
-      delete payload.price;
-    }
-
     if (payload.stock !== undefined) {
       payload.stock = Math.max(0, Math.floor(normalizeNumber(payload.stock, currentProduct.stock)));
     }
 
     if (payload.variants !== undefined) {
+      // Validate variant mrp and sellingPrice fields
       const hasDecimalVariantPrice = Array.isArray(payload.variants)
-        && payload.variants.some(
-          (variant) => (variant?.price !== undefined || variant?.originalPrice !== undefined)
-            && !isWholeNumber(variant?.price ?? variant?.originalPrice)
-        );
+        && payload.variants.some((variant) => {
+          const mrp = variant?.mrp;
+          const sellingPrice = variant?.sellingPrice ?? variant?.price;
+          return (mrp !== undefined && !isWholeNumber(mrp)) || (sellingPrice !== undefined && !isWholeNumber(sellingPrice));
+        });
 
       if (hasDecimalVariantPrice) {
         return res.status(400).json({
           success: false,
-          message: "Price must be a whole number (no decimals allowed)"
+          message: "Variant prices must be whole numbers (no decimals allowed)"
+        });
+      }
+
+      // Validate sellingPrice <= mrp
+      const invalidVariant = payload.variants.find((variant) => {
+        const mrp = Number(variant?.mrp || 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price || 0);
+        return mrp > 0 && sellingPrice > 0 && sellingPrice > mrp;
+      });
+
+      if (invalidVariant) {
+        return res.status(400).json({
+          success: false,
+          message: "Selling price cannot be greater than MRP"
         });
       }
 
       const normalizedVariants = normalizeVariants(payload.variants);
       payload.variants = normalizedVariants;
 
-      if (normalizedVariants.length) {
-        payload.basePrice = deriveBasePriceFromVariants(normalizedVariants);
+      if (!normalizedVariants.length) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one variant with both MRP and selling price is required"
+        });
       }
     }
 
     if (payload.gstPercent !== undefined) {
       payload.gstPercent = Math.round((clampGstPercent(payload.gstPercent) + Number.EPSILON) * 100) / 100;
-    }
-
-    if (payload.basePrice !== undefined && !Number.isInteger(Number(payload.basePrice))) {
-      return res.status(400).json({
-        success: false,
-        message: "Base price must be a whole number (no decimals allowed)"
-      });
     }
 
     if (payload.images !== undefined || payload.image !== undefined) {

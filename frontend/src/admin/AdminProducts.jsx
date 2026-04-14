@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { toast } from "react-toastify";
-import { calculatePriceWithGST, formatPrice } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateDiscount, formatPrice } from "../utils/priceCalculator";
 
 const AdminProducts = () => {
   const { products, categories, deleteProduct, toggleStock, setHeroProduct, refresh } = useProducts();
@@ -27,32 +27,31 @@ const AdminProducts = () => {
     const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent || 0)));
     const variants = Array.isArray(product?.variants) ? product.variants : [];
     if (!variants.length) {
-      const base = Number(product?.basePrice ?? product?.price) || 0;
-      return {
-        finalPrice: calculatePriceWithGST(base, gstPercent),
-        originalPrice: base,
-      };
+      return { finalPrice: "-", discount: "-", originalPrice: "-" };
     }
 
     const computed = variants
       .map((variant) => {
-        const base = Number(variant?.price ?? variant?.originalPrice ?? variant?.mrp);
-        if (!Number.isFinite(base) || base <= 0) return null;
-        return { original: base, final: calculatePriceWithGST(base, gstPercent) };
+        const mrp = Number(variant?.mrp ?? 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
+        if (!Number.isFinite(mrp) || mrp <= 0 || !Number.isFinite(sellingPrice) || sellingPrice <= 0) return null;
+        return {
+          mrp,
+          sellingPrice,
+          discount: Math.max(0, mrp - sellingPrice),
+          final: calculateFinalPriceWithGST(sellingPrice, gstPercent)
+        };
       })
       .filter(Boolean);
 
     if (!computed.length) {
-      const base = Number(product?.basePrice ?? product?.price) || 0;
-      return {
-        finalPrice: calculatePriceWithGST(base, gstPercent),
-        originalPrice: base,
-      };
+      return { finalPrice: "-", discount: "-", originalPrice: "-" };
     }
 
     const finalPrice = Math.min(...computed.map((item) => item.final));
-    const originalPrice = Math.max(...computed.map((item) => item.original));
-    return { finalPrice, originalPrice };
+    const minMrp = Math.min(...computed.map((item) => item.mrp));
+    const maxDiscount = Math.max(...computed.map((item) => item.discount));
+    return { finalPrice, discount: maxDiscount, originalPrice: minMrp };
   };
 
   const getCategoryName = (cat) => {

@@ -7,13 +7,22 @@ const variantSchema = new mongoose.Schema(
       trim: true,
       required: true
     },
-    price: {
+    mrp: {
       type: Number,
       required: true,
       min: 0,
       validate: {
         validator: Number.isInteger,
-        message: "Variant price must be an integer"
+        message: "Variant MRP must be an integer"
+      }
+    },
+    sellingPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Variant selling price must be an integer"
       }
     }
   },
@@ -26,15 +35,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true
-    },
-    basePrice: {
-      type: Number,
-      required: true,
-      min: 0,
-      validate: {
-        validator: Number.isInteger,
-        message: "Base price must be an integer"
-      }
     },
     gstPercent: {
       type: Number,
