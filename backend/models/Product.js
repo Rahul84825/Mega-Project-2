@@ -2,26 +2,19 @@ import mongoose from "mongoose";
 
 const variantSchema = new mongoose.Schema(
   {
-    id: {
-      type: String,
-      trim: true
-    },
     label: {
       type: String,
       trim: true,
-      default: ""
+      required: true
     },
-    originalPrice: {
+    price: {
       type: Number,
-      default: 0
-    },
-    discountPercent: {
-      type: Number,
-      default: 0
-    },
-    stock: {
-      type: Number,
-      default: 0
+      required: true,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Variant price must be an integer"
+      }
     }
   },
   { _id: false }
@@ -34,14 +27,20 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
-    price: {
+    basePrice: {
       type: Number,
       required: true,
       min: 0,
       validate: {
         validator: Number.isInteger,
-        message: "Price must be an integer"
+        message: "Base price must be an integer"
       }
+    },
+    gstPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
     },
     category: {
       type: String,

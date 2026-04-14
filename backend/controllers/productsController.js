@@ -13,8 +13,7 @@ const normalizeNumber = (value, fallback = 0) => {
 };
 
 const isWholeNumber = (value) => Number.isInteger(Number(value));
-
-const clampDiscount = (value) => Math.max(0, Math.min(normalizeNumber(value, 0), 90));
+const clampGstPercent = (value) => Math.max(0, Math.min(normalizeNumber(value, 0), 100));
 
 const normalizeVariants = (variants) => {
   if (!Array.isArray(variants)) {
@@ -22,44 +21,23 @@ const normalizeVariants = (variants) => {
   }
 
   return variants
-    .map((variant, index) => {
-      const originalPrice = Math.max(0, Math.floor(normalizeNumber(variant?.originalPrice ?? variant?.price, 0)));
-      const discountPercent = clampDiscount(variant?.discountPercent);
-      const stock = Math.max(0, Math.floor(normalizeNumber(variant?.stock, 0)));
+    .map((variant) => {
+      const price = Math.max(0, Math.floor(normalizeNumber(variant?.price ?? variant?.originalPrice, 0)));
 
       return {
-        id: String(variant?.id || variant?._id || `variant_${index + 1}`),
         label: String(variant?.label || "Default").trim(),
-        originalPrice,
-        discountPercent: Math.round((discountPercent + Number.EPSILON) * 100) / 100,
-        stock
+        price
       };
     })
-    .filter((variant) => variant.originalPrice > 0);
+    .filter((variant) => variant.price > 0);
 };
 
-const derivePriceStockFromVariants = (variants = []) => {
+const deriveBasePriceFromVariants = (variants = []) => {
   if (!variants.length) {
-    return {
-      price: 0,
-      stock: 0,
-      inStock: false
-    };
+    return 0;
   }
 
-  const variantPrices = variants.map((variant) => {
-    const original = normalizeNumber(variant.originalPrice, 0);
-    const discount = clampDiscount(variant.discountPercent);
-    return Math.max(0, Math.round(original - (original * discount) / 100));
-  });
-
-  const stock = variants.reduce((sum, variant) => sum + Math.max(0, Math.floor(normalizeNumber(variant.stock, 0))), 0);
-
-  return {
-    price: variantPrices.length ? Math.min(...variantPrices) : 0,
-    stock,
-    inStock: stock > 0
-  };
+  return Math.min(...variants.map((variant) => Math.max(0, Math.floor(normalizeNumber(variant.price, 0)))));
 };
 
 const normalizeImages = (image, images = []) => {
@@ -133,7 +111,7 @@ export const getProductById = async (req, res, next) => {
 
 export const createProduct = async (req, res, next) => {
   try {
-    const price = Number(req.body?.price);
+    const basePrice = Number(req.body?.basePrice ?? req.body?.price);
     const {
       name,
       category,
@@ -144,6 +122,7 @@ export const createProduct = async (req, res, next) => {
       brand,
       tags,
       variants,
+      gstPercent,
       inStock,
       isHero
     } = req.body || {};
@@ -155,16 +134,17 @@ export const createProduct = async (req, res, next) => {
       });
     }
 
-    if (req.body?.price !== undefined && !isWholeNumber(req.body.price)) {
+    if ((req.body?.basePrice !== undefined || req.body?.price !== undefined) && !isWholeNumber(basePrice)) {
       return res.status(400).json({
         success: false,
-        message: "Price must be a whole number (no decimals allowed)"
+        message: "Base price must be a whole number (no decimals allowed)"
       });
     }
 
     if (Array.isArray(variants)) {
       const hasDecimalVariantPrice = variants.some(
-        (variant) => variant?.originalPrice !== undefined && !isWholeNumber(variant.originalPrice)
+        (variant) => (variant?.price !== undefined || variant?.originalPrice !== undefined)
+          && !isWholeNumber(variant?.price ?? variant?.originalPrice)
       );
 
       if (hasDecimalVariantPrice) {
@@ -192,29 +172,39 @@ export const createProduct = async (req, res, next) => {
     }
 
     const normalizedVariants = normalizeVariants(variants);
-    const derived = derivePriceStockFromVariants(normalizedVariants);
-    const resolvedPrice = normalizedVariants.length ? derived.price : price;
-    const resolvedStock = normalizedVariants.length ? derived.stock : Math.max(0, Math.floor(normalizeNumber(stock, 0)));
+    const resolvedBasePrice = normalizedVariants.length
+      ? deriveBasePriceFromVariants(normalizedVariants)
+      : Math.max(0, Math.floor(normalizeNumber(basePrice, 0)));
+    const resolvedStock = Math.max(0, Math.floor(normalizeNumber(stock, 0)));
     const resolvedInStock = typeof inStock === "boolean" ? inStock : resolvedStock > 0;
     const resolvedImages = normalizeImages(uploadedImageUrl, images);
+    const resolvedGstPercent = Math.round((clampGstPercent(gstPercent) + Number.EPSILON) * 100) / 100;
 
-    if (!normalizedVariants.length && !Number.isInteger(price)) {
+    if (!Number.isInteger(resolvedBasePrice)) {
       return res.status(400).json({
         success: false,
-        message: "Price must be a whole number (no decimals allowed)"
+        message: "Base price must be a whole number (no decimals allowed)"
       });
     }
 
-    if (resolvedPrice <= 0) {
+    if (!normalizedVariants.length) {
       return res.status(400).json({
         success: false,
-        message: "price must be greater than zero"
+        message: "At least one variant is required"
+      });
+    }
+
+    if (resolvedBasePrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "basePrice must be greater than zero"
       });
     }
 
     const product = await Product.create({
       name,
-      price: resolvedPrice,
+      basePrice: resolvedBasePrice,
+      gstPercent: resolvedGstPercent,
       category: linkedCategory.slug,
       stock: resolvedStock,
       inStock: resolvedInStock,
@@ -300,17 +290,18 @@ export const updateProduct = async (req, res, next) => {
       }
     }
 
-    if (payload.price !== undefined) {
-      const price = Number(req.body?.price ?? payload.price);
+    if (payload.basePrice !== undefined || payload.price !== undefined) {
+      const incomingBasePrice = Number(req.body?.basePrice ?? payload.basePrice ?? payload.price);
 
-      if (!Number.isInteger(price)) {
+      if (!Number.isInteger(incomingBasePrice)) {
         return res.status(400).json({
           success: false,
-          message: "Price must be a whole number (no decimals allowed)"
+          message: "Base price must be a whole number (no decimals allowed)"
         });
       }
 
-      payload.price = price;
+      payload.basePrice = incomingBasePrice;
+      delete payload.price;
     }
 
     if (payload.stock !== undefined) {
@@ -320,7 +311,8 @@ export const updateProduct = async (req, res, next) => {
     if (payload.variants !== undefined) {
       const hasDecimalVariantPrice = Array.isArray(payload.variants)
         && payload.variants.some(
-          (variant) => variant?.originalPrice !== undefined && !isWholeNumber(variant.originalPrice)
+          (variant) => (variant?.price !== undefined || variant?.originalPrice !== undefined)
+            && !isWholeNumber(variant?.price ?? variant?.originalPrice)
         );
 
       if (hasDecimalVariantPrice) {
@@ -334,11 +326,19 @@ export const updateProduct = async (req, res, next) => {
       payload.variants = normalizedVariants;
 
       if (normalizedVariants.length) {
-        const derived = derivePriceStockFromVariants(normalizedVariants);
-        payload.price = derived.price;
-        payload.stock = derived.stock;
-        payload.inStock = derived.inStock;
+        payload.basePrice = deriveBasePriceFromVariants(normalizedVariants);
       }
+    }
+
+    if (payload.gstPercent !== undefined) {
+      payload.gstPercent = Math.round((clampGstPercent(payload.gstPercent) + Number.EPSILON) * 100) / 100;
+    }
+
+    if (payload.basePrice !== undefined && !Number.isInteger(Number(payload.basePrice))) {
+      return res.status(400).json({
+        success: false,
+        message: "Base price must be a whole number (no decimals allowed)"
+      });
     }
 
     if (payload.images !== undefined || payload.image !== undefined) {

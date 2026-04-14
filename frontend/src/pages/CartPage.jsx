@@ -24,20 +24,20 @@ function CartPage({ setPage }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 40, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {cart.map((item) => (
-              <div key={item._id} style={{ background: "white", padding: 24, display: "flex", gap: 20, alignItems: "center", border: "1px solid rgba(212,160,23,0.1)", boxShadow: "0 2px 8px rgba(44,24,16,0.04)" }}>
+              <div key={item.cartItemId || item._id || item.id} style={{ background: "white", padding: 24, display: "flex", gap: 20, alignItems: "center", border: "1px solid rgba(212,160,23,0.1)", boxShadow: "0 2px 8px rgba(44,24,16,0.04)" }}>
                 <img src={item.image} alt={item.name} style={{ width: 90, height: 90, objectFit: "cover" }} />
                 <div style={{ flex: 1 }}>
                   <div className="serif" style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{item.name}</div>
-                  <div style={{ fontSize: 13, color: "var(--muted)" }}>{item.category} · per 250g</div>
+                  <div style={{ fontSize: 13, color: "var(--muted)" }}>{item.category} · {item.variantLabel || "Default"}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #E8DDD0" }}>
-                    <button onClick={() => dispatch({ type: "UPDATE_QTY", id: item._id, qty: item.qty - 1 })} style={{ width: 36, height: 36, background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "var(--burgundy)" }}>−</button>
+                    <button onClick={() => dispatch({ type: "UPDATE_QTY", id: item.cartItemId || item._id || item.id, qty: item.qty - 1 })} style={{ width: 36, height: 36, background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "var(--burgundy)" }}>−</button>
                     <span style={{ width: 36, textAlign: "center", fontSize: 14, fontWeight: 600 }}>{item.qty}</span>
-                    <button onClick={() => dispatch({ type: "UPDATE_QTY", id: item._id, qty: item.qty + 1 })} style={{ width: 36, height: 36, background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "var(--burgundy)" }}>+</button>
+                    <button onClick={() => dispatch({ type: "UPDATE_QTY", id: item.cartItemId || item._id || item.id, qty: item.qty + 1 })} style={{ width: 36, height: 36, background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "var(--burgundy)" }}>+</button>
                   </div>
                   <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 20, fontWeight: 700, color: "var(--burgundy)", minWidth: 80, textAlign: "right" }}>₹{item.price * item.qty}</div>
-                  <button onClick={() => dispatch({ type: "REMOVE", id: item._id })} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#ccc", padding: 4 }}>✕</button>
+                  <button onClick={() => dispatch({ type: "REMOVE", id: item.cartItemId || item._id || item.id })} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#ccc", padding: 4 }}>✕</button>
                 </div>
               </div>
             ))}

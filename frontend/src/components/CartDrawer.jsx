@@ -119,7 +119,7 @@ function CartDrawer({ setPage }) {
               </button>
             </div>
           ) : (
-            cart.map((item) => <CartItem key={item._id || item.id} item={item} />)
+            cart.map((item) => <CartItem key={item.cartItemId || item._id || item.id} item={item} />)
           )}
         </div>
 

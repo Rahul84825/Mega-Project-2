@@ -3,28 +3,31 @@ import { createContext, useContext, useEffect, useReducer, useState } from "reac
 const CartContext = createContext(null);
 const CART_STORAGE_KEY = "mithai-world-cart";
 
+const getCartItemId = (item) => item?.cartItemId || item?._id || item?.id;
+
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD": {
       // Prevent adding if stock is 0 or less
-      if (!action.product || action.product.stock <= 0) {
+      if (!action.product || Number(action.product.stock || 1) <= 0) {
         return state;
       }
-      const existing = state.find((i) => i._id === action.product._id);
+      const incomingId = getCartItemId(action.product);
+      const existing = state.find((i) => getCartItemId(i) === incomingId);
       if (existing) {
         // Don't exceed stock limit
-        const newQty = Math.min(existing.qty + 1, action.product.stock);
+        const newQty = Math.min(existing.qty + 1, Number(action.product.stock || 99));
         return state.map((i) =>
-          i._id === action.product._id ? { ...i, qty: newQty } : i
+          getCartItemId(i) === incomingId ? { ...i, qty: newQty } : i
         );
       }
-      return [...state, { ...action.product, qty: 1 }];
+      return [...state, { ...action.product, cartItemId: incomingId, qty: 1 }];
     }
     case "REMOVE":
-      return state.filter((i) => i._id !== action.id);
+      return state.filter((i) => getCartItemId(i) !== action.id);
     case "UPDATE_QTY":
       return state.map((i) =>
-        i._id === action.id ? { ...i, qty: Math.max(1, Math.min(action.qty, i.stock || 1)) } : i
+        getCartItemId(i) === action.id ? { ...i, qty: Math.max(1, Math.min(action.qty, i.stock || 99)) } : i
       );
     case "CLEAR":
       return [];

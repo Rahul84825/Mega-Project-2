@@ -1,16 +1,63 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
+import { calculatePriceWithGST } from "../utils/priceCalculator";
 
 function ProductCard({ product, onClick }) {
   const { dispatch } = useCart();
   const [added, setAdded] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [showAllVariants, setShowAllVariants] = useState(false);
 
-  const isOutOfStock = product.stock === 0;
+  const variants = useMemo(() => {
+    const incoming = Array.isArray(product?.variants) ? product.variants : [];
+    const normalized = incoming
+      .map((variant, index) => {
+        const value = Number(variant?.price ?? variant?.originalPrice ?? 0);
+        return {
+          id: String(variant?.id || variant?._id || `variant_${index + 1}`),
+          label: String(variant?.label || `Variant ${index + 1}`).trim(),
+          price: Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+        };
+      })
+      .filter((variant) => variant.price > 0);
+
+    if (normalized.length) {
+      return normalized;
+    }
+
+    const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
+    return [{ id: "default", label: "Default", price: Math.round(fallbackPrice) }];
+  }, [product]);
+
+  useEffect(() => {
+    setSelectedVariantId(variants[0]?.id || "");
+    setShowAllVariants(false);
+  }, [variants, product?._id, product?.id]);
+
+  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
+  const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
+  const finalPrice = calculatePriceWithGST(selectedVariant?.price || 0, gstPercent);
+  const isOutOfStock = product?.inStock === false || Number(product?.stock || 1) <= 0;
+  const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
+  const extraCount = Math.max(0, variants.length - 2);
 
   const handleAdd = (e) => {
     e.stopPropagation();
     if (!isOutOfStock) {
-      dispatch({ type: "ADD", product });
+      const productId = product?._id || product?.id || product?.name || "product";
+      const cartItemId = `${productId}::${selectedVariant?.id || "default"}`;
+      dispatch({
+        type: "ADD",
+        product: {
+          ...product,
+          cartItemId,
+          selectedVariantId: selectedVariant?.id,
+          variantLabel: selectedVariant?.label || "Default",
+          basePrice: selectedVariant?.price || 0,
+          price: finalPrice,
+          stock: Number(product?.stock || 99)
+        }
+      });
       setAdded(true);
       setTimeout(() => setAdded(false), 1500);
     }
@@ -18,63 +65,76 @@ function ProductCard({ product, onClick }) {
 
   return (
     <div
-      className="card-hover"
+      className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition"
       onClick={onClick}
-      style={{
-        background: "white",
-        cursor: "pointer",
-        overflow: "hidden",
-        border: "1px solid rgba(212,160,23,0.15)",
-        boxShadow: "0 2px 12px rgba(44,24,16,0.06)",
-        opacity: isOutOfStock ? 0.6 : 1
-      }}
+      style={{ cursor: "pointer", opacity: isOutOfStock ? 0.6 : 1 }}
     >
-      <div style={{ position: "relative", overflow: "hidden", height: 200 }}>
+      <div className="rounded-xl overflow-hidden h-[200px]">
         <img
           src={product.image}
           alt={product.name}
-          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
-          onMouseOver={(e) => {
-            if (!isOutOfStock) e.target.style.transform = "scale(1.08)";
-          }}
-          onMouseOut={(e) => {
-            e.target.style.transform = "scale(1)";
-          }}
+          className="w-full h-full rounded-xl object-cover"
         />
-        <div style={{ position: "absolute", top: 12, left: 12 }}>
-          <span className="badge" style={{ background: "var(--saffron)", color: "var(--charcoal)", fontSize: 10, fontWeight: 600 }}>{product.category}</span>
-        </div>
-        {isOutOfStock ? (
-          <div style={{ position: "absolute", top: 12, right: 12 }}>
-            <span className="badge" style={{ background: "#8B1E3F", color: "white", fontSize: 10 }}>Out of Stock</span>
-          </div>
-        ) : product.stock < 15 && (
-          <div style={{ position: "absolute", top: 12, right: 12 }}>
-            <span className="badge" style={{ background: "var(--burgundy)", color: "white", fontSize: 10 }}>Low Stock</span>
-          </div>
-        )}
       </div>
-      <div style={{ padding: "18px 20px 20px" }}>
-        <div className="serif" style={{ fontSize: 19, fontWeight: 600, marginBottom: 4, color: "var(--charcoal)" }}>{product.name}</div>
-        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>per 250g box</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif" }}>₹{product.price}</span>
-          </div>
-          <button
-            className="btn-primary"
-            onClick={handleAdd}
-            disabled={isOutOfStock}
-            style={{
-              padding: "9px 18px",
-              fontSize: 11,
-              background: isOutOfStock ? "#ccc" : added ? "#2C6E49" : "var(--burgundy)",
-              cursor: isOutOfStock ? "not-allowed" : "pointer"
-            }}
-          >
-            {isOutOfStock ? "Out of Stock" : added ? "✓ Added" : "+ Add"}
-          </button>
+      <div className="pt-3">
+        <h3 className="text-lg font-semibold text-[#3b2f2f] leading-tight">{product.name}</h3>
+
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {visibleVariants.map((variant) => {
+            const isActive = selectedVariant?.id === variant.id;
+            return (
+              <button
+                key={variant.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedVariantId(variant.id);
+                }}
+                className={`px-3 py-1 rounded-full text-sm transition ${
+                  isActive ? "bg-[#e8883a] text-white" : "bg-[#f5e1c8] text-[#3b2f2f]"
+                }`}
+              >
+                {variant.label}
+              </button>
+            );
+          })}
+          {extraCount > 0 && !showAllVariants && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAllVariants(true);
+              }}
+              className="bg-[#f5e1c8] text-[#3b2f2f] px-3 py-1 rounded-full text-sm"
+            >
+              +{extraCount}
+            </button>
+          )}
+          {extraCount > 0 && showAllVariants && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAllVariants(false);
+              }}
+              className="bg-[#f5e1c8] text-[#3b2f2f] px-3 py-1 rounded-full text-sm"
+            >
+              Show less
+            </button>
+          )}
         </div>
+
+        <div className="mt-3 text-2xl font-bold text-[#3b2f2f]">₹ {finalPrice}</div>
+        <p className="text-xs text-gray-500">incl. GST</p>
+
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={isOutOfStock}
+          className="w-full bg-[#a61b1b] text-white rounded-lg py-2 mt-3 hover:bg-[#8e1616] transition disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isOutOfStock ? "Out of Stock" : added ? "Added" : "Add to Cart"}
+        </button>
       </div>
     </div>
   );

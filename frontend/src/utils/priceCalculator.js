@@ -6,6 +6,13 @@ export const calculateFinalPrice = (originalPrice, discountPercent) => {
   return Math.max(0, Math.round(final));
 };
 
+export const calculatePriceWithGST = (basePrice, gstPercent) => {
+  const price = Number(basePrice) || 0;
+  const gst = Number(gstPercent) || 0;
+  const safeGst = Math.max(0, Math.min(gst, 100));
+  return Math.max(0, Math.round(price + (price * safeGst) / 100));
+};
+
 export const formatPrice = (value) => {
   const amount = Math.max(0, Math.round(Number(value) || 0));
   return amount.toLocaleString("en-IN", {

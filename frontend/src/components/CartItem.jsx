@@ -6,13 +6,14 @@ function CartItem({ item }) {
   const { dispatch } = useCart();
   const qty = Number(item?.qty) || 1;
   const stock = Number(item?.stock) || 1;
+  const itemId = item?.cartItemId || item?._id || item?.id;
 
   const updateQty = (nextQty) => {
-    dispatch({ type: "UPDATE_QTY", id: item._id, qty: nextQty });
+    dispatch({ type: "UPDATE_QTY", id: itemId, qty: nextQty });
   };
 
   const removeItem = () => {
-    dispatch({ type: "REMOVE", id: item._id });
+    dispatch({ type: "REMOVE", id: itemId });
   };
 
   return (
@@ -29,6 +30,7 @@ function CartItem({ item }) {
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold text-[#3b2417]">{item.name}</h3>
               <p className="mt-0.5 text-xs text-[#8c7358]">{item.category || "Mithai"}</p>
+              {item.variantLabel && <p className="mt-0.5 text-[11px] text-[#a67f52]">{item.variantLabel}</p>}
             </div>
             <button
               type="button"

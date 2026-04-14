@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { toast } from "react-toastify";
-import { formatPrice } from "../utils/priceCalculator";
+import { calculatePriceWithGST, formatPrice } from "../utils/priceCalculator";
 
 const AdminProducts = () => {
   const { products, categories, deleteProduct, toggleStock, setHeroProduct, refresh } = useProducts();
@@ -24,29 +24,29 @@ const AdminProducts = () => {
   const getId = (p) => p._id || p.id;
 
   const getDisplayPricing = (product) => {
+    const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent || 0)));
     const variants = Array.isArray(product?.variants) ? product.variants : [];
     if (!variants.length) {
+      const base = Number(product?.basePrice ?? product?.price) || 0;
       return {
-        finalPrice: Number(product?.price) || 0,
-        originalPrice: Number(product?.mrp ?? product?.originalPrice) || 0,
+        finalPrice: calculatePriceWithGST(base, gstPercent),
+        originalPrice: base,
       };
     }
 
     const computed = variants
       .map((variant) => {
-        const original = Number(variant?.originalPrice ?? variant?.price ?? variant?.mrp);
-        const discount = Number(variant?.discountPercent ?? 0);
-        if (!Number.isFinite(original) || original <= 0) return null;
-        const safeDiscount = Math.max(0, Math.min(discount, 90));
-        const final = Math.round((original - (original * safeDiscount / 100) + Number.EPSILON) * 100) / 100;
-        return { original, final };
+        const base = Number(variant?.price ?? variant?.originalPrice ?? variant?.mrp);
+        if (!Number.isFinite(base) || base <= 0) return null;
+        return { original: base, final: calculatePriceWithGST(base, gstPercent) };
       })
       .filter(Boolean);
 
     if (!computed.length) {
+      const base = Number(product?.basePrice ?? product?.price) || 0;
       return {
-        finalPrice: Number(product?.price) || 0,
-        originalPrice: Number(product?.mrp ?? product?.originalPrice) || 0,
+        finalPrice: calculatePriceWithGST(base, gstPercent),
+        originalPrice: base,
       };
     }
 

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../utils/api";
+import { calculatePriceWithGST } from "../utils/priceCalculator";
 
 const OFFERS_STORAGE_KEY = "mithai-world-admin-offers";
 
@@ -29,13 +30,36 @@ const normalizeCategory = (category) => ({
 });
 
 const normalizeProduct = (product) => {
-  const stock = Number(product?.stock || 0);
+  const normalizedVariants = toArray(product?.variants)
+    .map((variant, index) => {
+      const rawPrice = Number(variant?.price ?? variant?.originalPrice ?? 0);
+      return {
+        id: String(variant?.id || variant?._id || `variant_${index + 1}`),
+        label: String(variant?.label || `Variant ${index + 1}`).trim(),
+        price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0
+      };
+    })
+    .filter((variant) => variant.price > 0);
+
+  const derivedBasePrice = normalizedVariants.length
+    ? Math.min(...normalizedVariants.map((variant) => variant.price))
+    : Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
+  const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
+  const computedDisplayPrice = calculatePriceWithGST(derivedBasePrice, gstPercent);
+
+  const stockFallback = product?.inStock === false ? 0 : 99;
+  const stock = Number(product?.stock ?? stockFallback);
   const rawCategory = typeof product?.category === "string" ? product.category : product?.category?.slug || product?.category?.name || "";
   const categorySlug = toSlug(product?.categorySlug || rawCategory);
+
   return {
     ...product,
+    basePrice: Math.round(derivedBasePrice),
+    gstPercent,
+    variants: normalizedVariants,
+    price: computedDisplayPrice,
     stock,
-    inStock: stock > 0,
+    inStock: product?.inStock !== undefined ? Boolean(product.inStock) : stock > 0,
     categorySlug,
     images: toArray(product?.images).length ? toArray(product.images) : product?.image ? [product.image] : []
   };
