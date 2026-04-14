@@ -148,8 +148,8 @@ export const createProduct = async (req, res, next) => {
 
       // Validate sellingPrice <= mrp
       const invalidVariant = variants.find((variant) => {
-        const mrp = Number(variant?.mrp || 0);
-        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price || 0);
+        const mrp = Number(variant?.mrp ?? 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
         return mrp > 0 && sellingPrice > 0 && sellingPrice > mrp;
       });
 
@@ -300,8 +300,8 @@ export const updateProduct = async (req, res, next) => {
 
       // Validate sellingPrice <= mrp
       const invalidVariant = payload.variants.find((variant) => {
-        const mrp = Number(variant?.mrp || 0);
-        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price || 0);
+        const mrp = Number(variant?.mrp ?? 0);
+        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
         return mrp > 0 && sellingPrice > 0 && sellingPrice > mrp;
       });
 
@@ -376,3 +376,5 @@ export const updateProduct = async (req, res, next) => {
     return next(error);
   }
 };
+
+
