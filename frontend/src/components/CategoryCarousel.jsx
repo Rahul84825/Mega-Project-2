@@ -1,25 +1,33 @@
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
 
-function CategoryCarousel({ setPage, setSelectedProductId }) {
+function CategoryCarousel({ setPage, setSelectedCategory, setSelectedProductId }) {
   const { categories } = useProducts();
+  const navigate = useNavigate();
 
-  // Filter only categories that should show on homepage
-  const homepageCategories = (categories || [])
-    .filter((cat) => cat.showInHomepage && cat.is_active)
-    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-    .slice(0, 6);
+  const homepageCategories = useMemo(
+    () =>
+      (categories || [])
+        .filter((cat) => cat.showInHomepage === true && cat.is_active)
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+        .slice(0, 6),
+    [categories]
+  );
 
   if (!homepageCategories.length) {
     return null;
   }
 
   const handleCategoryClick = (categorySlug) => {
-    setPage("home");
+    setPage("category");
+    setSelectedCategory?.(categorySlug);
     setSelectedProductId(null);
+    navigate(`/products?category=${encodeURIComponent(categorySlug)}`);
   };
 
   return (
-    <section className="py-12 px-4 md:px-8 bg-gradient-to-b from-[#fff8ec] to-white">
+    <section className="py-12 px-4 md:px-8 bg-[#fff3e0]">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-extrabold text-[#2d1b14] text-center mb-2 tracking-tight">
           Explore by Category

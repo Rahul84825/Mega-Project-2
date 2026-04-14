@@ -7,6 +7,14 @@ const ProductContext = createContext(null);
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
+const toSlug = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
 const normalizeCategory = (category) => ({
   _id: category?._id || category?.id || "",
   id: category?.id || category?._id || "",
@@ -16,15 +24,19 @@ const normalizeCategory = (category) => ({
   is_active: category?.is_active ?? category?.isActive ?? category?.active ?? true,
   showInNavbar: category?.showInNavbar ?? category?.isFeatured ?? false,
   showInHomepage: category?.showInHomepage ?? false,
+  type: String(category?.type || "other").trim().toLowerCase() === "sweets" ? "sweets" : "other",
   order: Number(category?.order || 0)
 });
 
 const normalizeProduct = (product) => {
   const stock = Number(product?.stock || 0);
+  const rawCategory = typeof product?.category === "string" ? product.category : product?.category?.slug || product?.category?.name || "";
+  const categorySlug = toSlug(product?.categorySlug || rawCategory);
   return {
     ...product,
     stock,
     inStock: stock > 0,
+    categorySlug,
     images: toArray(product?.images).length ? toArray(product.images) : product?.image ? [product.image] : []
   };
 };
@@ -179,11 +191,17 @@ export function ProductProvider({ children }) {
 
       // Keep products consistent when category slug changes.
       const previous = categories.find((category) => (category._id || category.id) === id);
-      const previousSlug = previous?.slug;
-      if (previousSlug && updated.slug !== previousSlug) {
-        console.log("📦 Updating products with slug change:", previousSlug, "→", updated.slug);
+      const previousSlug = toSlug(previous?.slug);
+      const updatedSlug = toSlug(updated?.slug);
+      if (previousSlug && updatedSlug && updatedSlug !== previousSlug) {
+        console.log("📦 Updating products with slug change:", previousSlug, "→", updatedSlug);
         setProducts((prev) =>
-          prev.map((product) => (product.category === previousSlug ? { ...product, category: updated.slug } : product))
+          prev.map((product) => {
+            const productSlug = toSlug(product?.categorySlug || product?.category);
+            return productSlug === previousSlug
+              ? { ...product, category: updatedSlug, categorySlug: updatedSlug }
+              : product;
+          })
         );
       }
 

@@ -1,9 +1,11 @@
 import HeroSection from "../components/HeroSection";
 import CategoryCarousel from "../components/CategoryCarousel";
 import NewArrivals from "../components/NewArrivals";
+import RecentlyViewed from "../components/RecentlyViewed";
 
 function HomePage({
   setPage,
+  setSelectedCategory,
   setSelectedProductId,
   products,
   setProducts,
@@ -14,7 +16,13 @@ function HomePage({
   return (
     <div className="page-enter">
       {showHero && <HeroSection />}
-      <CategoryCarousel setPage={setPage} setSelectedProductId={setSelectedProductId} />
+      {showHero && (
+        <CategoryCarousel
+          setPage={setPage}
+          setSelectedCategory={setSelectedCategory}
+          setSelectedProductId={setSelectedProductId}
+        />
+      )}
       <NewArrivals
         setPage={setPage}
         setSelectedProductId={setSelectedProductId}
@@ -23,6 +31,12 @@ function HomePage({
         initialCategory={initialCategory}
         title={catalogTitle}
       />
+      {showHero && (
+        <RecentlyViewed
+          setPage={setPage}
+          setSelectedProductId={setSelectedProductId}
+        />
+      )}
     </div>
   );
 }

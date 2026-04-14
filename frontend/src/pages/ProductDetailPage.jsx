@@ -3,6 +3,14 @@ import ProductCard from "../components/ProductCard";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
 
+const toSlug = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
 function ProductDetailPage({ productId, setPage, products }) {
   const { dispatch } = useCart();
   const [product, setProduct] = useState(null);
@@ -30,10 +38,32 @@ function ProductDetailPage({ productId, setPage, products }) {
     }
   }, [productId]);
 
+  useEffect(() => {
+    if (!product?._id) return;
+
+    try {
+      const stored = localStorage.getItem("recentlyViewed");
+      let viewed = [];
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        viewed = Array.isArray(parsed) ? parsed : [];
+      }
+
+      viewed = viewed.filter((p) => (p?._id || p?.id) !== product._id);
+      viewed.unshift(product);
+      viewed = viewed.slice(0, 8);
+
+      localStorage.setItem("recentlyViewed", JSON.stringify(viewed));
+    } catch (_error) {
+      // Ignore malformed storage values.
+    }
+  }, [product]);
+
   const related = useMemo(() => {
     if (!product) return [];
+    const currentCategorySlug = toSlug(product.categorySlug || product.category);
     return products
-      .filter((p) => p.category === product.category && p._id !== product._id)
+      .filter((p) => toSlug(p.categorySlug || p.category) === currentCategorySlug && p._id !== product._id)
       .slice(0, 3);
   }, [product, products]);
 

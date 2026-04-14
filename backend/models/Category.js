@@ -30,6 +30,11 @@ const categorySchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    type: {
+      type: String,
+      enum: ["sweets", "other"],
+      default: "other"
+    },
     order: {
       type: Number,
       default: 0

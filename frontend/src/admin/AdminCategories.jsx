@@ -3,7 +3,7 @@ import { PlusCircle, Pencil, Trash2, X, Save, AlertCircle, ToggleLeft, ToggleRig
 import { useProducts } from "../context/ProductContext";
 import toast from "../utils/toast";
 
-const EMPTY_FORM = { name: "", is_active: true, showInNavbar: false, showInHomepage: false, image: null, order: 0 };
+const EMPTY_FORM = { name: "", is_active: true, showInNavbar: false, showInHomepage: false, type: "other", image: null, order: 0 };
 
 const toSlug = (value) =>
   String(value || "")
@@ -21,6 +21,7 @@ const CategoryModal = ({ category, onSave, onClose }) => {
     is_active: category?.is_active ?? true,
     showInNavbar: category?.showInNavbar ?? false,
     showInHomepage: category?.showInHomepage ?? false,
+    type: category?.type === "sweets" ? "sweets" : "other",
     image: null,
     imagePreview: category?.image || null,
     order: category?.order || 0
@@ -71,6 +72,7 @@ const CategoryModal = ({ category, onSave, onClose }) => {
       payload.append("is_active", !!form.is_active);
       payload.append("showInNavbar", !!form.showInNavbar);
       payload.append("showInHomepage", !!form.showInHomepage);
+      payload.append("type", form.type === "sweets" ? "sweets" : "other");
       payload.append("order", Number(form.order || 0));
 
       if (form.image) {
@@ -211,6 +213,20 @@ const CategoryModal = ({ category, onSave, onClose }) => {
               />
               <div className="w-11 h-6 bg-[#e0c3a3] rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:border-[#e0c3a3] after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#e8883a]" />
             </label>
+          </div>
+
+          {/* Category Type */}
+          <div>
+            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Category Type</label>
+            <select
+              value={form.type}
+              onChange={(e) => set("type", e.target.value)}
+              className={inputClass(errors.type)}
+              disabled={loading}
+            >
+              <option value="sweets">Sweets</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
           {/* Order */}

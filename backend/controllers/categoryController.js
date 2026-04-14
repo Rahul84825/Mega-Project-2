@@ -24,7 +24,15 @@ export const getCategories = async (_req, res, next) => {
 
 export const createCategory = async (req, res, next) => {
   try {
-    const { name, slug: slugInput, is_active = true, showInNavbar = false, showInHomepage = false, order = 0 } = req.body || {};
+    const {
+      name,
+      slug: slugInput,
+      is_active = true,
+      showInNavbar = false,
+      showInHomepage = false,
+      type = "other",
+      order = 0
+    } = req.body || {};
     const slug = toSlug(slugInput || name);
 
     if (!slug) {
@@ -63,6 +71,7 @@ export const createCategory = async (req, res, next) => {
       is_active: Boolean(is_active),
       showInNavbar: Boolean(showInNavbar),
       showInHomepage: Boolean(showInHomepage),
+      type: ["sweets", "other"].includes(String(type || "").toLowerCase()) ? String(type).toLowerCase() : "other",
       order: Number(order || 0)
     });
 
@@ -78,7 +87,7 @@ export const createCategory = async (req, res, next) => {
 export const updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, is_active, showInNavbar, showInHomepage, order } = req.body || {};
+    const { name, is_active, showInNavbar, showInHomepage, type, order } = req.body || {};
 
     const existing = await Category.findById(id);
     if (!existing) {
@@ -119,6 +128,9 @@ export const updateCategory = async (req, res, next) => {
     }
     if (showInHomepage !== undefined) {
       updates.showInHomepage = Boolean(showInHomepage);
+    }
+    if (type !== undefined) {
+      updates.type = ["sweets", "other"].includes(String(type || "").toLowerCase()) ? String(type).toLowerCase() : "other";
     }
     if (order !== undefined) {
       updates.order = Number(order || 0);

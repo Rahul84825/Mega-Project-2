@@ -79,6 +79,7 @@ export const categoryCreateValidation = [
   body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),
   body("showInNavbar").optional().isBoolean().withMessage("showInNavbar must be a boolean").toBoolean(),
   body("showInHomepage").optional().isBoolean().withMessage("showInHomepage must be a boolean").toBoolean(),
+  body("type").optional().trim().toLowerCase().isIn(["sweets", "other"]).withMessage("type must be one of: sweets, other"),
   body("order").optional().isInt({ min: 0 }).withMessage("order must be a non-negative integer").toInt()
 ];
 
@@ -87,6 +88,7 @@ export const categoryUpdateValidation = [
   body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),
   body("showInNavbar").optional().isBoolean().withMessage("showInNavbar must be a boolean").toBoolean(),
   body("showInHomepage").optional().isBoolean().withMessage("showInHomepage must be a boolean").toBoolean(),
+  body("type").optional().trim().toLowerCase().isIn(["sweets", "other"]).withMessage("type must be one of: sweets, other"),
   body("order").optional().isInt({ min: 0 }).withMessage("order must be a non-negative integer").toInt()
 ];
 
