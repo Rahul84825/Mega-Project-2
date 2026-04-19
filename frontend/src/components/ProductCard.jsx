@@ -1,155 +1,121 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../context/CartContext";
-import { calculateFinalPriceWithGST, calculateDiscount } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount } from "../utils/priceCalculator";
 
-function ProductCard({ product, onClick }) {
+const openProductDetail = (productId) => {
+  window.location.href = `/product/${productId}`;
+};
+
+function ProductCard({ product }) {
   const { dispatch } = useCart();
-  const [added, setAdded] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState("");
-  const [showAllVariants, setShowAllVariants] = useState(false);
+  const [added, setAdded] = useState(false);
 
   const variants = useMemo(() => {
-    const incoming = Array.isArray(product?.variants) ? product.variants : [];
-    const normalized = incoming
-      .map((variant, index) => {
-        const mrp = Number(variant?.mrp ?? variant?.price ?? 0);
-        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
-        return {
-          id: String(variant?.id || variant?._id || `variant_${index + 1}`),
-          label: String(variant?.label || `Variant ${index + 1}`).trim(),
-          mrp: Number.isFinite(mrp) ? Math.max(0, Math.round(mrp)) : 0,
-          sellingPrice: Number.isFinite(sellingPrice) ? Math.max(0, Math.round(sellingPrice)) : 0
-        };
-      })
-      .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
-
-    if (normalized.length) {
-      return normalized;
-    }
-
-    // Fallback for old structure
-    const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
-    return [{ id: "default", label: "Default", mrp: Math.round(fallbackPrice), sellingPrice: Math.round(fallbackPrice) }];
+    const incoming = product?.variants || [];
+    const normalized = incoming.map((v, i) => {
+      const mrp = Number(v?.mrp || 0);
+      const discount = Number(v?.discountPercent || 0);
+      const price = calculateSellingPriceFromDiscount(mrp, discount);
+      return {
+        id: v?.id || v?._id || `v_${i}`,
+        label: v?.label,
+        price: Math.round(price),
+      };
+    });
+    return normalized.length
+      ? normalized
+      : [{ id: "default", label: "250gm", price: product?.price || 0 }];
   }, [product]);
 
   useEffect(() => {
-    setSelectedVariantId(variants[0]?.id || "");
-    setShowAllVariants(false);
-  }, [variants, product?._id, product?.id]);
+    setSelectedVariantId(variants[0]?.id);
+  }, [variants]);
 
-  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
-  const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
-  const discount = calculateDiscount(selectedVariant?.mrp || 0, selectedVariant?.sellingPrice || 0);
-  const finalPrice = calculateFinalPriceWithGST(selectedVariant?.sellingPrice || 0, gstPercent);
-  const isOutOfStock = product?.inStock === false || Number(product?.stock || 1) <= 0;
-  const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
-  const extraCount = Math.max(0, variants.length - 2);
+  const selected = variants.find(v => v.id === selectedVariantId);
+  const visible = variants.slice(0, 2);
+  const remaining = variants.length - 2;
 
-  const handleAdd = (e) => {
-    e.stopPropagation();
-    if (!isOutOfStock) {
-      const productId = product?._id || product?.id || product?.name || "product";
-      const cartItemId = `${productId}::${selectedVariant?.id || "default"}`;
-      dispatch({
-        type: "ADD",
-        product: {
-          ...product,
-          cartItemId,
-          selectedVariantId: selectedVariant?.id,
-          variantLabel: selectedVariant?.label || "Default",
-          basePrice: selectedVariant?.sellingPrice || 0,
-          price: finalPrice,
-          stock: Number(product?.stock || 99)
-        }
-      });
-      setAdded(true);
-      setTimeout(() => setAdded(false), 1500);
-    }
+  const finalPrice = calculateFinalPriceWithGST(selected?.price || 0, product?.gstPercent || 0);
+
+  const handleAdd = () => {
+    dispatch({
+      type: "ADD",
+      product: { ...product, price: finalPrice, variantLabel: selected?.label },
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1400);
   };
 
   return (
-    <div
-      className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition"
-      onClick={onClick}
-      style={{ cursor: "pointer", opacity: isOutOfStock ? 0.6 : 1 }}
-    >
-      <div className="rounded-xl overflow-hidden h-[200px] relative">
+    <div className="w-full flex flex-col bg-white rounded-[16px] border border-gray-200 overflow-hidden
+                    transition-transform duration-200 hover:-translate-y-1 cursor-pointer">
+
+      {/* IMAGE — taller */}
+      <div className="relative h-[240px] overflow-hidden">
         <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full rounded-xl object-cover"
+          src={product?.images?.[0]}
+          alt={product?.name}
+          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
-        {discount > 0 && (
-          <div className="absolute top-3 right-3 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">
-            ₹{discount} OFF
-          </div>
+        {product?.category && (
+          <span className="absolute top-[10px] left-[10px] bg-yellow-300/90 text-yellow-900
+                           text-[11px] font-medium px-[10px] py-[4px] rounded-full tracking-wide">
+            {product.category}
+          </span>
         )}
       </div>
-      <div className="pt-3">
-        <h3 className="text-lg font-semibold text-[#3b2f2f] leading-tight">{product.name}</h3>
 
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {visibleVariants.map((variant) => {
-            const isActive = selectedVariant?.id === variant.id;
-            return (
-              <button
-                key={variant.id}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedVariantId(variant.id);
-                }}
-                className={`px-3 py-1 rounded-full text-sm transition ${
-                  isActive ? "bg-[#e8883a] text-white" : "bg-[#f5e1c8] text-[#3b2f2f]"
+      {/* BODY — more padding, larger text */}
+      <div className="flex flex-col gap-3 p-4">
+
+        {/* NAME */}
+        <h3 className="text-[15px] font-medium text-black leading-snug">
+          {product?.name}
+        </h3>
+
+        {/* VARIANTS */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {visible.map(v => (
+            <button
+              key={v.id}
+              onClick={() => setSelectedVariantId(v.id)}
+              className={`px-3 py-1 text-[12px] rounded-full border transition-all duration-150
+                ${selectedVariantId === v.id
+                  ? "bg-yellow-100 border-yellow-400 text-yellow-900"
+                  : "bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300"
                 }`}
-              >
-                {variant.label}
-              </button>
-            );
-          })}
-          {extraCount > 0 && !showAllVariants && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAllVariants(true);
-              }}
-              className="bg-[#f5e1c8] text-[#3b2f2f] px-3 py-1 rounded-full text-sm"
             >
-              +{extraCount}
+              {v.label}
             </button>
-          )}
-          {extraCount > 0 && showAllVariants && (
+          ))}
+          {remaining > 0 && (
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAllVariants(false);
-              }}
-              className="bg-[#f5e1c8] text-[#3b2f2f] px-3 py-1 rounded-full text-sm"
+              onClick={() => openProductDetail(product._id)}
+              className="px-3 py-1 text-[12px] rounded-full bg-gray-50
+                         border border-dashed border-gray-300 text-gray-400 hover:border-gray-400"
             >
-              Show less
+              +{remaining}
             </button>
           )}
         </div>
 
-        <div className="mt-3">
-          <div className="text-2xl font-bold text-[#3b2f2f]">₹ {finalPrice}</div>
-          {selectedVariant?.mrp > 0 && (
-            <div className="text-xs text-gray-400 line-through">
-              MRP ₹{selectedVariant.mrp}
-            </div>
-          )}
+        {/* PRICE */}
+        <div className="flex items-baseline gap-2">
+          <span className="text-[20px] font-medium text-black">₹{finalPrice}</span>
+          <span className="text-[12px] text-gray-400">incl. GST</span>
         </div>
 
+        {/* BUTTON — bigger, no border */}
         <button
-          type="button"
           onClick={handleAdd}
-          disabled={isOutOfStock}
-          className="w-full bg-[#a61b1b] text-white rounded-lg py-2 mt-3 hover:bg-[#8e1616] transition disabled:opacity-60 disabled:cursor-not-allowed"
+          className={`w-full py-[13px] rounded-lg text-[14px] font-medium text-white border-none
+                      transition-all duration-150 active:scale-[0.98]
+                      ${added ? "bg-green-700" : "bg-[#b91c1c] hover:bg-[#991b1b]"}`}
         >
-          {isOutOfStock ? "Out of Stock" : added ? "Added" : "Add to Cart"}
+          {added ? "Added!" : "Add to cart"}
         </button>
+
       </div>
     </div>
   );

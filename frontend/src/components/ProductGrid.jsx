@@ -1,53 +1,50 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { PackageX, RefreshCcw } from "lucide-react";
-import ProductCard from "./ProductCard";
+import { PackageX, Search } from "lucide-react";
+import ProductCard from "@/components/ProductCard";
 import { useProducts } from "../context/ProductContext";
 
 const ProductCardSkeleton = () => (
-  <div className="flex animate-pulse flex-col overflow-hidden rounded-3xl border border-[#e8c9a0] bg-[#fff8ec]">
-    {/* Mock Image Area */}
-    <div className="bg-slate-200/60 aspect-square w-full" />
-    
-    {/* Mock Content Area */}
-    <div className="flex flex-1 flex-col gap-4 p-5">
-      <div className="space-y-2.5">
-        <div className="h-4 bg-slate-200/60 rounded-full w-4/5" />
-        <div className="h-3 bg-slate-200/60 rounded-full w-1/2" />
+  <div className="flex animate-pulse flex-col overflow-hidden rounded-2xl bg-white border border-[#f0e6d6]">
+    <div className="aspect-square w-full bg-[#f5ede0]" />
+    <div className="flex flex-col gap-3 p-4">
+      <div className="h-3.5 bg-[#f0e6d6] rounded-full w-3/4" />
+      <div className="h-3 bg-[#f0e6d6] rounded-full w-1/2" />
+      <div className="mt-1 flex gap-2">
+        <div className="h-6 w-14 bg-[#f0e6d6] rounded-md" />
+        <div className="h-6 w-14 bg-[#f0e6d6] rounded-md" />
       </div>
-      
-      {/* Push to bottom */}
-      <div className="mt-auto flex items-center justify-between pt-4">
-        <div className="h-6 bg-slate-200/60 rounded-full w-1/3" />
-        <div className="h-10 w-10 bg-slate-200/60 rounded-full" />
-      </div>
+      <div className="h-5 bg-[#f0e6d6] rounded-full w-1/3" />
+      <div className="h-px bg-[#f0e6d6]" />
+      <div className="h-9 bg-[#f0e6d6] rounded-xl w-full" />
     </div>
   </div>
 );
 
 const EmptyState = ({ onClear, isSearch, query }) => (
-  <div className="col-span-full flex min-h-[60vh] flex-col items-center justify-center px-4 py-12">
-    <div className="flex w-full max-w-lg flex-col items-center rounded-4xl border border-[#e8c9a0] bg-[#fff8ec] p-10 text-center sm:p-14">
-      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#fff3e0]">
-        <PackageX className="h-12 w-12 text-[#6d4c41]" />
+  <div className="col-span-full flex min-h-[52vh] flex-col items-center justify-center px-4 py-12">
+    <div className="flex w-full max-w-sm flex-col items-center bg-white rounded-2xl
+                    border border-[#f0e6d6] p-10 text-center">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf5ec]">
+        {isSearch
+          ? <Search className="h-6 w-6 text-[#a0836b]" />
+          : <PackageX className="h-6 w-6 text-[#a0836b]" />
+        }
       </div>
-      <h3 className="mb-2 text-xl font-bold tracking-tight text-[#3b2f2f]">
+      <h3 className="mb-1.5 text-[15px] font-semibold text-[#1c1c1c]">
         {isSearch ? `No results for "${query}"` : "No products found"}
       </h3>
-      <p className="mb-8 max-w-sm text-sm leading-relaxed text-[#6d4c41]">
-        {isSearch 
-          ? "We couldn't find anything matching your search. Try checking for typos or using broader terms." 
-          : "We couldn't find any products matching your current filters. Try adjusting them to see more results."}
+      <p className="mb-7 text-[13px] leading-relaxed text-[#a0836b] max-w-[240px]">
+        {isSearch
+          ? "Try different keywords or browse all products."
+          : "Try adjusting your filters to see more results."}
       </p>
-      <button 
+      <button
         onClick={onClear}
-        className="btn-primary inline-flex items-center gap-2 px-8 py-3.5 text-sm"
+        className="px-6 py-2.5 rounded-xl bg-[#b91c1c] hover:bg-[#a01818]
+                   text-white text-[13px] font-semibold transition-colors duration-150"
       >
-        {isSearch ? "Browse All Products" : (
-          <>
-            <RefreshCcw className="w-4 h-4" /> Clear All Filters
-          </>
-        )}
+        {isSearch ? "Browse all products" : "Clear filters"}
       </button>
     </div>
   </div>
@@ -74,21 +71,20 @@ const ProductGrid = ({
   sortBy = "default",
   onSortChange,
   initialFilters,
-  onCountChange
+  onCountChange,
 }) => {
   const { products, loading } = useProducts();
   const [searchParams] = useSearchParams();
   const categoryFromURL = toSlug(searchParams.get("category"));
 
-  // Sync filters when URL params change.
   useEffect(() => {
     if (initialFilters && onFiltersChange) {
       onFiltersChange({
         ...DEFAULT_FILTERS,
-        search: initialFilters.search || "",
+        search:   initialFilters.search   || "",
         category: initialFilters.category || "all",
-        price: initialFilters.price || "all",
-        inStock: Boolean(initialFilters.inStock)
+        price:    initialFilters.price    || "all",
+        inStock:  Boolean(initialFilters.inStock),
       });
     }
   }, [initialFilters, onFiltersChange]);
@@ -100,40 +96,25 @@ const ProductGrid = ({
   }, [categoryFromURL, onFiltersChange]);
 
   const filteredProducts = useMemo(() => {
-    const baseFiltered = (products || []).filter((product) => {
-      // search
-      if (filters.search && !(product.name || "").toLowerCase().includes(filters.search.toLowerCase())) {
+    const base = (products || []).filter((product) => {
+      if (filters.search && !(product.name || "").toLowerCase().includes(filters.search.toLowerCase()))
         return false;
-      }
-
-      // category (URL slug has priority)
-      const productCategorySlug = toSlug(product.categorySlug);
-      if (categoryFromURL && productCategorySlug !== categoryFromURL) {
-        return false;
-      }
-
+      const productSlug = toSlug(product.categorySlug);
+      if (categoryFromURL && productSlug !== categoryFromURL) return false;
       const selectedCategory = toSlug(filters.category || "all");
-      if (!categoryFromURL && selectedCategory !== "all" && productCategorySlug !== selectedCategory) {
+      if (!categoryFromURL && selectedCategory !== "all" && productSlug !== selectedCategory)
         return false;
-      }
-
-      // stock
-      if (filters.inStock && Number(product.stock || 0) <= 0) {
-        return false;
-      }
-
-      // price
+      if (filters.inStock && Number(product.stock || 0) <= 0) return false;
       if (filters.price !== "all") {
         const price = Number(product.price || 0);
-        if (filters.price === "low" && price > 500) return false;
-        if (filters.price === "mid" && (price < 500 || price > 1000)) return false;
-        if (filters.price === "high" && price < 1000) return false;
+        if (filters.price === "low"  && price > 500)          return false;
+        if (filters.price === "mid"  && (price < 500 || price > 1000)) return false;
+        if (filters.price === "high" && price < 1000)         return false;
       }
-
       return true;
     });
 
-    return baseFiltered.sort((a, b) => {
+    return base.sort((a, b) => {
       switch (sortBy) {
         case "price_asc":  return a.price - b.price;
         case "price_desc": return b.price - a.price;
@@ -154,21 +135,34 @@ const ProductGrid = ({
   }, [filteredProducts.length, loading, onCountChange]);
 
   return (
-    <div className="min-h-screen bg-[#fff3e0]">
-      <div className="mx-auto mt-6 mb-6 min-h-[60vh] max-w-7xl px-4 md:px-8">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="min-h-screen bg-[#fff8f0]">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+
+        {/* Result count */}
+        {!loading && filteredProducts.length > 0 && (
+          <p className="text-[12px] text-[#a0836b] mb-4">
+            Showing{" "}
+            <span className="font-semibold text-[#3b2f2f]">{filteredProducts.length}</span>{" "}
+            product{filteredProducts.length !== 1 ? "s" : ""}
+          </p>
+        )}
+
+        {/* Grid */}
+        <div className="mt-6 mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
           {loading
             ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
             : filteredProducts.length === 0
-            ? <EmptyState onClear={clearFilters} isSearch={!!(filters.search || "")} query={filters.search || ""} />
+            ? <EmptyState
+                onClear={clearFilters}
+                isSearch={!!(filters.search || "")}
+                query={filters.search || ""}
+              />
             : filteredProducts.map((product) => (
-                <ProductCard
-                  key={product._id || product.id}
-                  product={product}
-                />
+                <ProductCard key={product._id || product.id} product={product} />
               ))
           }
         </div>
+
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ const ProductsPage = ({ initialCategory = "all" }) => {
 
   return (
     <>
-      <section className="mx-auto mt-6 mb-6 max-w-7xl px-4 md:px-8">
+      <section className="max-w-7xl mx-auto px-4 mt-6">
         <h1 className="mb-6 text-3xl font-semibold text-[#3b2f2f] md:text-4xl">{heading}</h1>
       </section>
       <ProductFilter
