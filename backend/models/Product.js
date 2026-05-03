@@ -24,6 +24,15 @@ const variantSchema = new mongoose.Schema(
         validator: Number.isInteger,
         message: "Variant selling price must be an integer"
       }
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Variant stock must be an integer"
+      }
     }
   },
   { _id: false }
@@ -66,10 +75,6 @@ const productSchema = new mongoose.Schema(
     variants: {
       type: [variantSchema],
       default: []
-    },
-    inStock: {
-      type: Boolean,
-      default: true
     },
     isHero: {
       type: Boolean,

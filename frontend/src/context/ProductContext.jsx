@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../utils/api";
 import { calculatePriceWithGST } from "../utils/priceCalculator";
+import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
 
 const OFFERS_STORAGE_KEY = "mithai-world-admin-offers";
 
@@ -30,36 +31,46 @@ const normalizeCategory = (category) => ({
 });
 
 const normalizeProduct = (product) => {
-  const normalizedVariants = toArray(product?.variants)
+  const normalizedVariants = sortVariantsByLabel(toArray(product?.variants))
     .map((variant, index) => {
-      const rawPrice = Number(variant?.price ?? variant?.originalPrice ?? 0);
+      const rawPrice = Number(variant?.price ?? variant?.sellingPrice ?? variant?.originalPrice ?? 0);
+      const stockValue = variant?.stock !== undefined ? variant.stock : (variant?.inStock === false ? 0 : 1);
+      const stock = Math.max(0, Math.floor(Number(stockValue) || 0));
       return {
         id: String(variant?.id || variant?._id || `variant_${index + 1}`),
         label: String(variant?.label || `Variant ${index + 1}`).trim(),
-        price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0
+        price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0,
+        finalPrice: Number.isFinite(rawPrice) ? calculatePriceWithGST(Math.max(0, Math.round(rawPrice)), Number(product?.gstPercent ?? 0) || 0) : 0,
+        stock,
+        variantIndex: index
       };
     })
     .filter((variant) => variant.price > 0);
 
-  const derivedBasePrice = normalizedVariants.length
-    ? Math.min(...normalizedVariants.map((variant) => variant.price))
-    : Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
   const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
-  const computedDisplayPrice = calculatePriceWithGST(derivedBasePrice, gstPercent);
+  const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
+  const displayPrice = getDisplayPrice({
+    variants: normalizedVariants.length
+      ? normalizedVariants
+      : [{ id: "default", label: "Default", price: 0, finalPrice: 0 }],
+  });
 
-  const stockFallback = product?.inStock === false ? 0 : 99;
-  const stock = Number(product?.stock ?? stockFallback);
+  const stock = Number.isFinite(Number(product?.stock))
+    ? Math.max(0, Math.round(Number(product.stock)))
+    : normalizedVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0);
   const rawCategory = typeof product?.category === "string" ? product.category : product?.category?.slug || product?.category?.name || "";
   const categorySlug = toSlug(product?.categorySlug || rawCategory);
 
+  const hasInStockVariant = normalizedVariants.some((variant) => variant.stock > 0);
+
   return {
     ...product,
-    basePrice: Math.round(derivedBasePrice),
+    basePrice: Math.round(displayPrice || fallbackPrice),
     gstPercent,
     variants: normalizedVariants,
-    price: computedDisplayPrice,
+    price: displayPrice,
     stock,
-    inStock: product?.inStock !== undefined ? Boolean(product.inStock) : stock > 0,
+    inStock: hasInStockVariant,
     categorySlug,
     images: toArray(product?.images).length ? toArray(product.images) : product?.image ? [product.image] : []
   };
@@ -283,36 +294,6 @@ export function ProductProvider({ children }) {
     return true;
   }, []);
 
-  const toggleStock = useCallback(
-    async (id) => {
-      const product = products.find((item) => (item._id || item.id) === id);
-      if (!product) {
-        throw new Error("Product not found");
-      }
-
-      const nextStock = product.inStock ? 0 : Math.max(1, Number(product.stock || 0));
-      return updateProduct(id, {
-        stock: nextStock
-      });
-    },
-    [products, updateProduct]
-  );
-
-  const setHeroProduct = useCallback(
-    async (id) => {
-      const updates = products.map((product) => {
-        const productId = product._id || product.id;
-        return api.put(`/api/products/${productId}`, {
-          isHero: productId === id
-        });
-      });
-
-      await Promise.all(updates);
-      await fetchProducts();
-    },
-    [products, fetchProducts]
-  );
-
   const updateOrder = useCallback(async (orderId, payload) => {
     const data = await api.put(`/api/orders/${orderId}`, payload);
     const updatedOrder = normalizeOrder(data?.order || data);
@@ -456,8 +437,6 @@ export function ProductProvider({ children }) {
       addProduct,
       updateProduct,
       deleteProduct,
-      toggleStock,
-      setHeroProduct,
       markOrderDelivered,
       markOrderPaid,
       addIncomingOrder,
@@ -483,8 +462,6 @@ export function ProductProvider({ children }) {
       addProduct,
       updateProduct,
       deleteProduct,
-      toggleStock,
-      setHeroProduct,
       markOrderDelivered,
       markOrderPaid,
       addIncomingOrder,

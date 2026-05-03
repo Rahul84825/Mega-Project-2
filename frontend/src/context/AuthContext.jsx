@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { setApiAuthToken } from "../services/api";
+import { AUTH_STORAGE_KEY, SESSION_EXPIRED_EVENT, clearStoredAuth, storeAuth } from "../utils/authSession";
+import { toast } from "../utils/toast";
 
-const AUTH_STORAGE_KEY = "mithai-world-auth";
 const AuthContext = createContext(null);
 
 const normalizeUser = (user) => {
@@ -43,6 +45,7 @@ const loadInitialAuth = () => {
 };
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const initialAuth = loadInitialAuth();
   const [user, setUser] = useState(initialAuth.user);
   const [token, setToken] = useState(initialAuth.token);
@@ -52,14 +55,9 @@ export function AuthProvider({ children }) {
 
     try {
       if (user && token) {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, token }));
-        // Legacy keys are kept for copied admin panel compatibility.
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
+        storeAuth({ user, token });
       } else {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        clearStoredAuth();
       }
     } catch (_error) {
       // Ignore storage errors in constrained environments.
@@ -86,6 +84,20 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  useEffect(() => {
+    const handleSessionExpired = (event) => {
+      const message = event?.detail?.message || "Session expired, please login again";
+      setUser(null);
+      setToken(null);
+      setApiAuthToken(null);
+      toast.error(message);
+      navigate("/login", { replace: true, state: { message } });
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, [navigate]);
+
   const login = (nextUser, nextToken) => {
     setUser(normalizeUser(nextUser || null));
     setToken(nextToken || null);
@@ -95,9 +107,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setToken(null);
     setApiAuthToken(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearStoredAuth();
   };
 
   const value = useMemo(

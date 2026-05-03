@@ -1,3 +1,5 @@
+import { getStoredToken, notifySessionExpired } from "./authSession";
+
 const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000")
   .replace(/\/+$/, "")
   .replace(/\/api$/i, "");
@@ -19,17 +21,7 @@ const resolveToken = (tokenOverride) => {
     return tokenOverride;
   }
 
-  const legacyToken = localStorage.getItem("token");
-  if (legacyToken) {
-    return legacyToken;
-  }
-
-  try {
-    const auth = JSON.parse(localStorage.getItem("mithai-world-auth") || "null");
-    return auth?.token || "";
-  } catch (_error) {
-    return "";
-  }
+  return getStoredToken();
 };
 
 const parseJson = async (response) => {
@@ -71,6 +63,11 @@ const request = async (method, path, body, tokenOverride, extraHeaders = {}) => 
 
   if (!response.ok) {
     const message = data?.message || `Request failed with status ${response.status}`;
+
+    if (response.status === 401 && !String(path).includes("/auth/")) {
+      notifySessionExpired("Session expired, please login again");
+    }
+
     throw new Error(message);
   }
 

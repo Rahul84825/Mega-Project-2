@@ -148,17 +148,17 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
     `w-full px-4 py-2.5 text-sm font-medium border rounded-xl focus:outline-none focus:ring-4 transition-all shadow-inner ${
       hasError
         ? "border-rose-400/70 bg-rose-950/20 text-rose-100 focus:ring-rose-500/20"
-        : "border-[#e0c3a3] bg-[#fff8ec] text-[#3b2f2f] focus:border-[#e8883a] focus:ring-[#e8883a]/20"
+        : "border-[#e6d3b3] bg-[#fffaf3] text-[#2d1b0e] focus:border-[#8b4513] focus:ring-[#8b4513]/20"
     }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#3b2f2f]/25 backdrop-blur-sm px-4">
-      <div className="bg-[#fff8ec] rounded-3xl border border-[#e0c3a3] shadow-2xl shadow-[#c7a07a]/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d1b0e]/25 backdrop-blur-sm px-4">
+      <div className="bg-[#fffaf3] rounded-3xl border border-[#e6d3b3] shadow-2xl shadow-[#c7a07a]/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 sm:p-8">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-extrabold text-[#2d1b14] tracking-tight">
+          <h3 className="text-lg font-extrabold text-[#2d1b0e] tracking-tight">
             {offer ? "Edit Offer" : "Create New Offer"}
           </h3>
-          <button onClick={onClose} className="p-2 text-[#6d4c41] hover:text-[#3b2f2f] rounded-full hover:bg-[#f5e1c8] transition-colors">
+          <button onClick={onClose} className="p-2 text-[#7a5c3a] hover:text-[#2d1b0e] rounded-full hover:bg-[#f5e6d3] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -166,18 +166,18 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Title</label>
+              <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Title</label>
               <input value={form.title} onChange={(e) => set("title", e.target.value)} className={inputClass(errors.title)} placeholder="Weekend Kitchen Mega Sale" />
               {errors.title && <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.title}</p>}
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Description</label>
+              <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Description</label>
               <textarea value={form.description} onChange={(e) => set("description", e.target.value)} className={`${inputClass(errors.description)} resize-none`} rows={3} placeholder="Short, high-impact offer copy for homepage banner" />
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Offer Type</label>
+              <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Offer Type</label>
               <select value={form.offerType} onChange={(e) => set("offerType", e.target.value)} className={inputClass(errors.offerType)}>
                 {OFFER_TYPES.map((t) => (
                   <option key={t.id} value={t.id}>{t.label}</option>
@@ -186,19 +186,19 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Priority</label>
+              <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Priority</label>
               <input type="number" value={form.priority} onChange={(e) => set("priority", e.target.value)} className={inputClass(errors.priority)} placeholder="0" />
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Discount %</label>
+              <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Discount %</label>
               <input type="number" value={form.discountPercent} onChange={(e) => set("discountPercent", e.target.value)} className={inputClass(errors.discountPercent)} placeholder="30" />
               {errors.discountPercent && <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.discountPercent}</p>}
             </div>
 
             {form.offerType === "product" && (
               <div className="sm:col-span-2">
-                <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Linked Product</label>
+                <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Linked Product</label>
                 <select value={form.targetProduct} onChange={(e) => set("targetProduct", e.target.value)} className={inputClass(errors.targetProduct)}>
                   <option value="">Select product</option>
                   {products.map((p) => (
@@ -211,7 +211,7 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
 
             {form.offerType === "category" && (
               <div className="sm:col-span-2">
-                <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Linked Category</label>
+                <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Linked Category</label>
                 <select value={form.targetCategory} onChange={(e) => set("targetCategory", e.target.value)} className={inputClass(errors.targetCategory)}>
                   <option value="">Select category</option>
                   {categories.map((c) => (
@@ -224,16 +224,16 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
           </div>
 
           <div className="pt-2">
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-2">Banner Image</label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-2">Banner Image</label>
             {form.image ? (
-              <div className="relative rounded-xl border border-[#e0c3a3] overflow-hidden bg-[#fff8ec]">
+              <div className="relative rounded-xl border border-[#e6d3b3] overflow-hidden bg-[#fffaf3]">
                 <img src={form.image} alt="Offer banner" className="w-full h-40 object-cover" />
-                <button onClick={() => set("image", "")} className="absolute top-2 right-2 bg-[#fff8ec]/90 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold">
+                <button onClick={() => set("image", "")} className="absolute top-2 right-2 bg-[#fffaf3]/90 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold">
                   Remove
                 </button>
               </div>
             ) : (
-              <label className="cursor-pointer flex items-center justify-center gap-2 border-2 border-dashed border-[#e0c3a3] hover:border-[#e8883a] rounded-xl p-6 bg-[#fff8ec] text-[#6d4c41] text-sm font-semibold">
+              <label className="cursor-pointer flex items-center justify-center gap-2 border-2 border-dashed border-[#e6d3b3] hover:border-[#8b4513] rounded-xl p-6 bg-[#fffaf3] text-[#7a5c3a] text-sm font-semibold">
                 {uploading ? <><ImageIcon className="w-4 h-4 animate-pulse" /> Uploading...</> : <><UploadCloud className="w-4 h-4" /> Upload Banner</>}
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
               </label>
@@ -246,7 +246,7 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
           </div>
 
           <div className="pt-2">
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-2">Card Theme</label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-2">Card Theme</label>
             <div className="flex flex-wrap gap-2">
               {OFFER_THEME_OPTIONS.map((theme) => {
                 const selected = form.themeColor === theme.value;

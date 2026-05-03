@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
-import { calculateFinalPriceWithGST, calculateDiscount } from "../utils/priceCalculator";
+import { calculatePriceWithGST } from "../utils/priceCalculator";
+import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
 
 const toSlug = (value) =>
   String(value || "")
@@ -72,31 +73,47 @@ function ProductDetailPage({ productId, setPage, products }) {
 
   const variants = useMemo(() => {
     const incoming = Array.isArray(product?.variants) ? product.variants : [];
-    const normalized = incoming
+    const normalized = sortVariantsByLabel(incoming)
       .map((variant, index) => {
-        const mrp = Number(variant?.mrp ?? variant?.price ?? 0);
-        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
+        const rawPrice = Number(variant?.finalPrice ?? variant?.price ?? variant?.sellingPrice ?? 0);
+        const stockValue = variant?.stock !== undefined ? variant.stock : (variant?.inStock === false ? 0 : 1);
         return {
           id: String(variant?.id || variant?._id || `variant_${index + 1}`),
           label: String(variant?.label || `Variant ${index + 1}`).trim(),
-          mrp: Number.isFinite(mrp) ? Math.max(0, Math.round(mrp)) : 0,
-          sellingPrice: Number.isFinite(sellingPrice) ? Math.max(0, Math.round(sellingPrice)) : 0
+          price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0,
+          finalPrice: Number.isFinite(rawPrice)
+            ? calculatePriceWithGST(Math.max(0, Math.round(rawPrice)), Number(product?.gstPercent ?? 0) || 0)
+            : 0,
+          stock: Math.max(0, Math.floor(Number(stockValue) || 0)),
+          variantIndex: index
         };
       })
-      .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
+      .filter((variant) => variant.price > 0 || variant.finalPrice > 0);
 
     if (normalized.length) {
       return normalized;
     }
 
     const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
-    return [{ id: "default", label: "Default", mrp: Math.round(fallbackPrice), sellingPrice: Math.round(fallbackPrice) }];
+    return [{
+      id: "default",
+      label: "Default",
+      price: Math.round(fallbackPrice),
+      finalPrice: 0
+    }];
   }, [product]);
 
   useEffect(() => {
-    setSelectedVariantId(variants[0]?.id || "");
+    setSelectedVariantId(variants.find((variant) => variant.stock > 0)?.id || variants[0]?.id || "");
     setShowAllVariants(false);
   }, [variants, product?._id, product?.id]);
+
+  useEffect(() => {
+    const selectedStock = Math.max(0, Number((variants.find((variant) => variant.id === selectedVariantId) || variants[0])?.stock || 0));
+    if (selectedStock > 0) {
+      setQty((currentQty) => Math.max(1, Math.min(currentQty, selectedStock)));
+    }
+  }, [selectedVariantId, variants]);
 
   if (loading) {
     return (
@@ -119,34 +136,36 @@ function ProductDetailPage({ productId, setPage, products }) {
     );
   }
 
-  const isOutOfStock = product?.inStock === false || Number(product?.stock || 1) <= 0;
   const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
   const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
-  const discount = calculateDiscount(selectedVariant?.mrp || 0, selectedVariant?.sellingPrice || 0);
-  const finalPrice = calculateFinalPriceWithGST(selectedVariant?.sellingPrice || 0, gstPercent);
+  const displayPrice = getDisplayPrice({ variants });
+  const isOutOfStock = !variants.length || !variants.some((variant) => variant.stock > 0);
+  const selectedVariantOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
   const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
   const extraCount = Math.max(0, variants.length - 2);
 
   const handleAdd = () => {
-    if (isOutOfStock) {
+    if (isOutOfStock || selectedVariantOutOfStock) {
       return;
     }
+    const requestedQty = Math.max(1, Math.min(qty, selectedVariant?.stock ?? qty));
     const productId = product?._id || product?.id || product?.name || "product";
     const cartItemId = `${productId}::${selectedVariant?.id || "default"}`;
-    for (let i = 0; i < qty; i += 1) {
-      dispatch({
-        type: "ADD",
-        product: {
-          ...product,
-          cartItemId,
-          selectedVariantId: selectedVariant?.id,
-          variantLabel: selectedVariant?.label || "Default",
-          basePrice: selectedVariant?.sellingPrice || 0,
-          price: finalPrice,
-          stock: Number(product?.stock || 99)
-        }
-      });
-    }
+    dispatch({
+      type: "ADD",
+      product: {
+        productId,
+        name: product?.name,
+        image: product?.image || product?.images?.[0],
+        variant: selectedVariant,
+        variantLabel: selectedVariant?.label || "Default",
+        variantIndex: selectedVariant?.variantIndex ?? 0,
+        price: selectedVariant?.finalPrice || displayPrice,
+        quantity: requestedQty,
+        cartItemId,
+        stock: selectedVariant?.stock ?? 0
+      }
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -237,31 +256,23 @@ function ProductDetailPage({ productId, setPage, products }) {
               </div>
             )}
 
-            <div style={{ fontSize: 36, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif", fontWeight: 700, marginBottom: 8 }}>₹{finalPrice}</div>
-            {selectedVariant?.mrp > 0 && (
-              <>
-                <div style={{ fontSize: 14, color: "var(--muted)", textDecoration: "line-through", marginBottom: 4 }}>
-                  MRP ₹{selectedVariant.mrp}
-                </div>
-                {discount > 0 && (
-                  <div style={{ fontSize: 13, color: "var(--burgundy)", fontWeight: 600, marginBottom: 16 }}>
-                    Save ₹{discount}
-                  </div>
-                )}
-              </>
-            )}
+            <div style={{ fontSize: 36, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif", fontWeight: 700, marginBottom: 8 }}>
+              {displayPrice > 0 ? `₹${displayPrice}` : "Unavailable"}
+            </div>
             <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 32 }}>incl. GST · Free delivery above ₹999</div>
 
             <div style={{ borderTop: "1px solid rgba(212,160,23,0.2)", paddingTop: 24, marginBottom: 32 }}>
-              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>Stock: {product.stock} boxes available</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+                Stock: {selectedVariant?.stock ?? 0} boxes available
+              </div>
               <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24 }}>
                 <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #E8DDD0", background: "white" }}>
-                  <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock ? 0.5 : 1 }}>−</button>
+                    <button disabled={isOutOfStock || selectedVariantOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || selectedVariantOutOfStock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || selectedVariantOutOfStock ? 0.5 : 1 }}>−</button>
                   <span style={{ width: 44, textAlign: "center", fontWeight: 600 }}>{qty}</span>
-                  <button disabled={isOutOfStock || qty >= product.stock} onClick={() => setQty((q) => Math.min(product.stock, q + 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || qty >= product.stock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || qty >= product.stock ? 0.5 : 1 }}>+</button>
+                    <button disabled={isOutOfStock || selectedVariantOutOfStock || qty >= (selectedVariant?.stock ?? 0)} onClick={() => setQty((q) => Math.min(selectedVariant?.stock ?? 1, q + 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || selectedVariantOutOfStock || qty >= (selectedVariant?.stock ?? 0) ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || selectedVariantOutOfStock || qty >= (selectedVariant?.stock ?? 0) ? 0.5 : 1 }}>+</button>
                 </div>
-                <button className="btn-primary" onClick={handleAdd} disabled={isOutOfStock} style={{ flex: 1, padding: "13px 28px", background: isOutOfStock ? "#b7b7b7" : added ? "#2C6E49" : "var(--burgundy)", cursor: isOutOfStock ? "not-allowed" : "pointer" }}>
-                  {isOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : `Add ${qty} to Cart — ₹${finalPrice * qty}`}
+                  <button className="btn-primary" onClick={handleAdd} disabled={isOutOfStock || selectedVariantOutOfStock} style={{ flex: 1, padding: "13px 28px", background: isOutOfStock || selectedVariantOutOfStock ? "#b7b7b7" : added ? "#2C6E49" : "var(--burgundy)", cursor: isOutOfStock || selectedVariantOutOfStock ? "not-allowed" : "pointer" }}>
+                    {isOutOfStock || selectedVariantOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : `Add ${qty} to Cart — ${displayPrice > 0 ? `₹${displayPrice * qty}` : "Unavailable"}`}
                 </button>
               </div>
             </div>

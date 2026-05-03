@@ -7,8 +7,8 @@ import { calculateFinalPriceWithGST, calculateDiscount, formatPrice } from "../u
 
 const EMPTY_FORM = {
   name: "", category: "",
-  image: "", images: [], inStock: true,
-  brand: "", tags: "", isHero: false, gstPercent: "0", variants: [],
+  image: "", images: [], 
+  brand: "", tags: "", gstPercent: "0", variants: [],
 };
 
 const ADD_PRODUCT_DRAFT_KEY = "admin.addProductForm.draft.v1";
@@ -68,6 +68,7 @@ const AdminProductForm = ({ mode = "add" }) => {
     label: "",
     mrp: "",
     sellingPrice: "",
+    stock: "0",
   });
 
   const normalizeIncomingVariantsLocal = (variants, fallbackPrice = "") => {
@@ -76,6 +77,7 @@ const AdminProductForm = ({ mode = "add" }) => {
         id: createVariantId(),
         mrp: fallbackPrice !== "" ? String(fallbackPrice) : "",
         sellingPrice: fallbackPrice !== "" ? String(fallbackPrice) : "",
+        stock: "0",
       }];
     }
 
@@ -83,8 +85,9 @@ const AdminProductForm = ({ mode = "add" }) => {
       id: String(variant?.id || variant?._id || createVariantId()),
       label: variant?.label || "",
       mrp: toSafeIntegerString(variant?.mrp ?? "", { min: 0 }),
-      sellingPrice: toSafeIntegerString(variant?.sellingPrice ?? ,
+      sellingPrice: toSafeIntegerString(variant?.sellingPrice ?? variant?.price ?? variant?.originalPrice ?? "", { min: 0 }),
       price: toSafeIntegerString(variant?.price ?? variant?.originalPrice ?? "", { min: 0 }),
+      stock: toSafeIntegerString(variant?.stock ?? (variant?.inStock === false ? 0 : 1), { min: 0 }),
     }));
   };
 
@@ -124,6 +127,13 @@ const AdminProductForm = ({ mode = "add" }) => {
         fieldErrors[`${variant.id}.sellingPrice`] = `Selling price cannot exceed ${MAX_VARIANT_PRICE.toLocaleString("en-IN")}`;
       }
 
+      const stock = Number(variant.stock);
+      if (!Number.isFinite(stock) || stock < 0) {
+        fieldErrors[`${variant.id}.stock`] = "Stock must be a non-negative whole number";
+      } else if (!Number.isInteger(stock)) {
+        fieldErrors[`${variant.id}.stock`] = "Stock must be a whole number";
+      }
+
       // Validate sellingPrice <= mrp
       if (Number.isFinite(mrp) && mrp > 0 && Number.isFinite(sellingPrice) && sellingPrice > 0 && sellingPrice > mrp) {
         fieldErrors[`${variant.id}.sellingPrice`] = "Selling price cannot be greater than MRP";
@@ -146,10 +156,8 @@ const AdminProductForm = ({ mode = "add" }) => {
           category:    product.category || "",
           image:       product.images?.[0] || product.image || "",
           images:      product.images?.length ? product.images : (product.image ? [product.image] : []),
-          inStock:     product.inStock     ?? true,
           brand:       product.brand       || "",
           tags:        (product.tags || []).join(", "),
-          isHero:      !!product.isHero,
           gstPercent:  String(product.gstPercent ?? "0"),
           variants:    normalizeIncomingVariantsLocal(
             product.variants,
@@ -172,11 +180,9 @@ const AdminProductForm = ({ mode = "add" }) => {
               ...prev,
               name: typeof draft.name === "string" ? draft.name : "",
               category: typeof draft.category === "string" ? draft.category : "",
-              inStock: !!draft.inStock,
               brand: typeof draft.brand === "string" ? draft.brand : "",
               tags: typeof draft.tags === "string" ? draft.tags : "",
               gstPercent: String(draft.gstPercent ?? "0"),
-              isHero: !!draft.isHero,
               // Never restore images/files from localStorage.
               image: "",
               images: [],
@@ -207,16 +213,15 @@ const AdminProductForm = ({ mode = "add" }) => {
     const draft = {
       name: form.name,
       category: form.category,
-      inStock: !!form.inStock,
       brand: form.brand,
       tags: form.tags,
       gstPercent: String(form.gstPercent ?? "0"),
-      isHero: !!form.isHero,
       variants: (form.variants || []).map((variant) => ({
         id: String(variant.id || ""),
         label: String(variant.label || ""),
         mrp: String(variant.mrp ?? ""),
         sellingPrice: String(variant.sellingPrice ?? ""),
+        stock: String(variant.stock ?? "0"),
       })),
     };
 
@@ -371,15 +376,17 @@ const AdminProductForm = ({ mode = "add" }) => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
 
-    // Final payload normalization ensures integer-only pricing fields.
+    // Final payload normalization ensures integer-only pricing fields and stock counts.
     const normalizedVariants = (form.variants || []).map((variant) => {
       const mrp = Math.max(0, Math.floor(Number.isFinite(Number(variant.mrp)) ? Number(variant.mrp) : 0));
       const sellingPrice = Math.max(0, Math.floor(Number.isFinite(Number(variant.sellingPrice)) ? Number(variant.sellingPrice) : 0));
+      const stock = Math.max(0, Math.floor(Number.isFinite(Number(variant.stock)) ? Number(variant.stock) : 0));
 
       return {
         label: String(variant.label || "").trim(),
         mrp,
         sellingPrice,
+        stock,
       };
     }).filter((v) => v.mrp > 0 && v.sellingPrice > 0);
 
@@ -390,8 +397,6 @@ const AdminProductForm = ({ mode = "add" }) => {
       images: form.images || [],
       brand: form.brand,
       tags: (form.tags || "").split(",").map((t) => t.trim()).filter(Boolean),
-      inStock: !!form.inStock,
-      isHero: !!form.isHero,
       gstPercent: Math.round((Number(form.gstPercent || 0) + Number.EPSILON) * 100) / 100,
       variants: normalizedVariants,
     };
@@ -427,7 +432,7 @@ const AdminProductForm = ({ mode = "add" }) => {
     `w-full px-4 py-3 text-sm font-medium border rounded-xl focus:outline-none focus:ring-4 transition-all shadow-inner
      ${hasError 
         ? "border-rose-400/70 bg-rose-950/20 text-rose-100 focus:ring-rose-500/20 placeholder:text-rose-300" 
-        : "border-[#e0c3a3] bg-[#fff8ec] text-[#3b2f2f] focus:border-[#e8883a] focus:ring-[#e8883a]/20 placeholder:text-[#3b2f2f]/45 hover:border-[#e8883a]/60"
+        : "border-[#e6d3b3] bg-[#fffaf3] text-[#2d1b0e] focus:border-[#8b4513] focus:ring-[#8b4513]/20 placeholder:text-[#2d1b0e]/45 hover:border-[#8b4513]/60"
      }`;
 
   return (
@@ -437,22 +442,22 @@ const AdminProductForm = ({ mode = "add" }) => {
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={() => navigate("/admin/products")}
-          className="p-2.5 text-[#6d4c41] hover:text-[#3b2f2f] hover:bg-[#fff8ec] rounded-xl transition-colors"
+          className="p-2.5 text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#fffaf3] rounded-xl transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h2 className="text-2xl font-extrabold text-[#2d1b14] tracking-tight">
+          <h2 className="text-2xl font-extrabold text-[#2d1b0e] tracking-tight">
             {mode === "add" ? "Add New Product" : "Edit Product"}
           </h2>
-          <p className="text-sm font-medium text-[#6d4c41] mt-0.5">
+          <p className="text-sm font-medium text-[#7a5c3a] mt-0.5">
             {mode === "add" ? "Fill in the details to list a new item" : "Update product information"}
           </p>
         </div>
       </div>
 
       {/* ── Main Form Card ── */}
-      <div className="bg-[#fff8ec] rounded-3xl border border-[#e0c3a3] shadow-sm p-6 sm:p-8 space-y-6 relative overflow-hidden">
+      <div className="bg-[#fffaf3] rounded-3xl border border-[#e6d3b3] shadow-sm p-6 sm:p-8 space-y-6 relative overflow-hidden">
 
         {errors.submit && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl px-4 py-3 text-sm font-bold flex items-center gap-2">
@@ -463,25 +468,25 @@ const AdminProductForm = ({ mode = "add" }) => {
 
         {/* ── Image Upload ── */}
         <div>
-          <label className="block text-[13px] font-bold text-[#6d4c41] mb-2">Product Images</label>
+          <label className="block text-[13px] font-bold text-[#7a5c3a] mb-2">Product Images</label>
           
           {!!(form.images || []).length ? (
             <div className="space-y-3">
-              <div className="relative w-full h-56 sm:h-64 rounded-2xl overflow-hidden border border-[#e0c3a3] bg-[#fff8ec]">
+              <div className="relative w-full h-56 sm:h-64 rounded-2xl overflow-hidden border border-[#e6d3b3] bg-[#fffaf3]">
                 <img src={form.images[0]} alt="Primary preview" className="w-full h-full object-contain mix-blend-multiply" />
-                <div className="absolute top-3 left-3 bg-[#e8883a] text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider">Primary</div>
+                <div className="absolute top-3 left-3 bg-[#8b4513] text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider">Primary</div>
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {(form.images || []).map((img, index) => (
-                  <div key={`${img}-${index}`} className="relative rounded-xl overflow-hidden border border-[#e0c3a3] bg-[#fff8ec] group">
+                  <div key={`${img}-${index}`} className="relative rounded-xl overflow-hidden border border-[#e6d3b3] bg-[#fffaf3] group">
                     <img src={img} alt={`Preview ${index + 1}`} className="w-full h-20 object-cover" />
-                    <div className="absolute inset-0 bg-[#3b2f2f]/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1">
+                    <div className="absolute inset-0 bg-[#2d1b0e]/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1">
                       {index !== 0 && (
                         <button
                           type="button"
                           onClick={() => setPrimaryImage(index)}
-                          className="text-[10px] font-bold px-2 py-1 rounded-md bg-[#e8883a] text-white"
+                          className="text-[10px] font-bold px-2 py-1 rounded-md bg-[#8b4513] text-white"
                         >
                           Primary
                         </button>
@@ -489,7 +494,7 @@ const AdminProductForm = ({ mode = "add" }) => {
                       <button
                         type="button"
                         onClick={() => removeImageAt(index)}
-                        className="text-[10px] font-bold px-2 py-1 rounded-md bg-rose-500 text-[#3b2f2f]"
+                        className="text-[10px] font-bold px-2 py-1 rounded-md bg-rose-500 text-[#2d1b0e]"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -498,7 +503,7 @@ const AdminProductForm = ({ mode = "add" }) => {
                 ))}
               </div>
 
-              <label className="cursor-pointer inline-flex items-center gap-2 border border-[#e0c3a3] hover:border-[#e8883a] rounded-xl px-4 py-2.5 bg-[#fff8ec] text-[#6d4c41] text-sm font-semibold">
+              <label className="cursor-pointer inline-flex items-center gap-2 border border-[#8b4513]/40 hover:border-[#8b4513] rounded-xl px-4 py-2.5 bg-[#8b4513]/15 text-white text-sm font-semibold">
                 <UploadCloud className="w-4 h-4" /> Add More Images
                 <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploading} />
               </label>
@@ -506,7 +511,7 @@ const AdminProductForm = ({ mode = "add" }) => {
           ) : (
             <label className="cursor-pointer block group">
               <div className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 ${
-                uploading ? "border-[#e8883a] bg-[#e8883a]/10" : "border-[#e0c3a3] hover:border-[#e8883a] hover:bg-[#e8883a]/10 bg-[#fff8ec]"
+                uploading ? "border-[#8b4513] bg-[#8b4513]/10" : "border-[#e6d3b3] hover:border-[#8b4513] hover:bg-[#8b4513]/10 bg-[#fffaf3]"
               }`}>
                 {uploading ? (
                   <div className="space-y-4 max-w-xs mx-auto">
@@ -519,11 +524,11 @@ const AdminProductForm = ({ mode = "add" }) => {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <div className="w-14 h-14 bg-[#fff8ec] rounded-full flex items-center justify-center shadow-sm border border-[#e0c3a3] mb-3 group-hover:scale-110 transition-transform duration-300">
-                      <UploadCloud className="w-6 h-6 text-[#6d4c41] group-hover:text-[#e8883a] transition-colors" />
+                    <div className="w-14 h-14 bg-[#fffaf3] rounded-full flex items-center justify-center shadow-sm border border-[#e6d3b3] mb-3 group-hover:scale-110 transition-transform duration-300">
+                      <UploadCloud className="w-6 h-6 text-[#7a5c3a] group-hover:text-[#8b4513] transition-colors" />
                     </div>
-                    <div className="text-sm font-bold text-[#2d1b14]">Click to upload product images</div>
-                    <div className="text-xs font-medium text-[#6d4c41] mt-1">Upload multiple JPG, PNG, WEBP files (max 5MB each)</div>
+                    <div className="text-sm font-bold text-[#2d1b0e]">Click to upload product images</div>
+                    <div className="text-xs font-medium text-[#7a5c3a] mt-1">Upload multiple JPG, PNG, WEBP files (max 5MB each)</div>
                   </div>
                 )}
               </div>
@@ -536,13 +541,13 @@ const AdminProductForm = ({ mode = "add" }) => {
         {/* ── Basic Info ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div className="sm:col-span-2">
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Product Name <span className="text-rose-400">*</span></label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Product Name <span className="text-rose-400">*</span></label>
             <input type="text" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Stainless Steel Kadai 3L" className={inputClass(errors.name)} />
             {errors.name && <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.name}</p>}
           </div>
 
           <div>
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Category <span className="text-rose-400">*</span></label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Category <span className="text-rose-400">*</span></label>
             <select value={form.category} onChange={(e) => set("category", e.target.value)} className={inputClass(errors.category)}>
               <option value="" disabled>Select category</option>
               {(categories || []).map((c) => (
@@ -553,12 +558,12 @@ const AdminProductForm = ({ mode = "add" }) => {
           </div>
 
           <div>
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Brand</label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Brand</label>
             <input type="text" value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="e.g. Prestige" className={inputClass(false)} />
           </div>
 
           <div>
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">GST Percentage <span className="text-rose-400">*</span></label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">GST Percentage <span className="text-rose-400">*</span></label>
             <input
               type="number"
               min="0"
@@ -577,13 +582,13 @@ const AdminProductForm = ({ mode = "add" }) => {
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[13px] font-bold text-[#6d4c41]">Product Variants <span className="text-rose-400">*</span></p>
-              <p className="text-[11px] text-[#6d4c41]">Add sizes/weights with MRP and selling price.</p>
+              <p className="text-[13px] font-bold text-[#7a5c3a]">Product Variants <span className="text-rose-400">*</span></p>
+              <p className="text-[11px] text-[#7a5c3a]">Add sizes/weights with MRP and selling price.</p>
             </div>
             <button
               type="button"
               onClick={addVariant}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e8883a]/40 bg-[#e8883a]/15 text-white text-xs font-bold hover:bg-[#e8883a]/25 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#8b4513]/40 bg-[#8b4513]/15 text-white text-xs font-bold hover:bg-[#8b4513]/25 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Add Variant
             </button>
@@ -591,13 +596,14 @@ const AdminProductForm = ({ mode = "add" }) => {
 
           {errors.variants && <p className="text-[11px] font-bold text-rose-500">{errors.variants}</p>}
 
-          <div className="rounded-xl border border-[#e0c3a3] overflow-hidden">
-            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_auto] gap-2 bg-[#fff8ec] px-3 py-2 text-[10px] font-bold text-[#6d4c41] uppercase tracking-wide">
+          <div className="rounded-xl border border-[#e6d3b3] overflow-hidden">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_1fr_auto] gap-2 bg-[#f5e6d3] px-3 py-2 text-[10px] font-bold text-[#7a5c3a] uppercase tracking-wide">
               <span>Label</span>
               <span>MRP</span>
               <span>Selling Price</span>
               <span className="text-green-600">Discount</span>
               <span>Final (incl. GST)</span>
+              <span>Stock</span>
               <span className="text-right">Action</span>
             </div>
 
@@ -609,7 +615,7 @@ const AdminProductForm = ({ mode = "add" }) => {
                 const finalPrice = calculateFinalPriceWithGST(sellingPrice, Number(form.gstPercent || 0));
                 
                 return (
-                  <div key={variant.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_auto] gap-2 px-3 py-3 items-start">
+                  <div key={variant.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_1fr_auto] gap-2 px-3 py-3 items-start">
                     <div>
                       <input
                         type="text"
@@ -657,8 +663,23 @@ const AdminProductForm = ({ mode = "add" }) => {
                       {discount > 0 ? `₹${discount}` : "-"}
                     </div>
 
-                    <div className="pt-3 text-sm font-bold text-[#3b2f2f]">
+                    <div className="pt-3 text-sm font-bold text-[#2d1b0e]">
                       {finalPrice > 0 ? formatPrice(finalPrice) : "-"}
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={variant.stock}
+                        onChange={(e) => updateVariant(variant.id, "stock", toSafeIntegerString(e.target.value, { min: 0 }))}
+                        placeholder="Enter stock"
+                        className={inputClass(!!variantErrors[`${variant.id}.stock`])}
+                      />
+                      {variantErrors[`${variant.id}.stock`] && (
+                        <p className="text-[10px] font-semibold text-rose-500 mt-1">{variantErrors[`${variant.id}.stock`]}</p>
+                      )}
                     </div>
 
                     <div className="flex justify-end pt-1">
@@ -679,43 +700,18 @@ const AdminProductForm = ({ mode = "add" }) => {
         </div>
 
         <div>
-          <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Search Tags <span className="text-[#6d4c41] font-medium text-[10px] uppercase tracking-wider ml-1">(Comma Separated)</span></label>
+          <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Search Tags <span className="text-[#7a5c3a] font-medium text-[10px] uppercase tracking-wider ml-1">(Comma Separated)</span></label>
           <input type="text" value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="kadai, steel, cooking" className={inputClass(false)} />
-        </div>
-
-        {/* ── Stock Toggle ── */}
-        <div className="flex flex-col gap-6 pt-4 border-t border-[#e0c3a3]">
-          <div className="flex items-center justify-between gap-4 w-full p-3 rounded-xl border border-[#e0c3a3] bg-[#fff8ec]">
-            <div>
-              <p className="text-sm font-bold text-[#2d1b14]">In Stock Status</p>
-              <p className="text-[11px] font-medium text-[#6d4c41]">Available for purchase</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer ml-auto">
-              <input type="checkbox" className="sr-only peer" checked={form.inStock} onChange={() => set("inStock", !form.inStock)} />
-              <div className="w-11 h-6 bg-[#e0c3a3] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-[#e0c3a3] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#e8883a]"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between gap-4 w-full p-3 rounded-xl border border-[#e0c3a3] bg-[#fff8ec]">
-            <div>
-              <p className="text-sm font-bold text-[#2d1b14]">📌 Feature this product in the Hero section</p>
-              <p className="text-[11px] font-medium text-[#6d4c41]">Only one hero product is active at a time</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer ml-auto">
-              <input type="checkbox" className="sr-only peer" checked={!!form.isHero} onChange={() => set("isHero", !form.isHero)} />
-              <div className="w-11 h-6 bg-[#e0c3a3] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-[#e0c3a3] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#e8883a]"></div>
-            </label>
-          </div>
         </div>
 
         {/* ── Submit ── */}
         <button
           onClick={handleSubmit}
           disabled={saved || submitting}
-          className={`mt-4 w-full flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg 
-            ${saved ? "bg-emerald-500 text-[#3b2f2f] shadow-emerald-500/20"
-            : submitting ? "bg-[#5b4b34] text-[#3b2f2f] cursor-not-allowed shadow-none"
-            : "bg-[#e8883a] text-white hover:bg-[#d97706] shadow-black/20 hover:shadow-[#d97706]/25 hover:-translate-y-0.5"
+          className={`mt-8 w-full flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg 
+            ${saved ? "bg-emerald-500 text-white shadow-emerald-500/20"
+            : submitting ? "bg-[#8b4513]/60 text-white cursor-not-allowed shadow-none"
+            : "bg-[#8b4513] text-white hover:bg-[#a0522d] shadow-black/20 hover:shadow-[#8b4513]/25 hover:-translate-y-0.5"
           }`}
         >
           {submitting ? (

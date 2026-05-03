@@ -92,15 +92,15 @@ const CategoryModal = ({ category, onSave, onClose }) => {
     `w-full px-4 py-2.5 text-sm font-medium border rounded-xl focus:outline-none focus:ring-4 transition-all ${
       hasError
         ? "border-rose-400/70 bg-rose-950/20 text-rose-100 focus:ring-rose-500/20"
-        : "border-[#e0c3a3] bg-[#fff8ec] text-[#3b2f2f] focus:border-[#e8883a] focus:ring-[#e8883a]/20"
+        : "border-[#e6d3b3] bg-[#fffaf3] text-[#2d1b0e] focus:border-[#8b4513] focus:ring-[#8b4513]/20"
     }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#3b2f2f]/25 backdrop-blur-sm px-4">
-      <div className="bg-[#fff8ec] rounded-3xl border border-[#e0c3a3] shadow-2xl shadow-[#c7a07a]/30 w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d1b0e]/25 backdrop-blur-sm px-4">
+      <div className="bg-[#fffaf3] rounded-3xl border border-[#e6d3b3] shadow-2xl shadow-[#c7a07a]/30 w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-extrabold text-[#2d1b14] tracking-tight">{category ? "Edit Category" : "Add Category"}</h3>
-          <button onClick={onClose} className="p-2 text-[#6d4c41] hover:text-[#3b2f2f] rounded-full hover:bg-[#f5e1c8] transition-colors">
+          <h3 className="text-lg font-extrabold text-[#2d1b0e] tracking-tight">{category ? "Edit Category" : "Add Category"}</h3>
+          <button onClick={onClose} className="p-2 text-[#7a5c3a] hover:text-[#2d1b0e] rounded-full hover:bg-[#f5e6d3] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -108,7 +108,7 @@ const CategoryModal = ({ category, onSave, onClose }) => {
         <div className="space-y-4">
           {/* Category Name */}
           <div>
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Category Name *</label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Category Name *</label>
             <input
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
@@ -121,10 +121,10 @@ const CategoryModal = ({ category, onSave, onClose }) => {
 
           {/* Image Upload */}
           <div>
-            <label className="block text-[13px] font-bold text-[#6d4c41] mb-1.5">Category Image</label>
+            <label className="block text-[13px] font-bold text-[#7a5c3a] mb-1.5">Category Image</label>
             <div className="space-y-3">
               {form.imagePreview && (
-                <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[#e0c3a3] bg-white">
+                <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[#e6d3b3] bg-white">
                   <img src={form.imagePreview} alt="Preview" className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -143,10 +143,10 @@ const CategoryModal = ({ category, onSave, onClose }) => {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#e0c3a3] rounded-xl hover:border-[#e8883a] hover:bg-[#f5e1c8] transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#e6d3b3] rounded-xl hover:border-[#8b4513] hover:bg-[#f5e6d3] transition-all disabled:opacity-50"
               >
                 <Upload className="w-4 h-4" />
-                <span className="text-sm font-medium text-[#6d4c41]">{form.image ? "Change Image" : "Upload Image"}</span>
+                <span className="text-sm font-medium text-[#7a5c3a]">{form.image ? "Change Image" : "Upload Image"}</span>
               </button>
               <input
                 ref={fileInputRef}

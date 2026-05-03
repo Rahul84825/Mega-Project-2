@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ProductCard from "./ProductCard";
 import { getProducts } from "../services/api";
+import { calculatePriceWithGST } from "../utils/priceCalculator";
+import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
 
 const normalizeSlug = (value) =>
   String(value || "")
@@ -12,6 +14,17 @@ const normalizeSlug = (value) =>
 
 const normalizeProduct = (product) => ({
   ...product,
+  variants: sortVariantsByLabel(Array.isArray(product?.variants) ? product.variants : [])
+    .map((variant) => {
+      const rawPrice = Number(variant?.finalPrice ?? variant?.price ?? variant?.originalPrice ?? 0);
+      return {
+        ...variant,
+        price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0,
+        finalPrice: Number.isFinite(rawPrice)
+          ? calculatePriceWithGST(Math.max(0, Math.round(rawPrice)), Number(product?.gstPercent ?? 0) || 0)
+          : 0,
+      };
+    }),
   price: Number(product?.price || 0),
   stock: Number(product?.stock || 0),
   categorySlug: normalizeSlug(product?.categorySlug || (typeof product?.category === "string" ? product.category : product?.category?.slug || product?.category?.name))
@@ -43,7 +56,10 @@ function NewArrivals({ setPage, setSelectedProductId, products, setProducts, ini
   }, [products.length, setProducts]);
 
   const normalizedProducts = useMemo(
-    () => (products || []).map(normalizeProduct),
+    () => (products || []).map(normalizeProduct).map((product) => ({
+      ...product,
+      price: getDisplayPrice(product),
+    })),
     [products]
   );
 

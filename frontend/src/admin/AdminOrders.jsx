@@ -37,13 +37,13 @@ const OrderModal = ({ order, onClose, onMarkDelivered, onMarkPaid, delivering, m
   const isPaid = order.paymentStatus === "paid";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#3b2f2f]/25 px-4">
-      <div className="bg-[#fff8ec] rounded-2xl border border-[#e0c3a3] shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d1b0e]/25 px-4">
+      <div className="bg-[#fffaf3] rounded-2xl border border-[#e6d3b3] shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e0c3a3] sticky top-0 bg-[#fff8ec] rounded-t-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e6d3b3] sticky top-0 bg-[#fffaf3] rounded-t-2xl">
           <div>
-            <h3 className="text-base font-bold text-[#2d1b14]">Order #{order.orderId || order._id || order.id}</h3>
-            <p className="text-xs text-[#6d4c41] mt-0.5">
+            <h3 className="text-base font-bold text-[#2d1b0e]">Order #{order.orderId || order._id || order.id}</h3>
+            <p className="text-xs text-[#7a5c3a] mt-0.5">
               {new Date(order.createdAt).toLocaleString("en-IN", {
                 day: "numeric", month: "short", year: "numeric",
                 hour: "2-digit", minute: "2-digit",
@@ -57,7 +57,7 @@ const OrderModal = ({ order, onClose, onMarkDelivered, onMarkPaid, delivering, m
             </span>
             <button
               onClick={onClose}
-              className="p-1.5 text-[#6d4c41] hover:text-[#3b2f2f] hover:bg-[#fff8ec] rounded-lg transition-colors"
+              className="p-1.5 text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5e6d3] rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -68,14 +68,14 @@ const OrderModal = ({ order, onClose, onMarkDelivered, onMarkPaid, delivering, m
           {/* Customer */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <User className="w-4 h-4 text-[#e8883a]" />
-              <h4 className="text-sm font-bold text-[#2d1b14]">Customer Details</h4>
+              <User className="w-4 h-4 text-[#8b4513]" />
+              <h4 className="text-sm font-bold text-[#2d1b0e]">Customer Details</h4>
             </div>
-            <div className="bg-[#fff8ec] border border-[#e0c3a3] rounded-xl p-4 space-y-2 text-sm">
+            <div className="bg-[#fffaf3] border border-[#e6d3b3] rounded-xl p-4 space-y-2 text-sm">
               {[["Name", order.customer?.name], ["Phone", order.customer?.phone], ["Email", order.customer?.email]].map(([label, value]) => (
                 <div key={label} className="flex justify-between">
-                  <span className="text-[#6d4c41]">{label}</span>
-                  <span className="font-semibold text-[#3b2f2f]">{value}</span>
+                  <span className="text-[#7a5c3a]">{label}</span>
+                  <span className="font-semibold text-[#2d1b0e]">{value}</span>
                 </div>
               ))}
             </div>
@@ -84,10 +84,10 @@ const OrderModal = ({ order, onClose, onMarkDelivered, onMarkPaid, delivering, m
           {/* Delivery Address */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <MapPin className="w-4 h-4 text-[#e8883a]" />
-              <h4 className="text-sm font-bold text-[#2d1b14]">Delivery Address</h4>
+              <MapPin className="w-4 h-4 text-[#8b4513]" />
+              <h4 className="text-sm font-bold text-[#2d1b0e]">Delivery Address</h4>
             </div>
-            <div className="bg-[#fff8ec] border border-[#e0c3a3] rounded-xl p-4 text-sm text-[#6d4c41] leading-relaxed">
+            <div className="bg-[#fffaf3] border border-[#e6d3b3] rounded-xl p-4 text-sm text-[#7a5c3a] leading-relaxed">
               {order.address?.line1}
               {order.address?.line2 && `, ${order.address.line2}`}<br />
               {order.address?.city} — {order.address?.pincode}<br />

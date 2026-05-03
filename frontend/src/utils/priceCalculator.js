@@ -6,6 +6,14 @@ export const calculateFinalPrice = (originalPrice, discountPercent) => {
   return Math.max(0, Math.round(final));
 };
 
+export const calculateSellingPriceFromDiscount = (mrp, discountPercent) => {
+  const price = Number(mrp) || 0;
+  const discount = Number(discountPercent) || 0;
+  const safeDiscount = Math.max(0, Math.min(discount, 100));
+  const sellingPrice = price - (price * safeDiscount) / 100;
+  return Math.max(0, Math.round(sellingPrice));
+};
+
 export const calculatePriceWithGST = (basePrice, gstPercent) => {
   const price = Number(basePrice) || 0;
   const gst = Number(gstPercent) || 0;

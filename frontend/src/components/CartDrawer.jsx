@@ -9,7 +9,7 @@ function CartDrawer({ setPage }) {
   const { cart, isCartOpen, closeCart } = useCart();
 
   const cartTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0),
+    () => cart.reduce((sum, item) => sum + (Number(item?.variant?.finalPrice) || 0) * (Number(item.qty) || 0), 0),
     [cart]
   );
 

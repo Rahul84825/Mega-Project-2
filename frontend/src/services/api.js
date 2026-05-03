@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getStoredToken, notifySessionExpired } from "../utils/authSession";
 
 const API = import.meta.env.VITE_API_URL;
 const API_ROOT = (API || "http://localhost:5000").replace(/\/+$/, "").replace(/\/api$/i, "");
@@ -6,6 +7,34 @@ const API_ROOT = (API || "http://localhost:5000").replace(/\/+$/, "").replace(/\
 const api = axios.create({
   baseURL: `${API_ROOT}/api`
 });
+
+const isAuthEndpoint = (url = "") => String(url).includes("/auth/");
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers = config.headers || {};
+    if (!config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const requestUrl = error?.config?.url || "";
+
+    if (status === 401 && !isAuthEndpoint(requestUrl)) {
+      notifySessionExpired("Session expired, please login again");
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 const authUrl = (path) => `${API_ROOT}/api/auth${path}`;
 

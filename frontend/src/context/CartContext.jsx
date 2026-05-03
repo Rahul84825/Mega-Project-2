@@ -8,27 +8,55 @@ const getCartItemId = (item) => item?.cartItemId || item?._id || item?.id;
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD": {
-      // Prevent adding if stock is 0 or less
-      if (!action.product || Number(action.product.stock || 1) <= 0) {
+      if (!action.product) {
         return state;
       }
+
+      const stockValue = Number(action.product.stock);
+      const stock = Number.isFinite(stockValue) ? Math.max(0, stockValue) : Number.POSITIVE_INFINITY;
+
+      if (stock <= 0) {
+        return state;
+      }
+
       const incomingId = getCartItemId(action.product);
       const existing = state.find((i) => getCartItemId(i) === incomingId);
+      const incomingQty = Math.max(1, Number(action.product.quantity || 1));
+
       if (existing) {
-        // Don't exceed stock limit
-        const newQty = Math.min(existing.qty + 1, Number(action.product.stock || 99));
+        const newQty = Math.min(existing.qty + incomingQty, stock);
         return state.map((i) =>
           getCartItemId(i) === incomingId ? { ...i, qty: newQty } : i
         );
       }
-      return [...state, { ...action.product, cartItemId: incomingId, qty: 1 }];
+
+      return [
+        ...state,
+        {
+          ...action.product,
+          cartItemId: incomingId,
+          qty: incomingQty,
+          variantLabel: action.product.variant?.label || action.product.variantLabel || "Default",
+          image: action.product.image || action.product?.images?.[0],
+          price: Number(action.product.price) || 0,
+        },
+      ];
     }
-    case "REMOVE":
-      return state.filter((i) => getCartItemId(i) !== action.id);
     case "UPDATE_QTY":
-      return state.map((i) =>
-        getCartItemId(i) === action.id ? { ...i, qty: Math.max(1, Math.min(action.qty, i.stock || 99)) } : i
-      );
+      return state.map((i) => {
+        if (getCartItemId(i) !== action.id) {
+          return i;
+        }
+
+        const stockValue = Number(i.stock);
+        const stock = Number.isFinite(stockValue) ? Math.max(0, stockValue) : Number.POSITIVE_INFINITY;
+
+        if (stock <= 0) {
+          return i;
+        }
+
+        return { ...i, qty: Math.max(1, Math.min(action.qty, stock)) };
+      });
     case "CLEAR":
       return [];
     case "REPLACE":

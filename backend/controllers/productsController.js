@@ -24,11 +24,14 @@ const normalizeVariants = (variants) => {
     .map((variant) => {
       const mrp = Math.max(0, Math.floor(normalizeNumber(variant?.mrp, 0)));
       const sellingPrice = Math.max(0, Math.floor(normalizeNumber(variant?.sellingPrice ?? variant?.price, 0)));
+      const stockSource = variant?.stock !== undefined ? variant.stock : (variant?.inStock === false ? 0 : 1);
+      const stock = Math.max(0, Math.floor(normalizeNumber(stockSource, 0)));
 
       return {
         label: String(variant?.label || "Default").trim(),
         mrp,
-        sellingPrice
+        sellingPrice,
+        stock
       };
     })
     .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
@@ -118,7 +121,6 @@ export const createProduct = async (req, res, next) => {
       tags,
       variants,
       gstPercent,
-      inStock,
       isHero
     } = req.body || {};
 
@@ -179,7 +181,6 @@ export const createProduct = async (req, res, next) => {
 
     const normalizedVariants = normalizeVariants(variants);
     const resolvedStock = Math.max(0, Math.floor(normalizeNumber(stock, 0)));
-    const resolvedInStock = typeof inStock === "boolean" ? inStock : resolvedStock > 0;
     const resolvedImages = normalizeImages(uploadedImageUrl, images);
     const resolvedGstPercent = Math.round((clampGstPercent(gstPercent) + Number.EPSILON) * 100) / 100;
 
@@ -195,7 +196,6 @@ export const createProduct = async (req, res, next) => {
       gstPercent: resolvedGstPercent,
       category: linkedCategory.slug,
       stock: resolvedStock,
-      inStock: resolvedInStock,
       image: resolvedImages[0] || uploadedImageUrl,
       images: resolvedImages,
       description: description || "Freshly prepared mithai",

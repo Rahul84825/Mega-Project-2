@@ -5,8 +5,10 @@ import { formatPrice } from "../utils/priceCalculator";
 function CartItem({ item }) {
   const { dispatch } = useCart();
   const qty = Number(item?.qty) || 1;
-  const stock = Number(item?.stock) || 1;
+  const stock = Number(item?.stock) || 99;
   const itemId = item?.cartItemId || item?._id || item?.id;
+  const itemPrice = Number(item?.price) || Number(item?.variant?.finalPrice) || 0;
+  const variantLabel = item?.variant?.label || item?.variantLabel;
 
   const updateQty = (nextQty) => {
     dispatch({ type: "UPDATE_QTY", id: itemId, qty: nextQty });
@@ -30,7 +32,7 @@ function CartItem({ item }) {
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold text-[#3b2417]">{item.name}</h3>
               <p className="mt-0.5 text-xs text-[#8c7358]">{item.category || "Mithai"}</p>
-              {item.variantLabel && <p className="mt-0.5 text-[11px] text-[#a67f52]">{item.variantLabel}</p>}
+              {variantLabel && <p className="mt-0.5 text-[11px] text-[#a67f52]">{variantLabel}</p>}
             </div>
             <button
               type="button"
@@ -43,7 +45,7 @@ function CartItem({ item }) {
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-[#e8883a]">{formatPrice(item.price)}</div>
+            <div className="text-sm font-semibold text-[#e8883a]">{formatPrice(itemPrice)}</div>
 
             <div className="flex items-center gap-2 bg-[#fff2e2] px-2 py-1 rounded-full">
               <button

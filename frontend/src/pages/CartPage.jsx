@@ -2,7 +2,7 @@ import { useCart } from "../context/CartContext";
 
 function CartPage({ setPage }) {
   const { cart, dispatch } = useCart();
-  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + (Number(i?.variant?.finalPrice) || 0) * i.qty, 0);
   const delivery = subtotal > 999 ? 0 : 60;
   const total = subtotal + delivery;
 
@@ -36,7 +36,7 @@ function CartPage({ setPage }) {
                     <span style={{ width: 36, textAlign: "center", fontSize: 14, fontWeight: 600 }}>{item.qty}</span>
                     <button onClick={() => dispatch({ type: "UPDATE_QTY", id: item.cartItemId || item._id || item.id, qty: item.qty + 1 })} style={{ width: 36, height: 36, background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "var(--burgundy)" }}>+</button>
                   </div>
-                  <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 20, fontWeight: 700, color: "var(--burgundy)", minWidth: 80, textAlign: "right" }}>₹{item.price * item.qty}</div>
+                  <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 20, fontWeight: 700, color: "var(--burgundy)", minWidth: 80, textAlign: "right" }}>₹{(Number(item?.variant?.finalPrice) || 0) * item.qty}</div>
                   <button onClick={() => dispatch({ type: "REMOVE", id: item.cartItemId || item._id || item.id })} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#ccc", padding: 4 }}>✕</button>
                 </div>
               </div>

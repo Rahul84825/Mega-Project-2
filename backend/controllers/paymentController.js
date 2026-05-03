@@ -57,6 +57,12 @@ const sanitizeOrderPayload = (orderData) => {
   return sanitizedOrderData;
 };
 
+const getVariantSelection = (item) => {
+  const variantIndex = Number.isInteger(Number(item?.variantIndex)) ? Number(item.variantIndex) : null;
+  const variantLabel = String(item?.variant?.label || item?.variantLabel || "").trim();
+  return { variantIndex, variantLabel };
+};
+
 export const createPaymentOrder = async (req, res) => {
   try {
     const { amount, currency = "INR", receipt } = req.body;
@@ -151,6 +157,7 @@ export const verifyPayment = async (req, res) => {
     for (const item of orderItems) {
       const productId = item?.productId || item?._id || item?.id;
       const requestedQty = Number(item?.qty || 0);
+      const { variantIndex, variantLabel } = getVariantSelection(item);
 
       if (!productId || !Number.isFinite(requestedQty) || requestedQty <= 0) {
         return res.status(400).json({
@@ -159,15 +166,22 @@ export const verifyPayment = async (req, res) => {
         });
       }
 
-      const product = await Product.findById(productId).select("name stock");
-      if (!product || product.stock < requestedQty) {
+      const product = await Product.findById(productId).select("name variants");
+      const resolvedVariantIndex = variantIndex !== null
+        ? variantIndex
+        : product?.variants?.findIndex((variant) => String(variant?.label || "").trim() === variantLabel);
+      const selectedVariant = Number.isInteger(resolvedVariantIndex) && resolvedVariantIndex >= 0
+        ? product?.variants?.[resolvedVariantIndex]
+        : null;
+
+      if (!product || !selectedVariant || Number(selectedVariant.stock || 0) < requestedQty) {
         return res.status(409).json({
           success: false,
           message: `${item?.name || product?.name || "Product"} is out of stock or has insufficient quantity`
         });
       }
 
-      normalizedOrderItems.push({ productId, requestedQty, name: product.name });
+      normalizedOrderItems.push({ productId, requestedQty, name: product.name, variantIndex: resolvedVariantIndex, variantLabel });
     }
 
     const createdOrder = await Order.create({
@@ -186,9 +200,20 @@ export const verifyPayment = async (req, res) => {
     });
 
     for (const item of normalizedOrderItems) {
+      const variantPath = Number.isInteger(item.variantIndex) && item.variantIndex >= 0
+        ? `variants.${item.variantIndex}.stock`
+        : null;
+
+      if (!variantPath) {
+        return res.status(409).json({
+          success: false,
+          message: `${item.name || "Product"} has an invalid variant selection`
+        });
+      }
+
       const stockUpdate = await Product.updateOne(
-        { _id: item.productId, stock: { $gte: item.requestedQty } },
-        { $inc: { stock: -item.requestedQty } }
+        { _id: item.productId, [variantPath]: { $gte: item.requestedQty } },
+        { $inc: { [variantPath]: -item.requestedQty } }
       );
 
       if (stockUpdate.modifiedCount === 0) {
@@ -198,16 +223,6 @@ export const verifyPayment = async (req, res) => {
         });
       }
     }
-
-    await Product.updateMany(
-      { stock: { $lte: 0 } },
-      { $set: { inStock: false, stock: 0 } }
-    );
-
-    await Product.updateMany(
-      { stock: { $gt: 0 } },
-      { $set: { inStock: true } }
-    );
 
     const io = getIo();
     if (io) {
