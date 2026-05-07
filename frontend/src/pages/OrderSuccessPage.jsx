@@ -1,6 +1,8 @@
 function OrderSuccessPage({ setPage, paymentInfo }) {
   const orderId = paymentInfo?.razorpayOrderId || paymentInfo?.razorpay_order_id || paymentInfo?.orderId || paymentInfo?._id;
-  const itemCount = Array.isArray(paymentInfo?.items) ? paymentInfo.items.reduce((sum, item) => sum + (item?.qty || 1), 0) : 0;
+  const itemCount = Array.isArray(paymentInfo?.items)
+    ? paymentInfo.items.reduce((sum, item) => sum + (item?.quantity || item?.qty || 1), 0)
+    : 0;
 
   return (
     <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "64px 32px" }}>

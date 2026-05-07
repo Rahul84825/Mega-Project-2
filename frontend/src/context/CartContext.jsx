@@ -3,12 +3,20 @@ import { createContext, useContext, useEffect, useReducer, useState } from "reac
 const CartContext = createContext(null);
 const CART_STORAGE_KEY = "mithai-world-cart";
 
-const getCartItemId = (item) => item?.cartItemId || item?._id || item?.id;
+const getCartItemKey = (item) => {
+  const productId = item?.productId || item?._id || item?.id || "";
+  const variantId = item?.variantId || item?.variant?._id || item?.variant?.id || "default";
+  return `${productId}::${variantId}`;
+};
 
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD": {
       if (!action.product) {
+        return state;
+      }
+
+      if (!action.product.productId || !action.product.variantId) {
         return state;
       }
 
@@ -19,32 +27,38 @@ function cartReducer(state, action) {
         return state;
       }
 
-      const incomingId = getCartItemId(action.product);
-      const existing = state.find((i) => getCartItemId(i) === incomingId);
+      const incomingKey = getCartItemKey(action.product);
+      const existing = state.find((i) => getCartItemKey(i) === incomingKey);
       const incomingQty = Math.max(1, Number(action.product.quantity || 1));
 
       if (existing) {
-        const newQty = Math.min(existing.qty + incomingQty, stock);
+        const newQty = Math.min((existing.quantity || 0) + incomingQty, stock);
         return state.map((i) =>
-          getCartItemId(i) === incomingId ? { ...i, qty: newQty } : i
+          getCartItemKey(i) === incomingKey ? { ...i, quantity: newQty } : i
         );
       }
 
       return [
         ...state,
         {
-          ...action.product,
-          cartItemId: incomingId,
-          qty: incomingQty,
-          variantLabel: action.product.variant?.label || action.product.variantLabel || "Default",
-          image: action.product.image || action.product?.images?.[0],
+          productId: action.product.productId,
+          variantId: action.product.variantId,
+          quantity: incomingQty,
           price: Number(action.product.price) || 0,
+          name: action.product.name,
+          image: action.product.image || action.product?.images?.[0],
+          category: action.product.category,
+          variantLabel: action.product.variant?.label || action.product.variantLabel || "Default",
+          stock: action.product.stock
         },
       ];
     }
     case "UPDATE_QTY":
       return state.map((i) => {
-        if (getCartItemId(i) !== action.id) {
+        const actionKey = action.productId && action.variantId
+          ? `${action.productId}::${action.variantId}`
+          : action.id;
+        if (getCartItemKey(i) !== actionKey) {
           return i;
         }
 
@@ -55,23 +69,47 @@ function cartReducer(state, action) {
           return i;
         }
 
-        return { ...i, qty: Math.max(1, Math.min(action.qty, stock)) };
+        return { ...i, quantity: Math.max(1, Math.min(action.quantity, stock)) };
       });
+    case "REMOVE": {
+      const actionKey = action.productId && action.variantId
+        ? `${action.productId}::${action.variantId}`
+        : action.id;
+      return state.filter((i) => getCartItemKey(i) !== actionKey);
+    }
     case "CLEAR":
       return [];
     case "REPLACE":
-      return Array.isArray(action.payload) ? action.payload : state;
+      return normalizeLoadedCart(action.payload);
     default:
       return state;
   }
 }
+
+const normalizeLoadedCart = (items) => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.map((item) => ({
+    productId: item?.productId || item?._id || item?.id || "",
+    variantId: item?.variantId || item?.variant?._id || item?.variant?.id || "default",
+    quantity: Number(item?.quantity ?? item?.qty ?? 1),
+    price: Number(item?.price ?? item?.variant?.finalPrice ?? 0),
+    name: item?.name,
+    image: item?.image || item?.images?.[0],
+    category: item?.category,
+    variantLabel: item?.variantLabel || item?.variant?.label || "Default",
+    stock: item?.stock ?? item?.variant?.stock
+  })).filter((item) => item.productId);
+};
 
 const loadInitialCart = () => {
   try {
     const raw = localStorage.getItem(CART_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return normalizeLoadedCart(parsed);
   } catch (_error) {
     return [];
   }
@@ -97,7 +135,7 @@ export function CartProvider({ children }) {
 
       try {
         const nextCart = event.newValue ? JSON.parse(event.newValue) : [];
-        dispatch({ type: "REPLACE", payload: Array.isArray(nextCart) ? nextCart : [] });
+        dispatch({ type: "REPLACE", payload: normalizeLoadedCart(nextCart) });
       } catch (_error) {
         dispatch({ type: "REPLACE", payload: [] });
       }

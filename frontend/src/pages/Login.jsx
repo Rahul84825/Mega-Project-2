@@ -144,24 +144,36 @@ function Login() {
   };
 
   return (
-    <div className="page-enter" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32, background: "var(--cream)" }}>
-      <div style={{ width: "100%", maxWidth: 520, background: "white", border: "1px solid rgba(212,160,23,0.18)", padding: 36, boxShadow: "0 18px 40px rgba(26,15,10,0.08)" }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div className="serif" style={{ fontSize: 34, color: "var(--charcoal)", marginBottom: 8 }}>Welcome back</div>
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>Sign in to your Mithai World account</div>
+    <div className="page-enter min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[var(--cream)]">
+      <div className="w-full max-w-[520px] bg-white rounded-xl border border-[rgba(212,160,23,0.18)] p-6 sm:p-9 shadow-lg">
+        
+        {/* Header */}
+        <div className="text-center mb-8 sm:mb-10">
+          <h1 className="serif text-3xl sm:text-4xl font-bold text-[var(--charcoal)] mb-2 sm:mb-3">
+            Welcome back
+          </h1>
+          <p className="text-sm sm:text-base text-[var(--muted)]">
+            Sign in to your Mithai World account
+          </p>
         </div>
 
+        {/* Error Message */}
         {error && (
-          <div style={{ marginBottom: 16, padding: "12px 14px", background: "rgba(176,0,32,0.08)", color: "var(--burgundy)", border: "1px solid rgba(176,0,32,0.18)", fontSize: 13 }}>
+          <div className="mb-5 sm:mb-6 p-3 sm:p-4 rounded-lg bg-[rgba(176,0,32,0.08)] border border-[rgba(176,0,32,0.18)] text-[var(--burgundy)] text-sm sm:text-[13px]">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
+        {/* Email/Password Form */}
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6 mb-6 sm:mb-8">
+          
+          {/* Email Field */}
           <div>
-            <label style={{ display: "block", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Email</label>
+            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+              Email
+            </label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-[#e8d4b4] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]/20 focus:border-[var(--saffron)] transition-all placeholder:text-[var(--muted)]"
               type="email"
               value={form.email}
               onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -169,10 +181,14 @@ function Login() {
               autoComplete="email"
             />
           </div>
+
+          {/* Password Field */}
           <div>
-            <label style={{ display: "block", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Password</label>
+            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+              Password
+            </label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-[#e8d4b4] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]/20 focus:border-[var(--saffron)] transition-all placeholder:text-[var(--muted)]"
               type="password"
               value={form.password}
               onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
@@ -180,27 +196,47 @@ function Login() {
               autoComplete="current-password"
             />
           </div>
-          <button className="btn-primary" type="submit" disabled={loading} style={{ padding: "14px 18px" }}>
+
+          {/* Sign In Button */}
+          <button
+            className="w-full py-3 sm:py-3.5 rounded-lg bg-[var(--burgundy)] hover:bg-[#8B1E3F] text-white font-bold text-sm sm:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <div style={{ margin: "22px 0 18px", display: "flex", alignItems: "center", gap: 12, color: "var(--muted)", fontSize: 12 }}>
-          <div style={{ height: 1, flex: 1, background: "rgba(139,115,85,0.25)" }} />
-          <span>OR</span>
-          <div style={{ height: 1, flex: 1, background: "rgba(139,115,85,0.25)" }} />
+        {/* Divider */}
+        <div className="mb-6 sm:mb-8 flex items-center gap-3 sm:gap-4">
+          <div className="h-px flex-1 bg-[rgba(139,115,85,0.25)]" />
+          <span className="text-[11px] sm:text-[12px] font-medium text-[var(--muted)] whitespace-nowrap">OR</span>
+          <div className="h-px flex-1 bg-[rgba(139,115,85,0.25)]" />
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={googleButtonRef} />
+        {/* Google Button */}
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <div ref={googleButtonRef} className="flex justify-center" />
         </div>
+        
         {googleLoading && (
-          <div style={{ marginTop: 10, textAlign: "center", fontSize: 12, color: "var(--muted)" }}>Checking Google account...</div>
+          <div className="text-center text-[12px] sm:text-[13px] text-[var(--muted)] mb-4">
+            Checking Google account...
+          </div>
         )}
 
-        <div style={{ marginTop: 20, textAlign: "center", fontSize: 13, color: "var(--muted)" }}>
-          New customer? <button type="button" onClick={() => navigate("/register")} style={{ border: "none", background: "none", color: "var(--burgundy)", cursor: "pointer", padding: 0 }}>Create an account</button>
+        {/* Register Link */}
+        <div className="text-center text-sm sm:text-[13px] text-[var(--muted)]">
+          New customer?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            className="text-[var(--burgundy)] hover:text-[#8B1E3F] font-bold transition-colors bg-none border-none cursor-pointer p-0 inline"
+          >
+            Create an account
+          </button>
         </div>
+
       </div>
     </div>
   );

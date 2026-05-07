@@ -4,18 +4,22 @@ import { formatPrice } from "../utils/priceCalculator";
 
 function CartItem({ item }) {
   const { dispatch } = useCart();
-  const qty = Number(item?.qty) || 1;
+  const qty = Number(item?.quantity) || 1;
   const stock = Number(item?.stock) || 99;
-  const itemId = item?.cartItemId || item?._id || item?.id;
-  const itemPrice = Number(item?.price) || Number(item?.variant?.finalPrice) || 0;
-  const variantLabel = item?.variant?.label || item?.variantLabel;
+  const itemPrice = Number(item?.price) || 0;
+  const variantLabel = item?.variantLabel;
 
   const updateQty = (nextQty) => {
-    dispatch({ type: "UPDATE_QTY", id: itemId, qty: nextQty });
+    dispatch({
+      type: "UPDATE_QTY",
+      productId: item?.productId,
+      variantId: item?.variantId,
+      quantity: nextQty
+    });
   };
 
   const removeItem = () => {
-    dispatch({ type: "REMOVE", id: itemId });
+    dispatch({ type: "REMOVE", productId: item?.productId, variantId: item?.variantId });
   };
 
   return (

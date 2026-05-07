@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronDown, PackageCheck, X, SlidersHorizontal } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 
@@ -37,38 +38,41 @@ const FilterDropdown = ({ label, value, options, onChange }) => {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold
-                    transition-colors duration-150 whitespace-nowrap select-none
-          ${isActive
-            ? "bg-[var(--burgundy)] border-[var(--burgundy)] text-white"
-            : "bg-[var(--surface)] border-[var(--surface-border)] text-[var(--charcoal)] hover:bg-[var(--surface-strong)]"
+        className={`inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer select-none active:scale-[0.98]
+          ${isActive 
+            ? "bg-[#d4a017] border-[#d4a017] text-white shadow-sm" 
+            : "bg-[#fffaf3] border-[#e8d5b7] text-[#3b2417] hover:bg-[#fff3e0] hover:border-red-900/20"
           }`}
       >
         {selectedLabel}
         <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform duration-200
-            ${open ? "rotate-180" : ""} ${isActive ? "opacity-80" : "opacity-50"}`}
+          className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+            open ? "rotate-180" : "rotate-0"
+          } ${isActive ? "opacity-90" : "opacity-50"}`}
         />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-30 min-w-[164px] overflow-hidden
-                        rounded-xl bg-[var(--surface)] border border-[var(--surface-border)]
-                        shadow-[0_8px_24px_rgba(139,80,20,0.10)]">
-          {options.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => { onChange(option.id); setOpen(false); }}
-              className={`w-full px-4 py-2.5 text-left text-xs transition-colors duration-100
-                ${value === option.id
-                  ? "bg-[var(--surface-strong)] text-[var(--burgundy)] font-semibold"
-                  : "text-[var(--charcoal)] hover:bg-[var(--surface-strong)]"
-                }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="absolute left-0 top-[calc(100%+8px)] z-50 min-w-[200px] overflow-hidden rounded-[16px] bg-[#fffaf3] border border-[#e8d5b7] shadow-[0_10px_32px_rgba(122,40,40,0.12)] animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="flex flex-col py-1">
+            {options.map((option) => {
+              const isSelected = value === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => { onChange(option.id); setOpen(false); }}
+                  className={`w-full px-4 py-2.5 text-left text-[13px] font-medium cursor-pointer transition-colors duration-150
+                    ${isSelected 
+                      ? "text-[#d4a017] bg-[#7a2828]/5" 
+                      : "text-[#3b2417] bg-transparent hover:bg-[#e8883a]/10"
+                    }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -77,6 +81,7 @@ const FilterDropdown = ({ label, value, options, onChange }) => {
 
 // ── Main ──────────────────────────────────────────────────────────
 const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
+  const navigate = useNavigate();
   const { categories } = useProducts();
 
   const activeCategories = (categories || []).filter(
@@ -97,23 +102,60 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
     filters.sort     !== "default" ||
     filters.inStock;
 
-  const clearAll = () => onClear?.();
-
   const activeCategoryLabel =
     categoryOptions.find((c) => c.id === filters.category)?.label || filters.category;
+
+  // Sync filter changes to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (filters.category) params.set("category", filters.category);
+    if (filters.price) params.set("price", filters.price);
+    if (filters.sort && filters.sort !== "default") params.set("sort", filters.sort);
+    if (filters.inStock) params.set("inStock", "true");
+    
+    const queryString = params.toString();
+    const newUrl = queryString ? `/products?${queryString}` : "/products";
+    
+    // Only navigate if URL would actually change
+    if (window.location.pathname + window.location.search !== newUrl) {
+      navigate(newUrl, { replace: true });
+    }
+  }, [filters, navigate]);
 
   const updateFilters = (patch) => {
     onChange((prev) => ({ ...prev, ...patch }));
   };
 
-  return (
-    <div className="bg-[var(--cream)] border-b border-[var(--surface-border)]">
-      <div className="flex flex-wrap items-center gap-2 py-3">
+  const activePills = [
+    filters.category !== "" && {
+      label: activeCategoryLabel,
+      onRemove: () => updateFilters({ category: "" }),
+    },
+    filters.price !== "" && {
+      label: PRICE_RANGES.find((p) => p.id === filters.price)?.label,
+      onRemove: () => updateFilters({ price: "" }),
+    },
+    filters.sort !== "default" && {
+      label: SORT_OPTIONS.find((s) => s.id === filters.sort)?.label,
+      onRemove: () => updateFilters({ sort: "default" }),
+    },
+    filters.inStock && {
+      label: "In Stock",
+      onRemove: () => updateFilters({ inStock: false }),
+    },
+  ].filter(Boolean);
 
-        {/* Label anchor */}
-        <div className="flex items-center gap-1.5 pr-1 mr-1 shrink-0">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--muted)]" />
-          <span className="hidden sm:block text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider">
+  return (
+    <div className="w-full bg-[#fff8f0] border-b border-[#e8d5b7] py-4 px-4 sm:px-0">
+      
+      {/* ── Filter row ── */}
+      <div className="flex flex-wrap items-center gap-2">
+
+        {/* Label */}
+        <div className="flex items-center gap-1.5 mr-2 shrink-0 text-[#a0836b]">
+          <SlidersHorizontal className="w-4 h-4" />
+          <span className="text-[11px] font-bold uppercase tracking-wider">
             Filters
           </span>
         </div>
@@ -137,90 +179,65 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
           onChange={(val) => updateFilters({ sort: val })}
         />
 
-        {/* In Stock */}
+        {/* In Stock Toggle */}
         <button
           type="button"
           onClick={() => updateFilters({ inStock: !filters.inStock })}
-          className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs
-                      font-semibold transition-colors duration-150 whitespace-nowrap shrink-0
-            ${filters.inStock
-              ? "bg-[var(--burgundy)] border-[var(--burgundy)] text-white"
-              : "bg-[var(--surface)] border-[var(--surface-border)] text-[var(--charcoal)] hover:bg-[var(--surface-strong)]"
+          className={`inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium rounded-full border transition-all duration-150 shrink-0 select-none active:scale-[0.98]
+            ${filters.inStock 
+              ? "bg-[#d4a017] border-[#d4a017] text-white shadow-sm" 
+              : "bg-[#fffaf3] border-[#e8d5b7] text-[#3b2417] hover:bg-[#fff3e0] hover:border-red-900/20"
             }`}
         >
           <PackageCheck className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">In Stock</span>
+          <span>In Stock</span>
         </button>
 
         {/* Right: count + clear */}
-        <div className="ml-auto flex items-center gap-3 shrink-0 pl-2">
+        <div className="ml-auto flex items-center gap-2 sm:gap-4 shrink-0">
           {totalResults !== undefined && (
-            <span className="text-xs text-[var(--muted)] whitespace-nowrap">
-              <span className="font-semibold text-[var(--charcoal)]">{totalResults}</span> products
+            <span className="text-[11px] sm:text-[12px] text-[#a0836b] whitespace-nowrap">
+              <span className="font-semibold text-[#3b2417]">{totalResults}</span> products
             </span>
           )}
           {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="flex items-center gap-1.5 rounded-full border border-[var(--surface-border)]
-                         bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--muted)]
-                         hover:text-[var(--burgundy)] hover:bg-[var(--surface-strong)]
-                         transition-colors duration-150 whitespace-nowrap"
+            <button 
+              type="button" 
+              onClick={() => onClear?.()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] sm:text-[12px] font-medium rounded-full bg-transparent border border-dashed border-[#a0836b]/50 text-[#a0836b] hover:border-[#7a2828]/50 hover:text-[#7a2828] hover:bg-[#7a2828]/5 transition-all duration-150 active:scale-[0.98] shrink-0"
             >
-              <X className="w-3 h-3" />
-              Clear all
+              <X className="w-3.5 h-3.5" />
+              <span>Clear</span>
             </button>
           )}
         </div>
-
-        {/* ── Active pills ── */}
-        {hasActiveFilters && (
-          <div className="w-full flex flex-wrap items-center gap-1.5 pt-1 pb-2">
-            <span className="text-[11px] text-[var(--muted)] mr-0.5 shrink-0">Active:</span>
-
-            {[
-              filters.category !== "" && {
-                label: activeCategoryLabel,
-                onRemove: () => updateFilters({ category: "" }),
-              },
-              filters.price !== "" && {
-                label: PRICE_RANGES.find((p) => p.id === filters.price)?.label,
-                onRemove: () => updateFilters({ price: "" }),
-              },
-              filters.sort !== "default" && {
-                label: SORT_OPTIONS.find((s) => s.id === filters.sort)?.label,
-                onRemove: () => updateFilters({ sort: "default" }),
-              },
-              filters.inStock && {
-                label: "In Stock",
-                onRemove: () => updateFilters({ inStock: false }),
-              },
-            ]
-              .filter(Boolean)
-              .map(({ label, onRemove }) => (
-                <span
-                  key={label}
-                  className="inline-flex items-center gap-1.5 rounded-full
-                             bg-[var(--surface-strong)] px-3 py-1 text-[11px] font-semibold text-[var(--charcoal)]"
-                >
-                  {label}
-                  <button
-                    type="button"
-                    onClick={onRemove}
-                    className="flex items-center justify-center w-3.5 h-3.5 rounded-full
-                               bg-[var(--surface-border)] hover:bg-[var(--muted)] hover:text-white
-                               transition-colors duration-150"
-                    aria-label={`Remove ${label} filter`}
-                  >
-                    <X className="w-2 h-2" />
-                  </button>
-                </span>
-              ))}
-          </div>
-        )}
-
       </div>
+
+      {/* ── Active filter tags ── */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 mt-4">
+          <span className="text-[11px] font-medium text-[#a0836b] mr-1">
+            Active:
+          </span>
+          {activePills.map(({ label, onRemove }) => (
+            <span 
+              key={label} 
+              className="inline-flex items-center gap-1 bg-yellow-300/90 text-yellow-900 text-[10px] sm:text-[11px] font-medium px-2 sm:px-3 py-2 rounded-full tracking-wide"
+            >
+              {label}
+              <button
+                type="button"
+                onClick={onRemove}
+                aria-label={`Remove ${label} filter`}
+                className="flex items-center justify-center p-0.5 rounded-full hover:bg-yellow-400/80 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
     </div>
   );
 };

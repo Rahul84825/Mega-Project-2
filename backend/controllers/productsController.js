@@ -13,28 +13,94 @@ const normalizeNumber = (value, fallback = 0) => {
 };
 
 const isWholeNumber = (value) => Number.isInteger(Number(value));
-const clampGstPercent = (value) => Math.max(0, Math.min(normalizeNumber(value, 0), 100));
+const clampPercent = (value) => Math.max(0, Math.min(normalizeNumber(value, 0), 100));
+const clampGstPercent = (value) => clampPercent(value);
 
-const normalizeVariants = (variants) => {
+const calculateSellingPrice = (mrp, discountPercent) => {
+  const safeMrp = Math.max(0, Math.round(normalizeNumber(mrp, 0)));
+  const safeDiscount = clampPercent(discountPercent);
+  return Math.max(0, Math.round(safeMrp - (safeMrp * safeDiscount) / 100));
+};
+
+const calculateFinalPrice = (sellingPrice, gstPercent) => {
+  const safePrice = Math.max(0, Math.round(normalizeNumber(sellingPrice, 0)));
+  const safeGst = clampPercent(gstPercent);
+  return Math.max(0, Math.round(safePrice + (safePrice * safeGst) / 100));
+};
+
+const resolveDiscountPercent = (variant, mrp, sellingPriceFallback) => {
+  const provided = normalizeNumber(variant?.discountPercent, NaN);
+  if (Number.isFinite(provided)) {
+    return clampPercent(provided);
+  }
+
+  const safeMrp = Math.max(0, normalizeNumber(mrp, 0));
+  const safeSelling = Math.max(0, normalizeNumber(sellingPriceFallback, 0));
+  if (safeMrp <= 0) {
+    return 0;
+  }
+
+  const discount = ((safeMrp - safeSelling) / safeMrp) * 100;
+  return clampPercent(discount);
+};
+
+const normalizeVariants = (variants, gstPercent = 0) => {
   if (!Array.isArray(variants)) {
     return [];
   }
 
   return variants
     .map((variant) => {
-      const mrp = Math.max(0, Math.floor(normalizeNumber(variant?.mrp, 0)));
-      const sellingPrice = Math.max(0, Math.floor(normalizeNumber(variant?.sellingPrice ?? variant?.price, 0)));
-      const stockSource = variant?.stock !== undefined ? variant.stock : (variant?.inStock === false ? 0 : 1);
-      const stock = Math.max(0, Math.floor(normalizeNumber(stockSource, 0)));
+      const mrp = Math.max(0, Math.round(normalizeNumber(variant?.mrp, 0)));
+      const sellingPriceFallback = normalizeNumber(variant?.sellingPrice ?? variant?.price, 0);
+      const discountPercent = resolveDiscountPercent(variant, mrp, sellingPriceFallback);
+      const sellingPrice = calculateSellingPrice(mrp, discountPercent);
+      const finalPrice = calculateFinalPrice(sellingPrice, gstPercent);
+      const stock = Math.max(0, Math.floor(normalizeNumber(variant?.stock, 0)));
 
       return {
         label: String(variant?.label || "Default").trim(),
         mrp,
+        discountPercent,
         sellingPrice,
+        finalPrice,
         stock
       };
     })
     .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
+};
+
+const normalizeProductForResponse = (product) => {
+  if (!product) {
+    return product;
+  }
+
+  const plain = typeof product.toObject === "function" ? product.toObject() : { ...product };
+  const gstPercent = clampGstPercent(plain.gstPercent);
+  const variants = Array.isArray(plain.variants) ? plain.variants : [];
+
+  return {
+    ...plain,
+    gstPercent,
+    variants: variants.map((variant, index) => {
+      const mrp = Math.max(0, Math.round(normalizeNumber(variant?.mrp, 0)));
+      const sellingPriceFallback = normalizeNumber(variant?.sellingPrice ?? variant?.price, 0);
+      const discountPercent = resolveDiscountPercent(variant, mrp, sellingPriceFallback);
+      const sellingPrice = calculateSellingPrice(mrp, discountPercent);
+      const finalPrice = calculateFinalPrice(sellingPrice, gstPercent);
+      const stock = Math.max(0, Math.floor(normalizeNumber(variant?.stock, 0)));
+
+      return {
+        _id: variant?._id || variant?.id || `${plain._id || "product"}_variant_${index + 1}`,
+        label: String(variant?.label || `Variant ${index + 1}`).trim(),
+        mrp,
+        discountPercent,
+        sellingPrice,
+        finalPrice,
+        stock
+      };
+    })
+  };
 };
 
 
@@ -73,7 +139,7 @@ export const getProducts = async (_req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      products
+      products: products.map(normalizeProductForResponse)
     });
   } catch (error) {
     return next(error);
@@ -94,7 +160,7 @@ export const getProductById = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      product
+      product: normalizeProductForResponse(product)
     });
   } catch (error) {
     if (isInvalidObjectIdError(error)) {
@@ -131,15 +197,12 @@ export const createProduct = async (req, res, next) => {
       });
     }
 
-    // Validate variant mrp and sellingPrice fields
+    // Validate variant mrp and discountPercent fields
     if (Array.isArray(variants)) {
-      const hasDecimalVariantPrice = variants.some(
-        (variant) => {
-          const mrp = variant?.mrp;
-          const sellingPrice = variant?.sellingPrice ?? variant?.price;
-          return (mrp !== undefined && !isWholeNumber(mrp)) || (sellingPrice !== undefined && !isWholeNumber(sellingPrice));
-        }
-      );
+      const hasDecimalVariantPrice = variants.some((variant) => {
+        const mrp = variant?.mrp;
+        return mrp !== undefined && !isWholeNumber(mrp);
+      });
 
       if (hasDecimalVariantPrice) {
         return res.status(400).json({
@@ -148,17 +211,15 @@ export const createProduct = async (req, res, next) => {
         });
       }
 
-      // Validate sellingPrice <= mrp
-      const invalidVariant = variants.find((variant) => {
-        const mrp = Number(variant?.mrp ?? 0);
-        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
-        return mrp > 0 && sellingPrice > 0 && sellingPrice > mrp;
+      const invalidDiscount = variants.find((variant) => {
+        const discountPercent = variant?.discountPercent;
+        return discountPercent !== undefined && (!Number.isFinite(Number(discountPercent)) || Number(discountPercent) < 0 || Number(discountPercent) > 100);
       });
 
-      if (invalidVariant) {
+      if (invalidDiscount) {
         return res.status(400).json({
           success: false,
-          message: "Selling price cannot be greater than MRP"
+          message: "Discount percent must be between 0 and 100"
         });
       }
     }
@@ -179,10 +240,10 @@ export const createProduct = async (req, res, next) => {
       uploadedImageUrl = uploadedImage?.secure_url || image || "";
     }
 
-    const normalizedVariants = normalizeVariants(variants);
+    const resolvedGstPercent = Math.round((clampGstPercent(gstPercent) + Number.EPSILON) * 100) / 100;
+    const normalizedVariants = normalizeVariants(variants, resolvedGstPercent);
     const resolvedStock = Math.max(0, Math.floor(normalizeNumber(stock, 0)));
     const resolvedImages = normalizeImages(uploadedImageUrl, images);
-    const resolvedGstPercent = Math.round((clampGstPercent(gstPercent) + Number.EPSILON) * 100) / 100;
 
     if (!normalizedVariants.length) {
       return res.status(400).json({
@@ -216,7 +277,7 @@ export const createProduct = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      product
+      product: normalizeProductForResponse(product)
     });
   } catch (error) {
     return next(error);
@@ -283,12 +344,11 @@ export const updateProduct = async (req, res, next) => {
     }
 
     if (payload.variants !== undefined) {
-      // Validate variant mrp and sellingPrice fields
+      // Validate variant mrp and discountPercent fields
       const hasDecimalVariantPrice = Array.isArray(payload.variants)
         && payload.variants.some((variant) => {
           const mrp = variant?.mrp;
-          const sellingPrice = variant?.sellingPrice ?? variant?.price;
-          return (mrp !== undefined && !isWholeNumber(mrp)) || (sellingPrice !== undefined && !isWholeNumber(sellingPrice));
+          return mrp !== undefined && !isWholeNumber(mrp);
         });
 
       if (hasDecimalVariantPrice) {
@@ -298,21 +358,22 @@ export const updateProduct = async (req, res, next) => {
         });
       }
 
-      // Validate sellingPrice <= mrp
-      const invalidVariant = payload.variants.find((variant) => {
-        const mrp = Number(variant?.mrp ?? 0);
-        const sellingPrice = Number(variant?.sellingPrice ?? variant?.price ?? 0);
-        return mrp > 0 && sellingPrice > 0 && sellingPrice > mrp;
+      const invalidDiscount = payload.variants.find((variant) => {
+        const discountPercent = variant?.discountPercent;
+        return discountPercent !== undefined && (!Number.isFinite(Number(discountPercent)) || Number(discountPercent) < 0 || Number(discountPercent) > 100);
       });
 
-      if (invalidVariant) {
+      if (invalidDiscount) {
         return res.status(400).json({
           success: false,
-          message: "Selling price cannot be greater than MRP"
+          message: "Discount percent must be between 0 and 100"
         });
       }
 
-      const normalizedVariants = normalizeVariants(payload.variants);
+      const gstPercentValue = payload.gstPercent !== undefined
+        ? clampGstPercent(payload.gstPercent)
+        : currentProduct.gstPercent;
+      const normalizedVariants = normalizeVariants(payload.variants, gstPercentValue);
       payload.variants = normalizedVariants;
 
       if (!normalizedVariants.length) {
@@ -363,7 +424,7 @@ export const updateProduct = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      product: updatedProduct
+      product: normalizeProductForResponse(updatedProduct)
     });
   } catch (error) {
     if (isInvalidObjectIdError(error)) {

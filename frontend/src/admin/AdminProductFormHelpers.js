@@ -1,8 +1,8 @@
-import { calculateFinalPrice } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount } from "../utils/priceCalculator";
 
 /**
  * Normalize incoming variants from product into form structure
- * Each variant should have: originalPrice, discountPercent, stock, label
+ * Each variant should have: mrp, discountPercent, stock, label
  */
 export const normalizeIncomingVariants = (variants, variantCounterRef) => {
   const createVariantId = () => {
@@ -14,7 +14,7 @@ export const normalizeIncomingVariants = (variants, variantCounterRef) => {
     return [{
       id: createVariantId(),
       label: "Default",
-      originalPrice: "",
+      mrp: "",
       discountPercent: "0",
       stock: "0",
     }];
@@ -23,8 +23,7 @@ export const normalizeIncomingVariants = (variants, variantCounterRef) => {
   return variants.map((variant) => ({
     id: String(variant?.id || variant?._id || createVariantId()),
     label: variant?.label || "",
-    // Prefer new fields, fall back to old fields for backward compatibility
-    originalPrice: variant?.originalPrice ?? variant?.price ?? "",
+    mrp: variant?.mrp ?? variant?.originalPrice ?? variant?.price ?? "",
     discountPercent: String(variant?.discountPercent ?? "0"),
     stock: variant?.stock !== undefined && variant?.stock !== null ? String(variant.stock) : "0",
   }));
@@ -51,11 +50,11 @@ export const validateVariants = (variants) => {
       fieldErrors[`${variant.id}.label`] = "Label is required";
     }
 
-    const originalPrice = Number(variant.originalPrice);
-    if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
-      fieldErrors[`${variant.id}.originalPrice`] = "Original price must be a positive number";
-    } else if (!Number.isInteger(originalPrice)) {
-      fieldErrors[`${variant.id}.originalPrice`] = "Original price must be a whole number";
+    const mrp = Number(variant.mrp);
+    if (!Number.isFinite(mrp) || mrp <= 0) {
+      fieldErrors[`${variant.id}.mrp`] = "MRP must be a positive number";
+    } else if (!Number.isInteger(mrp)) {
+      fieldErrors[`${variant.id}.mrp`] = "MRP must be a whole number";
     }
 
     const discountPercent = Number(variant.discountPercent);
@@ -79,23 +78,30 @@ export const validateVariants = (variants) => {
 /**
  * Calculate final price for a variant
  */
-export const calculateVariantFinalPrice = (originalPrice, discountPercent) => {
-  return calculateFinalPrice(Number(originalPrice) || 0, Number(discountPercent) || 0);
+export const calculateVariantFinalPrice = (mrp, discountPercent, gstPercent = 0) => {
+  const sellingPrice = calculateSellingPriceFromDiscount(Number(mrp) || 0, Number(discountPercent) || 0);
+  return calculateFinalPriceWithGST(sellingPrice, Number(gstPercent) || 0);
 };
 
 /**
  * Build payload for API submission
  */
 export const buildProductPayload = (form, variants) => {
-  const normalizedVariants = (variants || []).map((variant) => ({
-    id: String(variant.id),
-    label: String(variant.label || "").trim(),
-    originalPrice: Math.max(0, Math.floor(Number(variant.originalPrice || 0))),
-    discountPercent: Math.round(Number(variant.discountPercent || 0) * 100) / 100,
-    stock: Math.max(0, Math.floor(Number(variant.stock || 0))),
-  }));
-
-  const variantStockTotal = normalizedVariants.reduce((sum, v) => sum + v.stock, 0);
+  const normalizedVariants = (variants || []).map((variant) => {
+    const mrp = Math.max(0, Math.floor(Number(variant.mrp || 0)));
+    const discountPercent = Math.round(Number(variant.discountPercent || 0) * 100) / 100;
+    const sellingPrice = calculateSellingPriceFromDiscount(mrp, discountPercent);
+    const finalPrice = calculateFinalPriceWithGST(sellingPrice, Number(form.gstPercent || 0));
+    return {
+      id: String(variant.id),
+      label: String(variant.label || "").trim(),
+      mrp,
+      discountPercent,
+      sellingPrice,
+      finalPrice,
+      stock: Math.max(0, Math.floor(Number(variant.stock || 0))),
+    };
+  });
 
   return {
     name: form.name,
@@ -104,7 +110,6 @@ export const buildProductPayload = (form, variants) => {
     images: form.images || [],
     brand: form.brand,
     tags: (form.tags || "").split(",").map((t) => t.trim()).filter(Boolean),
-    inStock: !!form.inStock && variantStockTotal > 0,
     isHero: !!form.isHero,
     variants: normalizedVariants,
   };

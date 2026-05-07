@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ProductCard from "./ProductCard";
 import { getProducts } from "../services/api";
-import { calculatePriceWithGST } from "../utils/priceCalculator";
-import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
+import { getDisplayPrice } from "@/utils/price";
+import { normalizeProduct } from "../context/ProductContext";
 
 const normalizeSlug = (value) =>
   String(value || "")
@@ -12,23 +12,13 @@ const normalizeSlug = (value) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-const normalizeProduct = (product) => ({
-  ...product,
-  variants: sortVariantsByLabel(Array.isArray(product?.variants) ? product.variants : [])
-    .map((variant) => {
-      const rawPrice = Number(variant?.finalPrice ?? variant?.price ?? variant?.originalPrice ?? 0);
-      return {
-        ...variant,
-        price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0,
-        finalPrice: Number.isFinite(rawPrice)
-          ? calculatePriceWithGST(Math.max(0, Math.round(rawPrice)), Number(product?.gstPercent ?? 0) || 0)
-          : 0,
-      };
-    }),
-  price: Number(product?.price || 0),
-  stock: Number(product?.stock || 0),
-  categorySlug: normalizeSlug(product?.categorySlug || (typeof product?.category === "string" ? product.category : product?.category?.slug || product?.category?.name))
-});
+const normalizeProductForList = (product) => {
+  const normalized = normalizeProduct(product);
+  return {
+    ...normalized,
+    categorySlug: normalizeSlug(normalized?.categorySlug || (typeof normalized?.category === "string" ? normalized.category : normalized?.category?.slug || normalized?.category?.name))
+  };
+};
 
 function NewArrivals({ setPage, setSelectedProductId, products, setProducts, initialCategory = "all", title = "New Arrivals" }) {
   const [loading, setLoading] = useState(true);
@@ -40,7 +30,7 @@ function NewArrivals({ setPage, setSelectedProductId, products, setProducts, ini
         setLoading(true);
         setError("");
         const data = await getProducts();
-        setProducts((Array.isArray(data) ? data : []).map(normalizeProduct));
+        setProducts((Array.isArray(data) ? data : []).map(normalizeProductForList));
       } catch (_error) {
         setError("Failed to load products. Please try again.");
       } finally {
@@ -56,7 +46,7 @@ function NewArrivals({ setPage, setSelectedProductId, products, setProducts, ini
   }, [products.length, setProducts]);
 
   const normalizedProducts = useMemo(
-    () => (products || []).map(normalizeProduct).map((product) => ({
+    () => (products || []).map(normalizeProductForList).map((product) => ({
       ...product,
       price: getDisplayPrice(product),
     })),
@@ -68,33 +58,33 @@ function NewArrivals({ setPage, setSelectedProductId, products, setProducts, ini
   const heading = title || (normalizeSlug(initialCategory) === "all" ? "New Arrivals" : normalizeSlug(initialCategory));
 
   return (
-    <div className="pattern-bg" style={{ padding: "32px 32px 0", maxWidth: 1280, margin: "0 auto" }}>
-      <div style={{ paddingTop: 40, paddingBottom: 64 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 32 }}>
-          <h2 className="serif" style={{ fontSize: 32, fontWeight: 700 }}>
+    <section className="py-10 md:py-14 bg-[var(--cream)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Centered Section Header */}
+        <div className="text-center mb-8 md:mb-10">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--charcoal)] mb-2">
             {heading}
           </h2>
-          <span className="ornament">✦</span>
-          <span style={{ fontSize: 13, color: "var(--muted)" }}>{filteredProducts.length} items</span>
+          <p className="text-sm md:text-base text-[var(--muted)] font-medium">
+            {filteredProducts.length} premium items
+          </p>
         </div>
 
         {loading && (
-          <div style={{ textAlign: "center", padding: "64px 0", color: "var(--muted)" }}>
-            <div className="serif" style={{ fontSize: 20 }}>
-              Loading sweets...
-            </div>
+          <div className="text-center py-12">
+            <div className="text-[#2d1b14] font-bold">Loading sweets...</div>
           </div>
         )}
 
         {error && !loading && (
-          <div style={{ textAlign: "center", padding: "32px 0", color: "var(--burgundy)" }}>
-            <div className="serif" style={{ fontSize: 20 }}>{error}</div>
+          <div className="text-center py-8 text-[#c5422b] font-medium">
+            {error}
           </div>
         )}
 
         {!loading && !error && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 24 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
               {filteredProducts.map((p) => (
                 <ProductCard
                   key={p._id}
@@ -107,17 +97,12 @@ function NewArrivals({ setPage, setSelectedProductId, products, setProducts, ini
               ))}
             </div>
             {filteredProducts.length === 0 && (
-              <div style={{ textAlign: "center", padding: "64px 0", color: "var(--muted)" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🍬</div>
-                <div className="serif" style={{ fontSize: 20 }}>
-                  No sweets found
-                </div>
-              </div>
+              <div className="text-center py-12 text-[#6d4c41]">No products found</div>
             )}
           </>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 

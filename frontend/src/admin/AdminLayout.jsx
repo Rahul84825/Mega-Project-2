@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { to: "/admin",            label: "Dashboard",   icon: LayoutDashboard, end: true },
   { to: "/admin/orders",     label: "Orders",      icon: ShoppingBag },
   { to: "/admin/products",   label: "Products",    icon: Package,     end: true },
-  { to: "/admin/products/add", label: "Add Product", icon: PlusCircle },
+  { to: "/admin/add-product", label: "Add Product", icon: PlusCircle },
   { to: "/admin/categories", label: "Categories",  icon: Tag },
   { to: "/admin/offers",     label: "Offers & Deals", icon: Percent },
   { to: "/admin/hero-banners", label: "Hero Banners", icon: Image },
@@ -24,7 +24,7 @@ const AdminLayout = () => {
   const location  = useLocation();
   const { logout } = useAuth();
 
-  // Custom active check so /admin/products/add doesn't highlight "Products"
+  // Custom active check so /admin/add-product doesn't highlight "Products"
   const isActive = (item) => {
     if (item.end) return location.pathname === item.to;
     return location.pathname.startsWith(item.to);

@@ -167,21 +167,7 @@ function App() {
       case "category":
         return <ProductsPage initialCategory={selectedCategory || "all"} />;
       case "product":
-        return selectedProductId ? (
-          <ProductDetailPage
-            productId={selectedProductId}
-            setPage={setPageWithRoute}
-            products={products}
-          />
-        ) : (
-          <HomePage
-            setPage={setPageWithRoute}
-            setSelectedCategory={setSelectedCategory}
-            setSelectedProductId={setSelectedProductId}
-            products={products}
-            setProducts={setProducts}
-          />
-        );
+        return <ProductDetailPage />;
       case "cart":
         return <CartPage setPage={setPageWithRoute} />;
       case "checkout":
@@ -214,6 +200,20 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
+            path="/product/:id"
+            element={
+              <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
+                <Navbar page="product" selectedCategory={selectedCategory} setPage={setPageWithRoute} setCategory={setSelectedCategory} />
+                <CartDrawer setPage={setPageWithRoute} />
+                <ProductDetailPage />
+                <footer style={{ background: "var(--charcoal)", padding: "32px 32px", textAlign: "center" }}>
+                  <div className="serif" style={{ fontSize: 22, color: "var(--saffron)", marginBottom: 8 }}>Mithai World</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", letterSpacing: 1 }}>© 2025 · Crafting Sweetness Since 1985 · All Rights Reserved</div>
+                </footer>
+              </div>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <ProtectedRoute adminOnly>
@@ -224,8 +224,9 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
-            <Route path="products/add" element={<AdminProductForm mode="add" />} />
-            <Route path="products/edit/:id" element={<AdminProductForm mode="edit" />} />
+            <Route path="add-product" element={<AdminProductForm />} />
+            <Route path="products/add" element={<Navigate to="/admin/add-product" replace />} />
+            <Route path="products/edit/:id" element={<Navigate to="/admin/add-product" replace />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="offers" element={<AdminOffers />} />
             <Route path="hero-banners" element={<AdminHeroBannerManager />} />

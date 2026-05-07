@@ -11,9 +11,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
+import { slugify } from "../utils/category";
 import brandLogo from "../assets/image.png";
 
-const toSlug = (value) => String(value || "").trim().toLowerCase();
+const toSlug = slugify;
 
 function IBtn({ label, onClick, badge, children }) {
   return (
@@ -47,7 +48,7 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const qty = cart.reduce((s, i) => s + i.qty, 0);
+  const qty = cart.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);

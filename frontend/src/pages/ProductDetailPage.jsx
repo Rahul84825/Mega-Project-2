@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import ProductCard from "../components/ProductCard";
+import { useNavigate, useParams } from "react-router-dom";
+import SimilarProducts from "../components/SimilarProducts";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
-import { calculatePriceWithGST } from "../utils/priceCalculator";
-import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
+import { useProducts } from "../context/ProductContext";
+import { getDefaultVariant, getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
 
 const toSlug = (value) =>
   String(value || "")
@@ -13,291 +14,336 @@ const toSlug = (value) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-function ProductDetailPage({ productId, setPage, products }) {
+function ProductDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { dispatch } = useCart();
-  const [product, setProduct] = useState(null);
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { products } = useProducts();
+  const [product, setProduct]                   = useState(null);
+  const [selectedImage, setSelectedImage]       = useState("");
+  const [imgSwitching, setImgSwitching]         = useState(false);
+  const [qty, setQty]                           = useState(1);
+  const [added, setAdded]                       = useState(false);
+  const [loading, setLoading]                   = useState(true);
   const [selectedVariantId, setSelectedVariantId] = useState("");
-  const [showAllVariants, setShowAllVariants] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const data = await getProductById(productId);
+        const data = await getProductById(id);
         setProduct(data);
-      } catch (_error) {
-        setProduct(null);
-      } finally {
-        setLoading(false);
-      }
+      } catch (_error) { setProduct(null); }
+      finally { setLoading(false); }
     };
-
-    if (productId) {
-      fetchProduct();
-    } else {
-      setLoading(false);
-    }
-  }, [productId]);
+    if (id) fetchProduct(); else setLoading(false);
+  }, [id]);
 
   useEffect(() => {
     if (!product?._id) return;
-
     try {
       const stored = localStorage.getItem("recentlyViewed");
       let viewed = [];
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        viewed = Array.isArray(parsed) ? parsed : [];
-      }
-
+      if (stored) { const parsed = JSON.parse(stored); viewed = Array.isArray(parsed) ? parsed : []; }
       viewed = viewed.filter((p) => (p?._id || p?.id) !== product._id);
       viewed.unshift(product);
       viewed = viewed.slice(0, 8);
-
       localStorage.setItem("recentlyViewed", JSON.stringify(viewed));
-    } catch (_error) {
-      // Ignore malformed storage values.
-    }
+    } catch (_error) {}
   }, [product]);
 
   const related = useMemo(() => {
     if (!product) return [];
-    const currentCategorySlug = toSlug(product.categorySlug || product.category);
+    const slug = toSlug(product.categorySlug || product.category);
     return products
-      .filter((p) => toSlug(p.categorySlug || p.category) === currentCategorySlug && p._id !== product._id)
+      .filter((p) => toSlug(p.categorySlug || p.category) === slug && p._id !== product._id)
       .slice(0, 3);
   }, [product, products]);
+
+  const productImages = useMemo(() => {
+    const raw = Array.isArray(product?.images) ? product.images
+      : product?.images ? [product.images]
+      : product?.image  ? [product.image]
+      : [];
+    return raw.filter(Boolean);
+  }, [product]);
+
+  useEffect(() => { setSelectedImage(productImages[0] || ""); }, [productImages]);
 
   const variants = useMemo(() => {
     const incoming = Array.isArray(product?.variants) ? product.variants : [];
     const normalized = sortVariantsByLabel(incoming)
-      .map((variant, index) => {
-        const rawPrice = Number(variant?.finalPrice ?? variant?.price ?? variant?.sellingPrice ?? 0);
-        const stockValue = variant?.stock !== undefined ? variant.stock : (variant?.inStock === false ? 0 : 1);
-        return {
-          id: String(variant?.id || variant?._id || `variant_${index + 1}`),
-          label: String(variant?.label || `Variant ${index + 1}`).trim(),
-          price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0,
-          finalPrice: Number.isFinite(rawPrice)
-            ? calculatePriceWithGST(Math.max(0, Math.round(rawPrice)), Number(product?.gstPercent ?? 0) || 0)
-            : 0,
-          stock: Math.max(0, Math.floor(Number(stockValue) || 0)),
-          variantIndex: index
-        };
-      })
-      .filter((variant) => variant.price > 0 || variant.finalPrice > 0);
-
-    if (normalized.length) {
-      return normalized;
-    }
-
-    const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
-    return [{
-      id: "default",
-      label: "Default",
-      price: Math.round(fallbackPrice),
-      finalPrice: 0
-    }];
+      .map((v, i) => ({
+        _id:             String(v?._id || v?.id || `variant_${i + 1}`),
+        label:           String(v?.label || `Variant ${i + 1}`).trim(),
+        mrp:             Number(v?.mrp ?? 0),
+        discountPercent: Number(v?.discountPercent ?? 0),
+        sellingPrice:    Number(v?.sellingPrice ?? 0),
+        finalPrice:      Number(v?.finalPrice ?? 0),
+        stock:           Math.max(0, Math.floor(Number(v?.stock ?? 0))),
+      }))
+      .filter((v) => v.mrp > 0 || v.finalPrice > 0);
+    return normalized.length
+      ? normalized
+      : [{ _id: "default", label: "Default", mrp: 0, discountPercent: 0, sellingPrice: 0, finalPrice: 0, stock: 0 }];
   }, [product]);
 
   useEffect(() => {
-    setSelectedVariantId(variants.find((variant) => variant.stock > 0)?.id || variants[0]?.id || "");
-    setShowAllVariants(false);
+    const def = getDefaultVariant({ variants });
+    setSelectedVariantId(def?._id || variants[0]?._id || "");
   }, [variants, product?._id, product?.id]);
 
   useEffect(() => {
-    const selectedStock = Math.max(0, Number((variants.find((variant) => variant.id === selectedVariantId) || variants[0])?.stock || 0));
-    if (selectedStock > 0) {
-      setQty((currentQty) => Math.max(1, Math.min(currentQty, selectedStock)));
-    }
+    const stock = Math.max(0, Number((variants.find((v) => v._id === selectedVariantId) || variants[0])?.stock || 0));
+    if (stock > 0) setQty((q) => Math.max(1, Math.min(q, stock)));
   }, [selectedVariantId, variants]);
 
-  if (loading) {
-    return (
-      <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "40px 32px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div className="serif" style={{ fontSize: 24, color: "var(--muted)" }}>Loading product...</div>
-        </div>
-      </div>
-    );
-  }
+  const switchImage = (img) => {
+    setImgSwitching(true);
+    setTimeout(() => { setSelectedImage(img); setImgSwitching(false); }, 180);
+  };
 
-  if (!product) {
-    return (
-      <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "40px 32px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div className="serif" style={{ fontSize: 24, color: "var(--muted)", marginBottom: 16 }}>Product not found</div>
-          <button className="btn-primary" onClick={() => setPage("home")}>Back to Shop</button>
-        </div>
+  /* ── Loading ── */
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <p className="text-[20px] font-medium text-gray-500 tracking-wide">Loading product…</p>
+        <div className="mt-4 h-0.5 w-12 bg-gradient-to-r from-[#d4a017] to-[#b91c1c] rounded-full mx-auto animate-pulse" />
       </div>
-    );
-  }
+    </div>
+  );
 
-  const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
-  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) || variants[0];
-  const displayPrice = getDisplayPrice({ variants });
-  const isOutOfStock = !variants.length || !variants.some((variant) => variant.stock > 0);
+  /* ── Not found ── */
+  if (!product) return (
+    <div className="min-h-screen py-20 px-8 bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <p className="text-[28px] font-semibold text-gray-500 mb-6">Product not found.</p>
+        <button 
+          className="px-6 py-3 bg-[#b91c1c] hover:bg-[#991b1b] text-white rounded-lg font-medium transition-colors"
+          onClick={() => navigate("/")}
+        >
+          ← Back to Shop
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ── Derived ── */
+  const selectedVariant           = variants.find((v) => v._id === selectedVariantId) || variants[0];
+  const displayPrice              = selectedVariant?.finalPrice || getDisplayPrice({ variants });
+  const isOutOfStock              = !variants.length || !variants.some((v) => v.stock > 0);
   const selectedVariantOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
-  const visibleVariants = showAllVariants ? variants : variants.slice(0, 2);
-  const extraCount = Math.max(0, variants.length - 2);
+  const disabled                  = isOutOfStock || selectedVariantOutOfStock;
 
   const handleAdd = () => {
-    if (isOutOfStock || selectedVariantOutOfStock) {
-      return;
-    }
+    if (disabled) return;
     const requestedQty = Math.max(1, Math.min(qty, selectedVariant?.stock ?? qty));
-    const productId = product?._id || product?.id || product?.name || "product";
-    const cartItemId = `${productId}::${selectedVariant?.id || "default"}`;
     dispatch({
       type: "ADD",
       product: {
-        productId,
-        name: product?.name,
-        image: product?.image || product?.images?.[0],
-        variant: selectedVariant,
+        productId:    product?._id || product?.id || product?.name || "product",
+        variantId:    String(selectedVariant?._id || "default"),
+        quantity:     requestedQty,
+        price:        selectedVariant?.finalPrice || displayPrice,
+        name:         product?.name,
+        image:        product?.image || product?.images?.[0],
+        category:     product?.category,
         variantLabel: selectedVariant?.label || "Default",
-        variantIndex: selectedVariant?.variantIndex ?? 0,
-        price: selectedVariant?.finalPrice || displayPrice,
-        quantity: requestedQty,
-        cartItemId,
-        stock: selectedVariant?.stock ?? 0
-      }
+        stock:        selectedVariant?.stock ?? 0,
+      },
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
-  return (
-    <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "40px 32px" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ marginBottom: 32, display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "var(--muted)" }}>
-          <span onClick={() => setPage("home")} style={{ cursor: "pointer", color: "var(--burgundy)" }}>Shop</span>
-          <span>/</span>
-          <span>{product.category}</span>
-          <span>/</span>
-          <span style={{ color: "var(--charcoal)" }}>{product.name}</span>
-        </div>
+  const BADGES = [
+    ["🥛", "Made with Pure Milk"],
+    ["🌿", "No Preservatives"],
+    ["📦", "Gift Packaging Available"],
+    ["⭐", "Premium Quality"],
+  ];
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start", marginBottom: 72 }}>
-          <div style={{ position: "relative" }}>
-            <img src={product.image} alt={product.name} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", boxShadow: "12px 12px 0 rgba(244,160,36,0.2)" }} />
-            <div style={{ position: "absolute", top: -8, left: -8, width: 80, height: 80, border: "2px solid var(--saffron)", zIndex: -1 }} />
-          </div>
+  return (
+    <div className="min-h-screen bg-white pb-12 md:pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-10">
+
+        {/* ── Breadcrumb ── */}
+        <nav className="flex items-center gap-2 mb-6 md:mb-10 text-gray-400 animate-in fade-in slide-in-from-bottom-4 duration-500 text-xs md:text-sm">
+          <span className="font-semibold hover:text-[#b91c1c] cursor-pointer transition-colors" onClick={() => navigate("/")}>
+            Shop
+          </span>
+          <span className="opacity-40">/</span>
+          <span className="text-gray-600 capitalize">{product.category}</span>
+          <span className="opacity-40">/</span>
+          <span className="font-semibold text-black">{product.name}</span>
+        </nav>
+
+        {/* ── Main grid ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 lg:gap-14 items-start mb-12 md:mb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 fill-mode-both">
+
+          {/* Image column */}
           <div>
-            <span className="badge" style={{ background: "rgba(244,160,36,0.15)", color: "var(--saffron)", marginBottom: 16, display: "inline-block", letterSpacing: 2, fontSize: 11, textTransform: "uppercase" }}>{product.category}</span>
-            <h1 className="serif" style={{ fontSize: 48, fontWeight: 700, lineHeight: 1.1, marginBottom: 12 }}>{product.name}</h1>
-            
+            <div className="relative">
+              <img
+                src={selectedImage || product.image}
+                alt={product.name}
+                className={`w-full aspect-[4/3] object-cover rounded-[16px] shadow-sm border border-gray-100 transition-opacity duration-200 ${imgSwitching ? "opacity-50" : "opacity-100"}`}
+              />
+
+              {/* Discount badge */}
+              {selectedVariant?.discountPercent > 0 && (
+                <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-[#b91c1c] text-white text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-full tracking-wide shadow-md">
+                  {selectedVariant.discountPercent}% OFF
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails - responsive sizes */}
+            {productImages.length > 1 && (
+              <div className="flex gap-2 md:gap-3 mt-3 md:mt-4 flex-wrap">
+                {productImages.map((img, i) => (
+                  <button
+                    key={`${img}-${i}`}
+                    type="button"
+                    onClick={() => switchImage(img)}
+                    className={`w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all duration-150 p-0.5 bg-white
+                      ${img === selectedImage 
+                        ? "border-[#d4a017] shadow-sm" 
+                        : "border-transparent hover:-translate-y-0.5 hover:shadow-md"
+                      }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} view ${i + 1}`}
+                      className="w-full h-full object-cover rounded-md block"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Info column */}
+          <div className="pt-0 md:pt-1">
+
+            {/* Category chip */}
+            <span className="inline-block mb-4 bg-yellow-300/90 text-yellow-900 text-[10px] md:text-[11px] font-medium px-3 py-1 rounded-full tracking-wide uppercase">
+              {product.category}
+            </span>
+
+            {/* Product name */}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black leading-tight mb-4 md:mb-6 tracking-tight">
+              {product.name}
+            </h1>
+
+            {/* Variants */}
             {variants.length > 0 && (
-              <div style={{ marginBottom: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {visibleVariants.map((variant) => {
-                  const isActive = selectedVariant?.id === variant.id;
-                  return (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: "20px",
-                        fontSize: "13px",
-                        border: "none",
-                        cursor: "pointer",
-                        fontWeight: 500,
-                        background: isActive ? "var(--burgundy)" : "rgba(212,160,23,0.15)",
-                        color: isActive ? "white" : "var(--charcoal)",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      {variant.label}
-                    </button>
-                  );
-                })}
-                {extraCount > 0 && !showAllVariants && (
+              <div className="flex gap-2 mb-5 md:mb-6 flex-wrap">
+                {variants.map((variant) => (
                   <button
+                    key={variant._id}
                     type="button"
-                    onClick={() => setShowAllVariants(true)}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: "20px",
-                      fontSize: "13px",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: 500,
-                      background: "rgba(212,160,23,0.15)",
-                      color: "var(--charcoal)",
-                      transition: "all 0.2s"
-                    }}
+                    className={`px-3 md:px-4 py-2 text-[11px] md:text-[12px] font-medium rounded-full border transition-all duration-150 active:scale-95
+                      ${selectedVariant?._id === variant._id
+                        ? "bg-[#d4a017] border-[#d4a017] text-white shadow-md"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    onClick={() => setSelectedVariantId(variant._id)}
                   >
-                    +{extraCount}
+                    {variant.label}
                   </button>
-                )}
-                {extraCount > 0 && showAllVariants && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllVariants(false)}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: "20px",
-                      fontSize: "13px",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: 500,
-                      background: "rgba(212,160,23,0.15)",
-                      color: "var(--charcoal)",
-                      transition: "all 0.2s"
-                    }}
-                  >
-                    Show less
-                  </button>
-                )}
+                ))}
               </div>
             )}
 
-            <div style={{ fontSize: 36, color: "var(--burgundy)", fontFamily: "Cormorant Garamond, serif", fontWeight: 700, marginBottom: 8 }}>
-              {displayPrice > 0 ? `₹${displayPrice}` : "Unavailable"}
+            {/* Price */}
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-3xl md:text-4xl lg:text-5xl font-bold text-black leading-none">
+                {displayPrice > 0 ? `₹${displayPrice}` : "Unavailable"}
+              </span>
+              {selectedVariant?.mrp > 0 && selectedVariant.mrp !== displayPrice && (
+                <span className="text-sm md:text-base font-medium text-gray-400 line-through">
+                  ₹{selectedVariant.mrp}
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 32 }}>incl. GST · Free delivery above ₹999</div>
+            <p className="text-[10px] md:text-[11px] font-medium text-gray-400 mb-6 md:mb-7 tracking-wide">
+              Incl. of all taxes · Free delivery above ₹999
+            </p>
 
-            <div style={{ borderTop: "1px solid rgba(212,160,23,0.2)", paddingTop: 24, marginBottom: 32 }}>
-              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-                Stock: {selectedVariant?.stock ?? 0} boxes available
-              </div>
-              <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24 }}>
-                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #E8DDD0", background: "white" }}>
-                    <button disabled={isOutOfStock || selectedVariantOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || selectedVariantOutOfStock ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || selectedVariantOutOfStock ? 0.5 : 1 }}>−</button>
-                  <span style={{ width: 44, textAlign: "center", fontWeight: 600 }}>{qty}</span>
-                    <button disabled={isOutOfStock || selectedVariantOutOfStock || qty >= (selectedVariant?.stock ?? 0)} onClick={() => setQty((q) => Math.min(selectedVariant?.stock ?? 1, q + 1))} style={{ width: 40, height: 44, background: "none", border: "none", fontSize: 18, cursor: isOutOfStock || selectedVariantOutOfStock || qty >= (selectedVariant?.stock ?? 0) ? "not-allowed" : "pointer", color: "var(--burgundy)", opacity: isOutOfStock || selectedVariantOutOfStock || qty >= (selectedVariant?.stock ?? 0) ? 0.5 : 1 }}>+</button>
-                </div>
-                  <button className="btn-primary" onClick={handleAdd} disabled={isOutOfStock || selectedVariantOutOfStock} style={{ flex: 1, padding: "13px 28px", background: isOutOfStock || selectedVariantOutOfStock ? "#b7b7b7" : added ? "#2C6E49" : "var(--burgundy)", cursor: isOutOfStock || selectedVariantOutOfStock ? "not-allowed" : "pointer" }}>
-                    {isOutOfStock || selectedVariantOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : `Add ${qty} to Cart — ${displayPrice > 0 ? `₹${displayPrice * qty}` : "Unavailable"}`}
+            {/* Divider */}
+            <div className="h-px bg-gray-200 w-full mb-5 md:mb-6" />
+
+            {/* Stock */}
+            <p className="text-[12px] md:text-[13px] text-gray-500 mb-4 md:mb-6">
+              {disabled
+                ? <span className="text-red-600 font-medium">Currently out of stock</span>
+                : <><span className="font-semibold text-black">{selectedVariant?.stock ?? 0}</span> units available</>
+              }
+            </p>
+
+            {/* Qty + ATC - Stack on mobile, row on desktop */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-6 md:mb-8">
+              {/* Stepper - larger on mobile */}
+              <div className="flex items-center border border-gray-200 rounded-lg bg-white overflow-hidden shrink-0 order-2 sm:order-1">
+                <button 
+                  type="button" 
+                  className="w-12 h-12 md:w-[42px] md:h-[46px] flex items-center justify-center text-xl font-light hover:bg-gray-50 disabled:opacity-35 disabled:cursor-not-allowed text-black transition-colors"
+                  disabled={disabled}
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                >
+                  −
+                </button>
+                <span className="w-12 md:w-11 text-center text-sm md:text-[15px] font-semibold text-black">
+                  {qty}
+                </span>
+                <button 
+                  type="button" 
+                  className="w-12 h-12 md:w-[42px] md:h-[46px] flex items-center justify-center text-xl font-light hover:bg-gray-50 disabled:opacity-35 disabled:cursor-not-allowed text-black transition-colors"
+                  disabled={disabled || qty >= (selectedVariant?.stock ?? 0)}
+                  onClick={() => setQty((q) => Math.min(selectedVariant?.stock ?? 1, q + 1))}
+                >
+                  +
                 </button>
               </div>
+
+              {/* Add to cart - full width on mobile */}
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={disabled}
+                className={`flex-1 sm:flex-none py-3 md:py-[13px] px-4 md:px-6 rounded-lg text-[13px] md:text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98] order-1 sm:order-2
+                  ${disabled 
+                    ? "bg-gray-300 cursor-not-allowed opacity-80" 
+                    : added 
+                      ? "bg-green-700" 
+                      : "bg-[#b91c1c] hover:bg-[#991b1b]"
+                  }`}
+              >
+                {disabled ? "Out of Stock"
+                  : added ? "✓ Added to Cart"
+                  : `Add ${qty} to Cart · ₹${displayPrice > 0 ? displayPrice * qty : 0}`}
+              </button>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              {[ ["🥛", "Made with Pure Milk"], ["🌿", "No Preservatives"], ["📦", "Gift Packaging Available"], ["⭐", "Premium Quality"] ].map(([icon, text]) => (
-                <div key={text} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: "var(--muted)" }}>
-                  <span>{icon}</span>
-                  <span>{text}</span>
+            {/* Feature badges */}
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
+              {BADGES.map(([icon, text]) => (
+                <div key={text} className="flex items-center gap-2 p-2.5 md:p-3 rounded-lg bg-gray-50 border border-gray-100 text-[11px] md:text-[12px] font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                  <span className="text-base md:text-lg leading-none flex-shrink-0">{icon}</span>
+                  <span className="line-clamp-1">{text}</span>
                 </div>
               ))}
             </div>
+
           </div>
         </div>
 
+        {/* ── Related products ── */}
         {related.length > 0 && (
-          <div>
-            <h2 className="serif" style={{ fontSize: 28, marginBottom: 28 }}>More from <span style={{ color: "var(--saffron)" }}>{product.category}</span></h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-              {related.map((p) => (
-                <ProductCard key={p._id} product={p} onClick={() => {}} />
-              ))}
-            </div>
-          </div>
+          <SimilarProducts titleCategory={product.category} products={related} />
         )}
+
       </div>
     </div>
   );

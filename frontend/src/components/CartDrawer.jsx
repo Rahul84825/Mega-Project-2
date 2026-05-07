@@ -9,12 +9,12 @@ function CartDrawer({ setPage }) {
   const { cart, isCartOpen, closeCart } = useCart();
 
   const cartTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + (Number(item?.variant?.finalPrice) || 0) * (Number(item.qty) || 0), 0),
+    () => cart.reduce((sum, item) => sum + (Number(item?.price) || 0) * (Number(item.quantity) || 0), 0),
     [cart]
   );
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0),
+    () => cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
     [cart]
   );
 
@@ -74,7 +74,7 @@ function CartDrawer({ setPage }) {
           top: 0,
           right: 0,
           height: "100dvh",
-          width: "min(28rem, 100vw)",
+          width: "min(90vw, 28rem)",
           zIndex: 9999,
           transform: isCartOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)",
@@ -119,7 +119,7 @@ function CartDrawer({ setPage }) {
               </button>
             </div>
           ) : (
-            cart.map((item) => <CartItem key={item.cartItemId || item._id || item.id} item={item} />)
+            cart.map((item) => <CartItem key={`${item.productId}::${item.variantId}`} item={item} />)
           )}
         </div>
 

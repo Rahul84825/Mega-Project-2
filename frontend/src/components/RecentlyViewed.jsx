@@ -18,29 +18,33 @@ const RecentlyViewed = ({ setPage, setSelectedProductId }) => {
   if (items.length === 0) return null;
 
   return (
-    <section className="pattern-bg" style={{ padding: "0 32px 64px", maxWidth: 1280, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 28 }}>
-        <h2 className="serif" style={{ fontSize: 32, fontWeight: 700 }}>
-          Recently Viewed
-        </h2>
-        <span className="ornament">✦</span>
-        <span style={{ fontSize: 13, color: "var(--muted)" }}>{items.length} items</span>
-      </div>
+    <section className="py-10 md:py-14 bg-[var(--cream)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Centered Section Header */}
+        <div className="text-center mb-8 md:mb-10">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--charcoal)] mb-2">
+            Recently Viewed
+          </h2>
+          <p className="text-sm md:text-base text-[var(--muted)] font-medium">
+            {items.length} items you've browsed
+          </p>
+        </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 24 }}>
-        {items.map((item) => (
-          <ProductCard
-            key={item._id || item.id}
-            product={item}
-            onClick={() => {
-              const id = item._id || item.id;
-              if (!id) return;
-              setSelectedProductId?.(id);
-              setPage?.("product");
-              navigate(`/product/${id}`);
-            }}
-          />
-        ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
+          {items.map((item) => (
+            <ProductCard
+              key={item._id || item.id}
+              product={item}
+              onClick={() => {
+                const id = item._id || item.id;
+                if (!id) return;
+                setSelectedProductId?.(id);
+                setPage?.("product");
+                navigate(`/product/${id}`);
+              }}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );

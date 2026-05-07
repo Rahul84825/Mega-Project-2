@@ -2,8 +2,8 @@ import { PackageX } from "lucide-react";
 import ProductCard from "./ProductCard";
 
 const ProductCardSkeleton = () => (
-  <div className="flex animate-pulse flex-col overflow-hidden rounded-2xl bg-white border border-[#f0e6d6]">
-    <div className="aspect-square w-full bg-[#f5ede0]" />
+  <div className="w-full max-w-[320px] flex animate-pulse flex-col overflow-hidden rounded-2xl bg-white border border-[#f0e6d6]">
+    <div className="aspect-[4/5] w-full bg-[#f5ede0]" />
     <div className="flex flex-col gap-3 p-4">
       <div className="h-3.5 bg-[#f0e6d6] rounded-full w-3/4" />
       <div className="h-3 bg-[#f0e6d6] rounded-full w-1/2" />
@@ -13,7 +13,7 @@ const ProductCardSkeleton = () => (
       </div>
       <div className="h-5 bg-[#f0e6d6] rounded-full w-1/3" />
       <div className="h-px bg-[#f0e6d6]" />
-      <div className="h-9 bg-[#f0e6d6] rounded-xl w-full" />
+      <div className="h-12 bg-[#f0e6d6] rounded-xl w-full" />
     </div>
   </div>
 );
@@ -29,7 +29,7 @@ const EmptyState = () => (
 
 const ProductGrid = ({ products = [], loading = false }) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
       {loading
         ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
         : products.length === 0

@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
 import ProductFilter from "../components/ProductFilter";
 import ProductGrid from "../components/ProductGrid";
 import { getDisplayPrice } from "@/utils/price";
+import { normalizeCategory, getProductCategory } from "@/utils/category";
 
 const DEFAULT_FILTERS = {
   category: "",
@@ -11,27 +13,14 @@ const DEFAULT_FILTERS = {
   inStock: false,
 };
 
-const normalizeCategory = (value) => {
-  const next = String(value || "").trim().toLowerCase();
-  return next === "all" ? "" : next;
-};
-
-const getProductCategory = (product) => {
-  const categoryValue = product?.category;
-
-  if (typeof categoryValue === "string") {
-    return normalizeCategory(categoryValue);
-  }
-
-  return normalizeCategory(categoryValue?.slug || categoryValue?.name || product?.categorySlug);
-};
-
 const getProductSortPrice = (product) => {
   return getDisplayPrice(product);
 };
 
 const ProductsPage = ({ initialCategory = "all" }) => {
   const { products, loading } = useProducts();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [filters, setFilters] = useState(() => ({
     ...DEFAULT_FILTERS,
     category: normalizeCategory(initialCategory),
@@ -44,6 +33,28 @@ const ProductsPage = ({ initialCategory = "all" }) => {
   const clearFilters = () => {
     setFilters(DEFAULT_FILTERS);
   };
+
+  // Sync filters with URL query parameters - watch location.search for changes
+  useEffect(() => {
+    // Extract all filters from URL
+    const urlCategory = searchParams.get("category");
+    const urlPrice = searchParams.get("price");
+    const urlSort = searchParams.get("sort");
+    const urlInStock = searchParams.get("inStock") === "true";
+
+    // Normalize values
+    const normalizedCategory = normalizeCategory(urlCategory || "");
+    const normalizedPrice = String(urlPrice || "").trim();
+    const normalizedSort = String(urlSort || "default").trim();
+
+    // Update all filters to match URL state
+    setFilters({
+      category: normalizedCategory,
+      price: normalizedPrice,
+      sort: normalizedSort,
+      inStock: urlInStock,
+    });
+  }, [searchParams, location.search]);
 
   const filteredProducts = useMemo(() => {
     const selectedCategory = normalizeCategory(filters.category);
@@ -94,8 +105,8 @@ const ProductsPage = ({ initialCategory = "all" }) => {
 
   return (
     <div className="min-h-screen bg-[#fff8f0]">
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        <h1 className="mb-6 text-3xl font-semibold text-[#3b2f2f] md:text-4xl">{heading}</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#3b2f2f]">{heading}</h1>
         <ProductFilter
           filters={filters}
           onChange={updateFilters}

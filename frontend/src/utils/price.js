@@ -19,11 +19,19 @@ const getVariantWeight = (variant) => {
 export const sortVariantsByLabel = (variants = []) =>
   [...variants].sort((a, b) => getVariantWeight(a) - getVariantWeight(b));
 
-export const getDisplayPrice = (product) => {
+export const getDefaultVariant = (product) => {
   if (!product || !Array.isArray(product.variants) || product.variants.length === 0) {
+    return null;
+  }
+
+  return product.variants.find((variant) => Number(variant?.stock || 0) > 0) || product.variants[0];
+};
+
+export const getDisplayPrice = (product) => {
+  const variant = getDefaultVariant(product);
+  if (!variant) {
     return 0;
   }
 
-  const firstVariant = product.variants[0];
-  return Number(firstVariant?.finalPrice ?? 0) || 0;
+  return Number(variant?.finalPrice ?? 0) || 0;
 };

@@ -32,7 +32,8 @@ const sanitizeOrders = (orders) => orders.map((order) => sanitizeOrder(order));
 const getVariantSelection = (item) => {
   const variantIndex = Number.isInteger(Number(item?.variantIndex)) ? Number(item.variantIndex) : null;
   const variantLabel = String(item?.variant?.label || item?.variantLabel || "").trim();
-  return { variantIndex, variantLabel };
+  const variantId = String(item?.variantId || item?.variant?._id || item?.variant?.id || "").trim();
+  return { variantIndex, variantLabel, variantId };
 };
 
 export const createOrder = async (req, res) => {
@@ -51,8 +52,8 @@ export const createOrder = async (req, res) => {
 
     for (const item of orderItems) {
       const productId = item?.productId || item?._id || item?.id;
-      const requestedQty = Number(item?.qty || 0);
-      const { variantIndex, variantLabel } = getVariantSelection(item);
+      const requestedQty = Number(item?.quantity ?? item?.qty ?? 0);
+      const { variantIndex, variantLabel, variantId } = getVariantSelection(item);
 
       if (!productId || !Number.isFinite(requestedQty) || requestedQty <= 0) {
         return res.status(400).json({
@@ -62,9 +63,11 @@ export const createOrder = async (req, res) => {
       }
 
       const product = await Product.findById(productId).select("name variants");
-      const resolvedVariantIndex = variantIndex !== null
-        ? variantIndex
-        : product?.variants?.findIndex((variant) => String(variant?.label || "").trim() === variantLabel);
+      const resolvedVariantIndex = variantId
+        ? product?.variants?.findIndex((variant) => String(variant?._id || variant?.id || "").trim() === variantId)
+        : variantIndex !== null
+          ? variantIndex
+          : product?.variants?.findIndex((variant) => String(variant?.label || "").trim() === variantLabel);
       const selectedVariant = Number.isInteger(resolvedVariantIndex) && resolvedVariantIndex >= 0
         ? product?.variants?.[resolvedVariantIndex]
         : null;
@@ -76,7 +79,7 @@ export const createOrder = async (req, res) => {
         });
       }
 
-      normalizedOrderItems.push({ productId, requestedQty, name: product.name, variantIndex: resolvedVariantIndex, variantLabel });
+      normalizedOrderItems.push({ productId, requestedQty, name: product.name, variantIndex: resolvedVariantIndex, variantLabel, variantId });
     }
 
     const createdOrder = await Order.create({

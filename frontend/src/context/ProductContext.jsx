@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../utils/api";
-import { calculatePriceWithGST } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount } from "../utils/priceCalculator";
 import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
 
 const OFFERS_STORAGE_KEY = "mithai-world-admin-offers";
@@ -30,22 +30,29 @@ const normalizeCategory = (category) => ({
   order: Number(category?.order || 0)
 });
 
-const normalizeProduct = (product) => {
+export const normalizeProduct = (product) => {
   const normalizedVariants = sortVariantsByLabel(toArray(product?.variants))
     .map((variant, index) => {
-      const rawPrice = Number(variant?.price ?? variant?.sellingPrice ?? variant?.originalPrice ?? 0);
-      const stockValue = variant?.stock !== undefined ? variant.stock : (variant?.inStock === false ? 0 : 1);
-      const stock = Math.max(0, Math.floor(Number(stockValue) || 0));
+      const mrp = Math.max(0, Math.round(Number(variant?.mrp ?? 0)));
+      const discountPercent = Math.max(0, Math.min(100, Number(variant?.discountPercent ?? 0) || 0));
+      const sellingPrice = Number.isFinite(Number(variant?.sellingPrice))
+        ? Math.max(0, Math.round(Number(variant.sellingPrice)))
+        : calculateSellingPriceFromDiscount(mrp, discountPercent);
+      const finalPrice = Number.isFinite(Number(variant?.finalPrice))
+        ? Math.max(0, Math.round(Number(variant.finalPrice)))
+        : calculateFinalPriceWithGST(sellingPrice, Number(product?.gstPercent ?? 0) || 0);
+      const stock = Math.max(0, Math.floor(Number(variant?.stock ?? 0)));
       return {
-        id: String(variant?.id || variant?._id || `variant_${index + 1}`),
+        _id: variant?._id || variant?.id || `variant_${index + 1}`,
         label: String(variant?.label || `Variant ${index + 1}`).trim(),
-        price: Number.isFinite(rawPrice) ? Math.max(0, Math.round(rawPrice)) : 0,
-        finalPrice: Number.isFinite(rawPrice) ? calculatePriceWithGST(Math.max(0, Math.round(rawPrice)), Number(product?.gstPercent ?? 0) || 0) : 0,
-        stock,
-        variantIndex: index
+        mrp,
+        discountPercent,
+        sellingPrice,
+        finalPrice,
+        stock
       };
     })
-    .filter((variant) => variant.price > 0);
+    .filter((variant) => variant.mrp > 0);
 
   const gstPercent = Math.max(0, Math.min(100, Number(product?.gstPercent ?? 0) || 0));
   const fallbackPrice = Math.max(0, Number(product?.basePrice ?? product?.price ?? 0));
@@ -61,8 +68,6 @@ const normalizeProduct = (product) => {
   const rawCategory = typeof product?.category === "string" ? product.category : product?.category?.slug || product?.category?.name || "";
   const categorySlug = toSlug(product?.categorySlug || rawCategory);
 
-  const hasInStockVariant = normalizedVariants.some((variant) => variant.stock > 0);
-
   return {
     ...product,
     basePrice: Math.round(displayPrice || fallbackPrice),
@@ -70,7 +75,6 @@ const normalizeProduct = (product) => {
     variants: normalizedVariants,
     price: displayPrice,
     stock,
-    inStock: hasInStockVariant,
     categorySlug,
     images: toArray(product?.images).length ? toArray(product.images) : product?.image ? [product.image] : []
   };
@@ -175,6 +179,15 @@ export function ProductProvider({ children }) {
       // Admin components surface fetch failures.
     });
   }, [refresh]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchProducts().catch(() => {});
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchProducts]);
 
   const addProduct = useCallback(
     async (payload) => {

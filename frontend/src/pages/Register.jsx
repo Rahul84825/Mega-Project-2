@@ -33,24 +33,36 @@ function Register() {
   };
 
   return (
-    <div className="page-enter" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32, background: "var(--cream)" }}>
-      <div style={{ width: "100%", maxWidth: 520, background: "white", border: "1px solid rgba(212,160,23,0.18)", padding: 36, boxShadow: "0 18px 40px rgba(26,15,10,0.08)" }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div className="serif" style={{ fontSize: 34, color: "var(--charcoal)", marginBottom: 8 }}>Create account</div>
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>Customer registration for Mithai World</div>
+    <div className="page-enter min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[var(--cream)]">
+      <div className="w-full max-w-[520px] bg-white rounded-xl border border-[rgba(212,160,23,0.18)] p-6 sm:p-9 shadow-lg">
+        
+        {/* Header */}
+        <div className="text-center mb-8 sm:mb-10">
+          <h1 className="serif text-3xl sm:text-4xl font-bold text-[var(--charcoal)] mb-2 sm:mb-3">
+            Create account
+          </h1>
+          <p className="text-sm sm:text-base text-[var(--muted)]">
+            Customer registration for Mithai World
+          </p>
         </div>
 
+        {/* Error Message */}
         {error && (
-          <div style={{ marginBottom: 16, padding: "12px 14px", background: "rgba(176,0,32,0.08)", color: "var(--burgundy)", border: "1px solid rgba(176,0,32,0.18)", fontSize: 13 }}>
+          <div className="mb-5 sm:mb-6 p-3 sm:p-4 rounded-lg bg-[rgba(176,0,32,0.08)] border border-[rgba(176,0,32,0.18)] text-[var(--burgundy)] text-sm sm:text-[13px]">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6 mb-6 sm:mb-8">
+          
+          {/* Name Field */}
           <div>
-            <label style={{ display: "block", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Name</label>
+            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+              Name
+            </label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-[#e8d4b4] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]/20 focus:border-[var(--saffron)] transition-all placeholder:text-[var(--muted)]"
               type="text"
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
@@ -58,10 +70,14 @@ function Register() {
               autoComplete="name"
             />
           </div>
+
+          {/* Email Field */}
           <div>
-            <label style={{ display: "block", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Email</label>
+            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+              Email
+            </label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-[#e8d4b4] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]/20 focus:border-[var(--saffron)] transition-all placeholder:text-[var(--muted)]"
               type="email"
               value={form.email}
               onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -69,10 +85,14 @@ function Register() {
               autoComplete="email"
             />
           </div>
+
+          {/* Password Field */}
           <div>
-            <label style={{ display: "block", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Password</label>
+            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+              Password
+            </label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-[#e8d4b4] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]/20 focus:border-[var(--saffron)] transition-all placeholder:text-[var(--muted)]"
               type="password"
               value={form.password}
               onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
@@ -80,14 +100,29 @@ function Register() {
               autoComplete="new-password"
             />
           </div>
-          <button className="btn-primary" type="submit" disabled={loading} style={{ padding: "14px 18px" }}>
+
+          {/* Register Button */}
+          <button
+            className="w-full py-3 sm:py-3.5 rounded-lg bg-[var(--burgundy)] hover:bg-[#8B1E3F] text-white font-bold text-sm sm:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Creating account..." : "Register"}
           </button>
         </form>
 
-        <div style={{ marginTop: 20, textAlign: "center", fontSize: 13, color: "var(--muted)" }}>
-          Already have an account? <button type="button" onClick={() => navigate("/login")} style={{ border: "none", background: "none", color: "var(--burgundy)", cursor: "pointer", padding: 0 }}>Sign in</button>
+        {/* Sign In Link */}
+        <div className="text-center text-sm sm:text-[13px] text-[var(--muted)]">
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="text-[var(--burgundy)] hover:text-[#8B1E3F] font-bold transition-colors bg-none border-none cursor-pointer p-0 inline"
+          >
+            Sign in
+          </button>
         </div>
+
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import HeroSection from "../components/HeroSection";
 import CategoryCarousel from "../components/CategoryCarousel";
+import OffersSection from "../components/home/OffersSection";
 import NewArrivals from "../components/NewArrivals";
 import RecentlyViewed from "../components/RecentlyViewed";
 
@@ -23,6 +24,7 @@ function HomePage({
           setSelectedProductId={setSelectedProductId}
         />
       )}
+      {showHero && <OffersSection />}
       <NewArrivals
         setPage={setPage}
         setSelectedProductId={setSelectedProductId}

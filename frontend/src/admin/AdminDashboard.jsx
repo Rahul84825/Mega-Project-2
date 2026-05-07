@@ -100,7 +100,7 @@ const AdminDashboard = () => {
         
         {/* Quick Actions (Desktop Top-Right) */}
         <div className="hidden sm:flex items-center gap-3">
-          <button onClick={() => navigate("/admin/products/add")}
+          <button onClick={() => navigate("/admin/add-product", { state: null })}
             className="flex items-center gap-2 bg-[#8b4513] text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-[#a0522d] transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5">
             <PlusCircle className="w-4 h-4" /> Add Product
           </button>
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
         <div className="sm:hidden bg-[#fffaf3] rounded-3xl border border-[#e6d3b3] shadow-sm p-6">
           <h3 className="text-base font-extrabold text-[#2d1b0e] mb-4">Quick Actions</h3>
           <div className="flex flex-col gap-3">
-            <button onClick={() => navigate("/admin/products/add")}
+            <button onClick={() => navigate("/admin/add-product", { state: null })}
               className="w-full flex items-center justify-center gap-2 bg-[#8b4513] text-white px-5 py-3.5 rounded-xl text-sm font-bold hover:bg-[#a0522d] transition-colors shadow-md">
               <PlusCircle className="w-4 h-4" /> Add New Product
             </button>
