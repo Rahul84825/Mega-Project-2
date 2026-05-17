@@ -96,11 +96,11 @@ function HeroSection() {
   return (
     <div
       style={{
-        padding: "72px 32px",
+        padding: "48px 32px",
         textAlign: "center",
         position: "relative",
         overflow: "hidden",
-        minHeight: "500px",
+        minHeight: "480px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center"

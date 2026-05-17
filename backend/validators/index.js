@@ -59,17 +59,65 @@ export const paymentCreateValidation = [
 ];
 
 export const paymentVerifyValidation = [
-  body("razorpay_order_id").trim().isLength({ min: 1, max: 200 }).withMessage("Missing Razorpay order id").escape(),
-  body("razorpay_payment_id").trim().isLength({ min: 1, max: 200 }).withMessage("Missing Razorpay payment id").escape(),
-  body("razorpay_signature").trim().isLength({ min: 1, max: 500 }).withMessage("Missing Razorpay signature"),
+  body("razorpay_order_id").trim().isLength({ min: 1, max: 200 }).withMessage("Missing Razorpay order id").notEmpty().withMessage("Razorpay order id cannot be empty"),
+  body("razorpay_payment_id").trim().isLength({ min: 1, max: 200 }).withMessage("Missing Razorpay payment id").notEmpty().withMessage("Razorpay payment id cannot be empty"),
+  body("razorpay_signature").trim().isLength({ min: 1, max: 500 }).withMessage("Missing Razorpay signature").notEmpty().withMessage("Razorpay signature cannot be empty"),
   body("orderData").optional().isObject().withMessage("orderData must be an object")
 ];
 
 export const orderCreateValidation = [
-  body("amount").isFloat({ gt: 0 }).withMessage("Amount must be greater than zero").toFloat(),
-  body("customer").optional().isObject().withMessage("customer must be an object"),
-  body("items").optional().isArray().withMessage("items must be an array"),
-  body("status").optional().isString().trim().isLength(safeString(1, 40)).escape()
+  // Required: amount > 0
+  body("amount")
+    .exists({ checkFalsy: false })
+    .withMessage("Amount is required")
+    .isFloat({ gt: 0 })
+    .withMessage("Amount must be greater than zero")
+    .toFloat(),
+  
+  // Optional: customer info (can be guest checkout)
+  body("customer")
+    .optional()
+    .isObject()
+    .withMessage("customer must be an object"),
+  
+  // Optional: items array (can be populated during order creation)
+  body("items")
+    .optional()
+    .isArray({ min: 1 })
+    .withMessage("items must be a non-empty array"),
+  
+  // Optional: custom status
+  body("status")
+    .optional()
+    .isString()
+    .trim()
+    .isLength(safeString(1, 40))
+    .escape(),
+
+  // Optional: currency (defaults to INR)
+  body("currency")
+    .optional()
+    .isLength({ min: 3, max: 3 })
+    .withMessage("Currency must be a 3-letter code")
+    .toUpperCase(),
+
+  // Optional: payment method info
+  body("payment")
+    .optional()
+    .isObject()
+    .withMessage("payment must be an object"),
+
+  // Optional: shipping address
+  body("shippingAddress")
+    .optional()
+    .isObject()
+    .withMessage("shippingAddress must be an object"),
+
+  // Optional: pricing totals
+  body("totals")
+    .optional()
+    .isObject()
+    .withMessage("totals must be an object")
 ];
 
 export const deliveryStatusValidation = [

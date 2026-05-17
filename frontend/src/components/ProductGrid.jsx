@@ -1,5 +1,6 @@
 import { PackageX } from "lucide-react";
 import ProductCard from "./ProductCard";
+import { useProducts } from "../context/ProductContext";
 
 const ProductCardSkeleton = () => (
   <div className="w-full max-w-[320px] flex animate-pulse flex-col overflow-hidden rounded-2xl bg-white border border-[#f0e6d6]">
@@ -27,14 +28,17 @@ const EmptyState = () => (
   </div>
 );
 
-const ProductGrid = ({ products = [], loading = false }) => {
+const ProductGrid = ({ products, loading = false }) => {
+  const { products: contextProducts } = useProducts();
+  const resolvedProducts = Array.isArray(products) ? products : (Array.isArray(contextProducts) ? contextProducts : []);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 justify-items-center">
       {loading
         ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
-        : products.length === 0
+        : resolvedProducts.length === 0
         ? <EmptyState />
-        : products.map((product) => (
+        : resolvedProducts.map((product) => (
             <ProductCard key={product._id || product.id} product={product} />
           ))
       }

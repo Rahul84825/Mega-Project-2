@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { sortVariantsByLabel } from "@/utils/price";
+import { sortVariantsByLabel } from "@/services/utils/price";
 
 function ProductCard({ product }) {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ function ProductCard({ product }) {
   return (
     <div
       onClick={() => productId && navigate(`/product/${productId}`)}
-      className="w-full max-w-[320px] flex flex-col bg-white rounded-[16px] border border-gray-200 overflow-hidden
+      className="w-full max-w-[320px] flex flex-col bg-white rounded-[12px] border border-gray-200 overflow-hidden
                     transition-transform duration-200 hover:-translate-y-1 cursor-pointer"
     >
 
@@ -78,10 +78,10 @@ function ProductCard({ product }) {
       </div>
 
       {/* BODY — responsive padding and gaps */}
-      <div className="flex flex-col gap-2 sm:gap-3 p-3 sm:p-4">
+      <div className="flex flex-col gap-2 sm:gap-3 p-2 sm:p-2.5">
 
         {/* NAME */}
-        <h3 className="text-sm sm:text-[15px] font-medium text-black leading-snug">
+        <h3 className="text-[13px] sm:text-[14px] font-medium text-black leading-snug">
           {product?.name}
         </h3>
 
@@ -139,7 +139,7 @@ function ProductCard({ product }) {
             handleAdd();
           }}
           disabled={isOutOfStock}
-          className={`w-full h-12 rounded-lg text-[13px] sm:text-[14px] font-medium text-white border-none
+          className={`w-full h-11 rounded-lg text-[13px] sm:text-[14px] font-medium text-white border-none
                       transition-all duration-150 active:scale-[0.98]
                       ${isOutOfStock
                         ? "bg-gray-300 cursor-not-allowed opacity-60"

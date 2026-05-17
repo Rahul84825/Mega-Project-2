@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getApiErrorMessage, resendDeliveryOTP, verifyDeliveryOTP } from "../services/api";
 import { socket } from "../services/socket";
 
@@ -22,8 +23,11 @@ const normalizeOrder = (order) => {
   return order;
 };
 
-function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInfo, onReturnHome }) {
-  const [order, setOrder] = useState(() => normalizeOrder(paymentInfo));
+function PaymentSuccessPage({ paymentInfo, setPaymentInfo, onReturnHome }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const stateOrder = location?.state?.order;
+  const [order, setOrder] = useState(() => normalizeOrder(stateOrder || paymentInfo));
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -205,7 +209,7 @@ function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInfo, onReturnHome
           <div style={{ fontSize: 56, marginBottom: 16 }}>📦</div>
           <h1 className="serif" style={{ fontSize: 34, marginBottom: 12 }}>Order Not Found</h1>
           <p style={{ color: "var(--muted)", marginBottom: 24 }}>We could not load your payment details. Please return to the shop and try again.</p>
-          <button className="btn-primary" onClick={() => setPage("home")} style={{ padding: "14px 28px" }}>
+          <button className="btn-primary" onClick={() => navigate("/")} style={{ padding: "14px 28px" }}>
             Back to Shop
           </button>
         </div>
@@ -309,7 +313,7 @@ function PaymentSuccessPage({ setPage, paymentInfo, setPaymentInfo, onReturnHome
           {errorMessage && <div style={{ marginTop: 12, color: "#B00020", fontSize: 13 }}>{errorMessage}</div>}
         </div>
 
-        <button className="btn-primary" disabled={submitting} onClick={() => (onReturnHome ? onReturnHome() : setPage("home"))} style={{ padding: "14px 28px", opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer" }}>
+        <button className="btn-primary" disabled={submitting} onClick={() => (onReturnHome ? onReturnHome() : navigate("/"))} style={{ padding: "14px 28px", opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer" }}>
           Continue Shopping
         </button>
       </div>

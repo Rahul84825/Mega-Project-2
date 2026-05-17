@@ -6,7 +6,7 @@ import {
   IndianRupee, ChevronRight, Users
 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
-import { formatPrice } from "../utils/priceCalculator";
+import { formatPrice } from "../services/utils/priceCalculator";
 import api from "../services/api";
 
 const StatCard = ({ label, value, sub, icon: Icon, color, bg, onClick }) => (
@@ -65,7 +65,7 @@ const AdminDashboard = () => {
     const created = new Date(p.createdAt || p.created_at || 0).getTime();
     return Number.isFinite(created) && created >= recentThreshold;
   }).length;
-  const activeOffers  = offers.filter((o) => o.active).length;
+  const activeOffers  = offers.filter((o) => o.isActive ?? o.active).length;
   const totalOrders   = orders.length;
   const totalRevenue  = orders.reduce((s, o) => s + (o.total || 0), 0);
 

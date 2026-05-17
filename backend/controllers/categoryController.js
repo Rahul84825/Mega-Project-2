@@ -1,6 +1,7 @@
 import Category from "../models/Category.js";
 import Product from "../models/Product.js";
 import { uploadCategoryImage } from "./uploadController.js";
+import { getIo } from "../socket.js";
 
 const toSlug = (name) =>
   String(name || "")
@@ -74,6 +75,12 @@ export const createCategory = async (req, res, next) => {
       type: ["sweets", "other"].includes(String(type || "").toLowerCase()) ? String(type).toLowerCase() : "other",
       order: Number(order || 0)
     });
+
+    // ✅ Emit socket event for real-time UI update
+    const io = getIo();
+    if (io) {
+      io.emit("category:created", category.toObject());
+    }
 
     return res.status(201).json({
       success: true,
@@ -159,6 +166,12 @@ export const updateCategory = async (req, res, next) => {
       await Product.updateMany({ category: existing.slug }, { category: updates.slug });
     }
 
+    // ✅ Emit socket event for real-time UI update
+    const io = getIo();
+    if (io) {
+      io.emit("category:updated", category.toObject());
+    }
+
     return res.status(200).json({
       success: true,
       category
@@ -189,6 +202,12 @@ export const deleteCategory = async (req, res, next) => {
     }
 
     await Category.findByIdAndDelete(id);
+
+    // ✅ Emit socket event for real-time UI update
+    const io = getIo();
+    if (io) {
+      io.emit("category:deleted", id);
+    }
 
     return res.status(200).json({
       success: true,

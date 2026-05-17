@@ -1,101 +1,144 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const OfferCard = ({ offer }) => {
+  const navigate = useNavigate();
+
   if (!offer) return null;
 
-  // Determine navigation target
   const getNavigationPath = () => {
-    if (offer.linked_category_id || offer.targetCategory) {
-      const categorySlug = offer.linked_category_id || offer.targetCategory;
-      return `/products?category=${encodeURIComponent(categorySlug)}`;
+    if (offer?.linked_category_id || offer?.targetCategory) {
+      return `/products?category=${encodeURIComponent(offer.linked_category_id || offer.targetCategory)}`;
     }
-    if (offer.linked_product_id || offer.targetProduct) {
-      const productId = typeof offer.linked_product_id === "object" 
-        ? offer.linked_product_id._id || offer.linked_product_id.id
-        : offer.linked_product_id;
-      return `/product/${encodeURIComponent(productId)}`;
+    if (offer?.linked_product_id || offer?.targetProduct) {
+      return `/product/${encodeURIComponent(
+        typeof (offer.linked_product_id || offer.targetProduct) === "object"
+          ? (offer.linked_product_id || offer.targetProduct)?._id || (offer.linked_product_id || offer.targetProduct)?.id
+          : (offer.linked_product_id || offer.targetProduct)
+      )}`;
     }
     return null;
   };
 
-  const navigationPath = getNavigationPath();
-  const isClickable = !!navigationPath;
+  const navigationPath  = getNavigationPath();
+  const isClickable     = Boolean(navigationPath);
+  const discountValue   = Math.round(offer.discount_percentage || offer.discountPercent || 0);
 
-  const discountValue = Math.round(offer.discount_percentage || offer.discountPercent || 0);
+  const handleClick = () => {
+    if (!navigationPath) return;
+    navigate(navigationPath);
+  };
 
-  // Content JSX shared between Link and div
-  const cardContent = (
-    <>
-      {/* Background Image Container */}
-      {offer.image ? (
-        <div className="relative w-full h-40 sm:h-48 md:h-56 overflow-hidden bg-[#f5e1c8]">
-          <img
-            src={offer.image}
-            alt={offer.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-          {/* Premium Overlay */}
-          <div className="absolute inset-0 bg-black/35 group-hover:bg-black/45 transition-all duration-300 pointer-events-none" />
-        </div>
-      ) : (
-        <div className="relative w-full h-40 sm:h-48 md:h-56 bg-gradient-to-br from-[#f5e6d3] via-[#ede0ce] to-[#e5d8c4] group-hover:from-[#ede0ce] group-hover:to-[#dccfb9] transition-all duration-300 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-all pointer-events-none" />
-          <div className="relative text-center">
-            <div className="text-6xl opacity-30">◆</div>
-          </div>
-        </div>
-      )}
+  return (
+    <div className="w-full max-w-[340px]">
+      <div
+        onClick={handleClick}
+        role={isClickable ? "button" : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (isClickable && (e.key === "Enter" || e.key === " ")) handleClick();
+        }}
+        className={`group relative w-[250px] overflow-hidden rounded-2xl
+                    transition-all duration-300 ease-out
+                    ${isClickable
+                      ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-[0_24px_48px_rgba(29,18,13,0.28)] focus:outline-none focus:ring-2 focus:ring-[#e8a852] focus:ring-offset-2"
+                      : "cursor-default opacity-70"
+                    }`}
+      >
+        {/* ── Image / fallback area ── */}
+        <div className="relative aspect-square w-full overflow-hidden bg-[#1d120d]">
 
-      {/* Premium Discount Badge */}
-      {discountValue > 0 && (
-        <div className="absolute top-4 right-4 flex items-center justify-center px-3 py-1.5 rounded-full bg-orange-500/95 backdrop-blur-sm shadow-md z-10 pointer-events-none">
-          <div className="text-center">
-            <span className="text-sm font-bold text-white">
-              {discountValue}% OFF
+          {offer.image ? (
+            <img
+              src={offer.image}
+              alt={offer.title}
+              className="h-full w-full object-cover transition-transform duration-500 ease-out
+                         group-hover:scale-[1.07]"
+            />
+          ) : (
+            /* Fallback — no image */
+            <div className="flex h-full w-full items-center justify-center bg-[#1d120d] px-6 text-center">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.38em] text-[#d4a017]">
+                  Mithai World
+                </p>
+                <h3 className="mt-3 text-xl font-bold leading-tight text-white">
+                  {offer.title}
+                </h3>
+                {offer.description && (
+                  <p className="mt-2 text-[13px] leading-relaxed text-white/70">
+                    {offer.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Gradient overlay ── */}
+          <div className="pointer-events-none absolute inset-0
+                          bg-gradient-to-t from-[rgba(11,8,6,0.82)] via-[rgba(11,8,6,0.30)] to-[rgba(11,8,6,0.08)]
+                          transition-all duration-300
+                          group-hover:from-[rgba(11,8,6,0.88)] group-hover:via-[rgba(11,8,6,0.25)]" />
+
+          {/* ── Top badges ── */}
+          <div className="absolute left-3.5 right-3.5 top-3.5 z-20 flex items-start justify-between gap-2">
+
+            {/* Featured label */}
+            <span className="rounded-full bg-white/15 px-3 py-1 text-[9px] font-semibold
+                             uppercase tracking-[0.20em] text-white backdrop-blur-md
+                             border border-white/10">
+              Featured
             </span>
-          </div>
-        </div>
-      )}
 
-      {/* Content Overlay - Centered */}
-      <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-        <div className="text-center px-4">
-          <h3 className="text-white font-bold text-lg md:text-xl lg:text-2xl drop-shadow-lg line-clamp-2 mb-2">
-            {offer.title}
-          </h3>
-          {offer.description && (
-            <p className="text-white/85 text-xs md:text-sm drop-shadow font-medium line-clamp-1 mb-3">
-              {offer.description}
-            </p>
-          )}
-          {isClickable && (
-            <p className="text-white/90 text-xs md:text-sm mt-2 drop-shadow font-medium tracking-wide group-hover:text-white transition-colors">
-              Explore →
-            </p>
-          )}
+            {/* Discount badge */}
+            {discountValue > 0 && (
+              <span className="rounded-full bg-[#d4a017] px-3 py-1 text-[11px] font-bold
+                               text-[#1d120d] shadow-[0_2px_10px_rgba(212,160,23,0.45)]
+                               tracking-wide">
+                {discountValue}% OFF
+              </span>
+            )}
+          </div>
+
+          {/* ── Bottom content ── */}
+          <div className="absolute inset-x-0 bottom-0 z-20 p-4">
+
+            {/* Title */}
+            <h3 className="line-clamp-2 text-[17px] font-bold leading-[1.3] text-white
+                           drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+              {offer.title}
+            </h3>
+
+            {/* Description */}
+            {offer.description && (
+              <p className="mt-1.5 line-clamp-2 text-[12px] font-normal leading-relaxed
+                            text-white/75 drop-shadow-sm">
+                {offer.description}
+              </p>
+            )}
+
+            {/* CTA */}
+            {isClickable && (
+              <div className="mt-3 flex items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.24em]
+                                 text-[#e8a852] transition-all duration-200
+                                 group-hover:text-white group-hover:tracking-[0.30em]">
+                  Explore Offer
+                </span>
+                <span className="text-[#e8a852] transition-all duration-200
+                                 group-hover:text-white group-hover:translate-x-0.5
+                                 inline-block">
+                  →
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ── Edge glow on hover ── */}
+          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0
+                          ring-1 ring-inset ring-white/10
+                          transition-opacity duration-300 group-hover:opacity-100" />
         </div>
       </div>
-    </>
-  );
-
-  // If clickable, render as Link
-  if (isClickable) {
-    return (
-      <Link
-        to={navigationPath}
-        className="group relative block overflow-hidden rounded-3xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#e8a852] focus:ring-offset-2 w-full max-w-[340px] cursor-pointer hover:shadow-2xl hover:-translate-y-1"
-      >
-        {cardContent}
-      </Link>
-    );
-  }
-
-  // If not clickable, render as div
-  return (
-    <div
-      className="group relative overflow-hidden rounded-3xl transition-all duration-300 w-full max-w-[340px] opacity-60"
-    >
-      {cardContent}
     </div>
   );
 };

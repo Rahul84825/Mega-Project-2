@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
+import SectionContainer from "./home/SectionContainer";
 
-function CategoryCarousel({ setPage, setSelectedCategory, setSelectedProductId }) {
+function CategoryCarousel() {
   const { categories } = useProducts();
   const navigate = useNavigate();
 
@@ -20,30 +21,27 @@ function CategoryCarousel({ setPage, setSelectedCategory, setSelectedProductId }
   }
 
   const handleCategoryClick = (categorySlug) => {
-    setPage("category");
-    setSelectedCategory?.(categorySlug);
-    setSelectedProductId(null);
     navigate(`/products?category=${encodeURIComponent(categorySlug)}`);
   };
 
   return (
-    <section className="py-10 md:py-14 px-4 sm:px-6 lg:px-8 bg-[#fff3e0]">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8 md:mb-10">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#2d1b14] tracking-tight">
+    <section className="py-6 md:py-10 bg-[#fff3e0]">
+      <SectionContainer>
+        <div className="mb-4 md:mb-6 text-left">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#2d1b14] tracking-tight">
             Explore by Category
           </h2>
-          <p className="text-center text-[#6d4c41] mt-2 text-sm md:text-base font-medium">
+          <p className="mt-2 max-w-xl text-left text-[#6d4c41] text-sm md:text-base font-medium">
             Discover our collection organized by category
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 justify-items-center">
           {homepageCategories.map((category) => (
             <button
               key={category._id || category.id}
               onClick={() => handleCategoryClick(category.slug)}
-              className="group relative w-full max-w-[340px] aspect-[4/5] overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8883a] focus:ring-offset-2"
+              className="group relative w-full max-w-[300px] h-[250px] aspect-[4/5] overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8883a] focus:ring-offset-2"
             >
               {/* Background Image */}
               {category.image ? (
@@ -76,7 +74,7 @@ function CategoryCarousel({ setPage, setSelectedCategory, setSelectedProductId }
             </button>
           ))}
         </div>
-      </div>
+      </SectionContainer>
     </section>
   );
 }

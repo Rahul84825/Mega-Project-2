@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { calculateCartTotals } from "../utils/pricingUtils";
 import api, { getApiErrorMessage, getProducts } from "../services/api";
 
 let razorpayScriptPromise;
@@ -39,16 +41,20 @@ const loadRazorpayScript = () => {
   return razorpayScriptPromise;
 };
 
-function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
+function CheckoutPage({ setPaymentInfo, setProducts }) {
   const { cart, dispatch } = useCart();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" });
   const [step, setStep] = useState(1);
   const [processing, setProcessing] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("razorpay"); // 'razorpay' or 'cod'
   const isMountedRef = useRef(true);
-  const total = cart.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
+  
+  // Use centralized pricing utility
+  const { subtotal, deliveryFee, gst, total } = calculateCartTotals(cart);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -99,6 +105,127 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
     setStep(2);
   };
 
+  /**
+   * TEMPORARY COD FLOW: Direct order creation without Razorpay
+   * This is a fallback for development/testing purposes
+   */
+  const handleCODOrder = async () => {
+    if (!isAddressValid) {
+      setErrorMessage("Please complete all delivery details before continuing.");
+      return;
+    }
+
+    const stockError = validateCartStock();
+    if (stockError) {
+      setErrorMessage(stockError);
+      return;
+    }
+
+    setErrorMessage("");
+    setProcessing(true);
+
+    try {
+      const orderPayload = {
+        // Amount required by backend validator
+        amount: total,
+        currency: "INR",
+        
+        // Customer and delivery information
+        customer: {
+          name: form.name,
+          email: form.email,
+          phone: form.phone
+        },
+        shippingAddress: {
+          line1: form.address,
+          city: form.city,
+          state: form.state,
+          postalCode: form.pincode,
+          country: "IN"
+        },
+        
+        // Order items with snapshot data - MUST include variantId for backend validation
+        items: cart.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId || "",
+          variantLabel: item.variantLabel || "Default",
+          name: item.name,
+          price: Number(item.price) || 0,
+          quantity: item.quantity,
+          image: item.image
+        })),
+        
+        // Centralized pricing totals
+        totals: {
+          subtotal,
+          deliveryFee,
+          gst,
+          total,
+          currency: "INR"
+        },
+        
+        // Payment information
+        payment: {
+          method: "COD",
+          status: "PENDING"
+        },
+        paymentMethod: "COD",
+        paymentStatus: "PENDING"
+      };
+
+      // Debug logging - verify payload structure before sending
+      console.log("📦 COD Order Payload Structure:", {
+        hasAmount: !!orderPayload.amount,
+        amount: orderPayload.amount,
+        hasTotals: !!orderPayload.totals,
+        totals: orderPayload.totals,
+        hasCustomer: !!orderPayload.customer,
+        itemCount: orderPayload.items?.length || 0,
+        paymentMethod: orderPayload.payment?.method
+      });
+      console.log("📦 Full order payload:", orderPayload);
+
+      const { data: orderResponse } = await api.post("/api/orders", orderPayload);
+
+      if (!orderResponse?.success || !orderResponse?.order) {
+        throw new Error(orderResponse?.message || "Failed to create order");
+      }
+
+      console.log("✅ Order created successfully:", orderResponse.order);
+
+      // Refresh products and clear cart
+      if (typeof setProducts === "function") {
+        const refreshedProducts = await getProducts();
+        setProducts(Array.isArray(refreshedProducts) ? refreshedProducts : []);
+      }
+
+      dispatch({ type: "CLEAR" });
+      setPaymentInfo?.(orderResponse.order);
+
+      // Redirect to success page
+      navigate("/order-success", { state: { order: orderResponse.order } });
+    } catch (error) {
+      if (isMountedRef.current) {
+        const errorMsg = getApiErrorMessage(error, "Failed to place order");
+        const backendError = error?.response?.data;
+
+        console.error("❌ Order creation failed:", errorMsg);
+        console.error("Backend error details:", backendError);
+
+        if (backendError?.errors?.length > 0) {
+          const fieldErrors = backendError.errors.map((e) => `${e.field}: ${e.message}`).join("\n");
+          setErrorMessage(`Validation Error:\n${fieldErrors}`);
+        } else {
+          setErrorMessage(backendError?.message || errorMsg);
+        }
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setProcessing(false);
+      }
+    }
+  };
+
   const handlePayment = async () => {
     if (!scriptReady || !window.Razorpay) {
       setErrorMessage("Payment gateway is still loading. Please try again in a moment.");
@@ -114,7 +241,7 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
     setErrorMessage("");
     setProcessing(true);
     try {
-      const { data: createOrderResponse } = await api.post("/payment/create-order", {
+      const { data: createOrderResponse } = await api.post("/api/payment/create-order", {
         amount: total,
         currency: "INR",
         receipt: `receipt_${Date.now()}`
@@ -150,24 +277,57 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
         },
         handler: async (response) => {
           try {
+            console.log("💳 Razorpay payment successful, verifying...", {
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature?.substring(0, 16) + "..."
+            });
+
             const verificationPayload = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               orderData: {
-                customer: form,
-                items: cart,
+                customer: {
+                  name: form.name,
+                  email: form.email,
+                  phone: form.phone,
+                  address: form.address,
+                  city: form.city,
+                  state: form.state,
+                  pincode: form.pincode
+                },
+                items: cart.map((item) => ({
+                  productId: item.productId,
+                  variantId: item.variantId || "",
+                  variantLabel: item.variantLabel || "Default",
+                  name: item.name,
+                  price: Number(item.price) || 0,
+                  quantity: item.quantity,
+                  image: item.image
+                })),
                 amount: total,
                 currency: "INR",
                 status: "Pending"
               }
             };
 
-            const { data: verifyResponse } = await api.post("/payment/verify", verificationPayload);
+            console.log("📤 Sending verification payload to backend...");
+            const { data: verifyResponse } = await api.post("/api/payment/verify", verificationPayload);
+
+            console.log("📥 Verification response received:", {
+              success: verifyResponse?.success,
+              hasOrder: !!verifyResponse?.order,
+              message: verifyResponse?.message
+            });
 
             if (!verifyResponse?.success) {
-              throw new Error(verifyResponse?.message || "Payment verification failed");
+              const errorMsg = verifyResponse?.message || verifyResponse?.details || "Payment verification failed";
+              console.error("❌ Payment verification failed:", errorMsg);
+              throw new Error(errorMsg);
             }
+
+            console.log("✅ Payment verified, clearing cart and redirecting...");
 
             if (typeof setProducts === "function") {
               const refreshedProducts = await getProducts();
@@ -176,10 +336,27 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
 
             dispatch({ type: "CLEAR" });
             setPaymentInfo?.(verifyResponse.order);
-            setPage("order-success");
+            navigate("/order-success", { state: { order: verifyResponse.order } });
           } catch (verifyError) {
             if (isMountedRef.current) {
-              setErrorMessage(getApiErrorMessage(verifyError, "Payment verification failed."));
+              const errorMsg = getApiErrorMessage(verifyError, "Payment verification failed");
+              const backendError = verifyError?.response?.data;
+              
+              console.error("❌ PAYMENT VERIFICATION FAILED - DETAILED DEBUG INFO");
+              console.error("Status Code:", verifyError?.response?.status);
+              console.error("Backend Message:", backendError?.message);
+              console.error("Backend Errors Array:", backendError?.errors);
+              console.error("Full Backend Response:", backendError);
+              console.error("Axios Error Message:", verifyError?.message);
+              console.error("Full Error Object:", verifyError);
+              
+              // Show backend error with details if available
+              if (backendError?.errors?.length > 0) {
+                const fieldErrors = backendError.errors.map(e => `${e.field}: ${e.message}`).join("\n");
+                setErrorMessage(`Validation Error:\n${fieldErrors}`);
+              } else {
+                setErrorMessage(backendError?.message || errorMsg);
+              }
             }
           } finally {
             if (isMountedRef.current) {
@@ -228,7 +405,7 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
           <div className="flex items-center gap-4 md:gap-6">
             {["Address", "Review & Pay"].map((label, i) => (
               <div key={label} className="flex items-center">
-                <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-all ${
+                <div className={`w-8 sm:w-9 md:w-10 h-8 sm:h-9 md:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm md:text-base transition-all ${
                   step > i + 1 ? 'bg-green-600 text-white'
                   : step === i + 1 ? 'bg-[var(--burgundy)] text-white'
                   : 'bg-[#e8d4b4] text-[var(--muted)]'
@@ -347,37 +524,98 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
                   ))}
                 </div>
 
-                {/* Payment Button */}
-                <button
-                  className="w-full py-3 md:py-4 rounded-lg bg-[var(--burgundy)] hover:bg-[#8B1E3F] text-white font-bold text-sm md:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  onClick={handlePayment}
-                  disabled={processing || !scriptReady}
-                >
-                  {processing ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>{scriptReady ? `💳 Pay ₹${total} via Razorpay` : scriptLoading ? "Loading Razorpay..." : "Payment Gateway Unavailable"}</>
-                  )}
-                </button>
+                {/* Payment Method Selection */}
+                <div className="mb-6 md:mb-8 p-4 md:p-6 border-2 border-[#e8d4b4] rounded-lg">
+                  <h3 className="text-sm md:text-base font-bold text-[var(--charcoal)] mb-4">
+                    Choose Payment Method
+                  </h3>
 
-                {/* Error Message */}
-                {errorMessage && (
-                  <div className="mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-                    {errorMessage}
+                  <div className="space-y-3">
+                    {/* COD Option */}
+                    <label className="flex items-center p-3 md:p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-[var(--saffron)]" style={{borderColor: paymentMethod === "cod" ? "var(--saffron)" : "#e8d4b4", backgroundColor: paymentMethod === "cod" ? "rgba(255,160,0,0.05)" : "transparent"}}>
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="cod"
+                        checked={paymentMethod === "cod"}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="w-4 h-4 accent-[var(--burgundy)]"
+                      />
+                      <span className="ml-3">
+                        <div className="font-bold text-[var(--charcoal)]">Cash on Delivery (COD)</div>
+                        <div className="text-xs md:text-sm text-[var(--muted)]">Pay when your order arrives</div>
+                      </span>
+                    </label>
+
+                    {/* Razorpay Option */}
+                    <label className="flex items-center p-3 md:p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-[var(--saffron)]" style={{borderColor: paymentMethod === "razorpay" ? "var(--saffron)" : "#e8d4b4", backgroundColor: paymentMethod === "razorpay" ? "rgba(255,160,0,0.05)" : "transparent"}}>
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="razorpay"
+                        checked={paymentMethod === "razorpay"}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="w-4 h-4 accent-[var(--burgundy)]"
+                      />
+                      <span className="ml-3">
+                        <div className="font-bold text-[var(--charcoal)]">💳 Pay Online (Razorpay)</div>
+                        <div className="text-xs md:text-sm text-[var(--muted)]">Credit card, Debit card, UPI, Wallet</div>
+                      </span>
+                    </label>
                   </div>
-                )}
+                </div>
 
-                {/* Back Button */}
-                <button
-                  className="w-full mt-3 py-3 rounded-lg border-2 border-[#e8d4b4] bg-white text-[var(--charcoal)] font-bold text-sm md:text-base hover:bg-[#f5e6d3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={processing}
-                  onClick={() => setStep(1)}
-                >
-                  ← Back to Address
-                </button>
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  {paymentMethod === "cod" ? (
+                    <button
+                      className="w-full py-3 md:py-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-sm md:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      onClick={handleCODOrder}
+                      disabled={processing}
+                    >
+                      {processing ? (
+                        <>
+                          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Placing Order...
+                        </>
+                      ) : (
+                        <>✓ Place Order (₹{total.toFixed(2)} COD)</>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full py-3 md:py-4 rounded-lg bg-[var(--burgundy)] hover:bg-[#8B1E3F] text-white font-bold text-sm md:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      onClick={handlePayment}
+                      disabled={processing || !scriptReady}
+                    >
+                      {processing ? (
+                        <>
+                          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>{scriptReady ? `💳 Pay ₹${total.toFixed(2)} via Razorpay` : scriptLoading ? "Loading Razorpay..." : "Payment Gateway Unavailable"}</>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Error Message */}
+                  {errorMessage && (
+                    <div className="mt-4 p-4 rounded-lg bg-red-50 border-2 border-red-400 text-red-800 text-sm shadow-sm">
+                      <div className="font-bold mb-2">❌ Error</div>
+                      <div className="whitespace-pre-wrap break-words">{errorMessage}</div>
+                    </div>
+                  )}
+
+                  {/* Back Button */}
+                  <button
+                    className="w-full py-3 rounded-lg border-2 border-[#e8d4b4] bg-white text-[var(--charcoal)] font-bold text-sm md:text-base hover:bg-[#f5e6d3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={processing}
+                    onClick={() => setStep(1)}
+                  >
+                    ← Back to Address
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -406,10 +644,26 @@ function CheckoutPage({ setPage, setPaymentInfo, setProducts }) {
                 ))}
               </div>
 
+              {/* Pricing Breakdown */}
+              <div className="space-y-3 mb-6 pb-6 border-b border-white/20 text-sm">
+                <div className="flex justify-between text-white/70">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-white/70">
+                  <span>Delivery</span>
+                  <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}</span>
+                </div>
+                <div className="flex justify-between text-white/70">
+                  <span>GST (5%)</span>
+                  <span>₹{gst.toFixed(2)}</span>
+                </div>
+              </div>
+
               {/* Total */}
               <div className="flex justify-between items-center">
                 <span className="serif text-lg md:text-xl font-bold">Total</span>
-                <span className="serif text-2xl md:text-3xl font-black text-[var(--saffron)]">₹{total}</span>
+                <span className="serif text-2xl md:text-3xl font-black text-[var(--saffron)]">₹{total.toFixed(2)}</span>
               </div>
             </div>
           </div>

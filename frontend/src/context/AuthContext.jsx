@@ -1,8 +1,15 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setApiAuthToken } from "../services/api";
-import { AUTH_STORAGE_KEY, SESSION_EXPIRED_EVENT, clearStoredAuth, storeAuth } from "../utils/authSession";
-import { toast } from "../utils/toast";
+import {
+  AUTH_STORAGE_KEY,
+  SESSION_EXPIRED_EVENT,
+  clearStoredAuth,
+  getStoredAuth,
+  isTokenExpired,
+  storeAuth
+} from "../services/utils/authSession";
+import { toast } from "../services/utils/toast";
 
 const AuthContext = createContext(null);
 
@@ -18,39 +25,30 @@ const normalizeUser = (user) => {
 };
 
 const loadInitialAuth = () => {
-  try {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!stored) {
-      const legacyToken = localStorage.getItem("token");
-      const legacyUser = localStorage.getItem("user");
+  const { user, token } = getStoredAuth();
 
-      if (!legacyToken || !legacyUser) {
-        return { user: null, token: null };
-      }
-
-      return {
-        user: normalizeUser(JSON.parse(legacyUser)),
-        token: legacyToken
-      };
-    }
-
-    const parsed = JSON.parse(stored);
-    return {
-      user: normalizeUser(parsed?.user || null),
-      token: parsed?.token || null
-    };
-  } catch (_error) {
-    return { user: null, token: null };
-  }
+  return {
+    user: normalizeUser(user),
+    token: token || null
+  };
 };
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
-  const initialAuth = loadInitialAuth();
+  const initialAuth = useMemo(() => loadInitialAuth(), []);
   const [user, setUser] = useState(initialAuth.user);
   const [token, setToken] = useState(initialAuth.token);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    setAuthReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     setApiAuthToken(token);
 
     try {
@@ -62,7 +60,7 @@ export function AuthProvider({ children }) {
     } catch (_error) {
       // Ignore storage errors in constrained environments.
     }
-  }, [token, user]);
+  }, [authReady, token, user]);
 
   useEffect(() => {
     const handleStorage = (event) => {
@@ -72,8 +70,16 @@ export function AuthProvider({ children }) {
 
       try {
         const nextAuth = event.newValue ? JSON.parse(event.newValue) : null;
+        const nextToken = nextAuth?.token || null;
+
+        if (nextToken && isTokenExpired(nextToken)) {
+          setUser(null);
+          setToken(null);
+          return;
+        }
+
         setUser(normalizeUser(nextAuth?.user || null));
-        setToken(nextAuth?.token || null);
+        setToken(nextToken);
       } catch (_error) {
         setUser(null);
         setToken(null);
@@ -90,6 +96,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setToken(null);
       setApiAuthToken(null);
+      clearStoredAuth();
       toast.error(message);
       navigate("/login", { replace: true, state: { message } });
     };
@@ -98,31 +105,60 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
   }, [navigate]);
 
-  const login = (nextUser, nextToken) => {
-    setUser(normalizeUser(nextUser || null));
-    setToken(nextToken || null);
-  };
+  const login = useCallback((nextUser, nextToken) => {
+    const normalizedToken = nextToken || null;
 
-  const logout = () => {
+    if (!normalizedToken || isTokenExpired(normalizedToken)) {
+      setUser(null);
+      setToken(null);
+      clearStoredAuth();
+      setApiAuthToken(null);
+      return false;
+    }
+
+    setUser(normalizeUser(nextUser || null));
+    setToken(normalizedToken);
+    setApiAuthToken(normalizedToken);
+    return true;
+  }, []);
+
+  const logout = useCallback(({ redirectToLogin = false, reason } = {}) => {
     setUser(null);
     setToken(null);
     setApiAuthToken(null);
     clearStoredAuth();
-  };
+
+    if (reason) {
+      toast.info(reason);
+    }
+
+    if (redirectToLogin) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   const value = useMemo(
     () => ({
       user,
       token,
-      isAuthenticated: Boolean(user && token),
+      isAuthenticated: authReady && Boolean(user && token),
       isAdmin: user?.isAdmin === true,
+      authReady,
       login,
       logout
     }),
-    [user, token]
+    [authReady, login, logout, token, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+
+  return context;
+};

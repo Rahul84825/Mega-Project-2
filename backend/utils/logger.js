@@ -23,3 +23,17 @@ export const logger = {
     console.error(`[ERROR] ${timestamp()} ${message}${serializeMeta(meta)}`);
   }
 };
+
+// Backwards-compatible debug logger. Use console.debug when available; fall back to console.log.
+logger.debug = (message, meta) => {
+  if (process.env.NODE_ENV === "production") {
+    // In production, keep debug no-op to avoid verbose logs unless explicitly enabled
+    return;
+  }
+
+  if (typeof console.debug === "function") {
+    console.debug(`[DEBUG] ${timestamp()} ${message}${serializeMeta(meta)}`);
+  } else {
+    console.log(`[DEBUG] ${timestamp()} ${message}${serializeMeta(meta)}`);
+  }
+};

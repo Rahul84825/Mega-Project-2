@@ -4,6 +4,7 @@ import Category from "../models/Category.js";
 import mongoose from "mongoose";
 import { configureCloudinary } from "../config/cloudinary.js";
 import { Readable } from "node:stream";
+import { getIo } from "../socket.js";
 
 const isInvalidObjectIdError = (error) => error instanceof mongoose.Error.CastError && error.path === "_id";
 
@@ -133,13 +134,42 @@ const uploadBufferToCloudinary = (buffer, folder = "mithai-world/products") => {
   });
 };
 
-export const getProducts = async (_req, res, next) => {
+export const getProducts = async (req, res, next) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    // PAGINATION: Extract limit and page from query parameters
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100); // Max 100 items per request
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const skip = (page - 1) * limit;
+
+    // OPTIMIZATION: Use lean() to exclude unnecessary fields for list view
+    const products = await Product.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean()
+      .exec();
+
+    // Get total count for pagination metadata (cached separately)
+    const totalCount = await Product.countDocuments();
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     return res.status(200).json({
       success: true,
-      products: products.map(normalizeProductForResponse)
+      products: products.map(normalizeProductForResponse),
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
     });
   } catch (error) {
     return next(error);
@@ -275,6 +305,12 @@ export const createProduct = async (req, res, next) => {
       name: product.name
     });
 
+    // ✅ Emit socket event for real-time UI update
+    const io = getIo();
+    if (io) {
+      io.emit("product:created", normalizeProductForResponse(product));
+    }
+
     return res.status(201).json({
       success: true,
       product: normalizeProductForResponse(product)
@@ -299,6 +335,12 @@ export const deleteProduct = async (req, res, next) => {
     logger.info("Product deleted", {
       productId: id
     });
+
+    // ✅ Emit socket event for real-time UI update
+    const io = getIo();
+    if (io) {
+      io.emit("product:deleted", id);
+    }
 
     return res.status(200).json({
       success: true,
@@ -421,6 +463,12 @@ export const updateProduct = async (req, res, next) => {
     logger.info("Product updated", {
       productId: id
     });
+
+    // ✅ Emit socket event for real-time UI update
+    const io = getIo();
+    if (io) {
+      io.emit("product:updated", normalizeProductForResponse(updatedProduct));
+    }
 
     return res.status(200).json({
       success: true,

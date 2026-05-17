@@ -4,7 +4,7 @@ import SimilarProducts from "../components/SimilarProducts";
 import { getProductById } from "../services/api";
 import { useCart } from "../context/CartContext";
 import { useProducts } from "../context/ProductContext";
-import { getDefaultVariant, getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
+import { getDefaultVariant, getDisplayPrice, sortVariantsByLabel } from "@/services/utils/price";
 
 const toSlug = (value) =>
   String(value || "")

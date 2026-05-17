@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "./ProductCard";
+import SectionContainer from "./home/SectionContainer";
 
-const RecentlyViewed = ({ setPage, setSelectedProductId }) => {
+const RecentlyViewed = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
 
@@ -18,19 +19,18 @@ const RecentlyViewed = ({ setPage, setSelectedProductId }) => {
   if (items.length === 0) return null;
 
   return (
-    <section className="py-10 md:py-14 bg-[var(--cream)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Centered Section Header */}
-        <div className="text-center mb-8 md:mb-10">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--charcoal)] mb-2">
+    <section className="py-6 md:py-10 bg-[var(--cream)]">
+      <SectionContainer>
+        <div className="mb-4 md:mb-6 text-left">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[var(--charcoal)] mb-2">
             Recently Viewed
           </h2>
-          <p className="text-sm md:text-base text-[var(--muted)] font-medium">
+          <p className="text-sm md:text-base text-[var(--muted)] font-medium max-w-lg">
             {items.length} items you've browsed
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-center">
           {items.map((item) => (
             <ProductCard
               key={item._id || item.id}
@@ -38,14 +38,12 @@ const RecentlyViewed = ({ setPage, setSelectedProductId }) => {
               onClick={() => {
                 const id = item._id || item.id;
                 if (!id) return;
-                setSelectedProductId?.(id);
-                setPage?.("product");
                 navigate(`/product/${id}`);
               }}
             />
           ))}
         </div>
-      </div>
+      </SectionContainer>
     </section>
   );
 };

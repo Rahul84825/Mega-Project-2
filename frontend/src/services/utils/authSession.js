@@ -5,23 +5,89 @@ export const SESSION_EXPIRED_EVENT = "mithai-world:session-expired";
 
 let sessionExpiredNotified = false;
 
-export const getStoredToken = () => {
+const base64UrlDecode = (input) => {
+  if (!input) {
+    return "";
+  }
+
+  const normalized = String(input).replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+
   try {
-    const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
-    if (legacyToken) {
-      return legacyToken;
+    if (typeof atob === "function") {
+      return atob(padded);
     }
+  } catch (_error) {
+    // Fall through to Buffer for non-browser or constrained environments.
+  }
 
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!stored) {
-      return "";
-    }
-
-    const parsed = JSON.parse(stored);
-    return parsed?.token || "";
+  try {
+    return Buffer.from(padded, "base64").toString("utf8");
   } catch (_error) {
     return "";
   }
+};
+
+export const decodeJwtPayload = (token) => {
+  const segments = String(token || "").split(".");
+
+  if (segments.length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = base64UrlDecode(segments[1]);
+    return payload ? JSON.parse(payload) : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+export const isTokenExpired = (token) => {
+  const payload = decodeJwtPayload(token);
+
+  if (!payload?.exp) {
+    return false;
+  }
+
+  return Date.now() >= payload.exp * 1000;
+};
+
+export const getStoredAuth = () => {
+  try {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!stored) {
+      const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+      const legacyUser = localStorage.getItem(LEGACY_USER_KEY);
+
+      if (!legacyToken || !legacyUser || isTokenExpired(legacyToken)) {
+        return { user: null, token: null };
+      }
+
+      return {
+        user: JSON.parse(legacyUser),
+        token: legacyToken
+      };
+    }
+
+    const parsed = JSON.parse(stored);
+    const token = parsed?.token || null;
+
+    if (!token || isTokenExpired(token)) {
+      return { user: null, token: null };
+    }
+
+    return {
+      user: parsed?.user || null,
+      token
+    };
+  } catch (_error) {
+    return { user: null, token: null };
+  }
+};
+
+export const getStoredToken = () => {
+  return getStoredAuth().token || "";
 };
 
 export const clearStoredAuth = () => {

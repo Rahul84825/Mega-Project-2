@@ -1,17 +1,20 @@
 import axios from "axios";
-import { getStoredToken, notifySessionExpired } from "../utils/authSession";
+import { getStoredToken, notifySessionExpired } from "./utils/authSession";
 
-const API = import.meta.env.VITE_API_URL;
-const API_ROOT = (API || "http://localhost:5000").replace(/\/+$/, "").replace(/\/api$/i, "");
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, "").replace(/\/api$/i, "");
+const DEFAULT_TIMEOUT = 15000;
 
 const api = axios.create({
-  baseURL: `${API_ROOT}/api`
+  baseURL: API_ROOT,
+  timeout: DEFAULT_TIMEOUT,
+  withCredentials: true
 });
 
-const isAuthEndpoint = (url = "") => String(url).includes("/auth/");
+const isAuthEndpoint = (url = "") => String(url).includes("/api/auth/");
 
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
+
   if (token) {
     config.headers = config.headers || {};
     if (!config.headers.Authorization) {
@@ -22,21 +25,33 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let sessionWarningShown = false;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
     const requestUrl = error?.config?.url || "";
 
-    if (status === 401 && !isAuthEndpoint(requestUrl)) {
+    if (status === 401 && !isAuthEndpoint(requestUrl) && !sessionWarningShown) {
+      sessionWarningShown = true;
       notifySessionExpired("Session expired, please login again");
+    }
+
+    if (status !== 401) {
+      sessionWarningShown = false;
     }
 
     return Promise.reject(error);
   }
 );
 
-const authUrl = (path) => `${API_ROOT}/api/auth${path}`;
+const withTimeout = (config = {}, timeout = DEFAULT_TIMEOUT) => ({
+  timeout,
+  ...config
+});
+
+const authUrl = (path) => `/api/auth${path}`;
 
 export const setApiAuthToken = (token) => {
   if (token) {
@@ -47,146 +62,145 @@ export const setApiAuthToken = (token) => {
   delete api.defaults.headers.common.Authorization;
 };
 
+export const createAbortController = () => new AbortController();
+
 export const getApiErrorMessage = (error, fallback = "Something went wrong. Please try again.") => {
-  return (
-    error?.response?.data?.message ||
-    error?.message ||
-    fallback
-  );
+  if (axios.isCancel(error)) {
+    return "Request canceled";
+  }
+
+  return error?.response?.data?.message || error?.message || fallback;
 };
 
-export const getProducts = async () => {
-  const { data } = await api.get("/products");
-  return data?.products || data || [];
+export const getProducts = async (page = 1, limit = 20, config = {}) => {
+  const { data } = await api.get("/api/products", withTimeout({
+    params: { page: Math.max(1, page), limit: Math.min(Math.max(1, limit), 100) },
+    ...config
+  }));
+
+  return {
+    products: data?.products || [],
+    pagination: data?.pagination || {}
+  };
 };
 
-export const getCategories = async () => {
-  const { data } = await api.get("/categories");
+export const getCategories = async (config = {}) => {
+  const { data } = await api.get("/api/categories", withTimeout(config));
   return data?.categories || data || [];
 };
 
-export const createCategory = async (payload) => {
-  const { data } = await api.post("/categories", payload);
+export const createCategory = async (payload, config = {}) => {
+  const { data } = await api.post("/api/categories", payload, withTimeout(config));
   return data?.category || data || null;
 };
 
-export const createCategoryWithImage = async (name, imageFile, showInNavbar = false, showInHomepage = false, is_active = true) => {
+export const createCategoryWithImage = async (name, imageFile, showInNavbar = false, showInHomepage = false, is_active = true, config = {}) => {
   const formData = new FormData();
   formData.append("name", name);
   formData.append("is_active", is_active);
   formData.append("showInNavbar", showInNavbar);
   formData.append("showInHomepage", showInHomepage);
-  if (imageFile) {
-    formData.append("image", imageFile);
-  }
+  if (imageFile) formData.append("image", imageFile);
 
-  const { data } = await api.post("/categories", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data"
-    }
-  });
+  const { data } = await api.post("/api/categories", formData, withTimeout({
+    headers: { "Content-Type": "multipart/form-data" },
+    ...config
+  }));
   return data?.category || data || null;
 };
 
-export const updateCategory = async (slug, payload) => {
-  const { data } = await api.put(`/categories/${slug}`, payload);
+export const updateCategory = async (slug, payload, config = {}) => {
+  const { data } = await api.put(`/api/categories/${slug}`, payload, withTimeout(config));
   return data?.category || data || null;
 };
 
-export const updateCategoryWithImage = async (id, name, imageFile, showInNavbar = false, showInHomepage = false, is_active = true) => {
+export const updateCategoryWithImage = async (id, name, imageFile, showInNavbar = false, showInHomepage = false, is_active = true, config = {}) => {
   const formData = new FormData();
-  if (name !== undefined) {
-    formData.append("name", name);
-  }
-  if (is_active !== undefined) {
-    formData.append("is_active", is_active);
-  }
+  if (name !== undefined) formData.append("name", name);
+  if (is_active !== undefined) formData.append("is_active", is_active);
   formData.append("showInNavbar", showInNavbar);
   formData.append("showInHomepage", showInHomepage);
-  if (imageFile) {
-    formData.append("image", imageFile);
-  }
+  if (imageFile) formData.append("image", imageFile);
 
-  const { data } = await api.put(`/categories/${id}`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data"
-    }
-  });
+  const { data } = await api.put(`/api/categories/${id}`, formData, withTimeout({
+    headers: { "Content-Type": "multipart/form-data" },
+    ...config
+  }));
   return data?.category || data || null;
 };
 
-export const deleteCategory = async (slug) => {
-  const { data } = await api.delete(`/categories/${slug}`);
+export const deleteCategory = async (slug, config = {}) => {
+  const { data } = await api.delete(`/api/categories/${slug}`, withTimeout(config));
   return data;
 };
 
-export const getHeroSlides = async () => {
-  const { data } = await api.get("/hero-slides");
+export const getHeroSlides = async (config = {}) => {
+  const { data } = await api.get("/api/hero-slides", withTimeout(config));
   return data?.slides || data || [];
 };
 
-export const getHeroSlidesAdmin = async () => {
-  const { data } = await api.get("/hero-slides/admin");
+export const getHeroSlidesAdmin = async (config = {}) => {
+  const { data } = await api.get("/api/hero-slides/admin", withTimeout(config));
   return data?.slides || data || [];
 };
 
-export const createHeroSlide = async (payload) => {
-  const { data } = await api.post("/hero-slides", payload);
+export const createHeroSlide = async (payload, config = {}) => {
+  const { data } = await api.post("/api/hero-slides", payload, withTimeout(config));
   return data?.slide || data || null;
 };
 
-export const updateHeroSlide = async (id, payload) => {
-  const { data } = await api.patch(`/hero-slides/${id}`, payload);
+export const updateHeroSlide = async (id, payload, config = {}) => {
+  const { data } = await api.patch(`/api/hero-slides/${id}`, payload, withTimeout(config));
   return data?.slide || data || null;
 };
 
-export const deleteHeroSlide = async (id) => {
-  const { data } = await api.delete(`/hero-slides/${id}`);
+export const deleteHeroSlide = async (id, config = {}) => {
+  const { data } = await api.delete(`/api/hero-slides/${id}`, withTimeout(config));
   return data;
 };
 
-export const loginUser = async (payload) => {
-  const { data } = await api.post(authUrl("/login"), payload);
+export const loginUser = async (payload, config = {}) => {
+  const { data } = await api.post(authUrl("/login"), payload, withTimeout(config));
   return data;
 };
 
-export const registerUser = async (payload) => {
-  const { data } = await api.post(authUrl("/register"), payload);
+export const registerUser = async (payload, config = {}) => {
+  const { data } = await api.post(authUrl("/register"), payload, withTimeout(config));
   return data;
 };
 
-export const loginWithGoogle = async (payload) => {
-  const { data } = await api.post(authUrl("/google"), payload);
+export const loginWithGoogle = async (payload, config = {}) => {
+  const { data } = await api.post(authUrl("/google"), payload, withTimeout(config));
   return data;
 };
 
-export const getProductById = async (id) => {
-  const { data } = await api.get(`/products/${id}`);
+export const getProductById = async (id, config = {}) => {
+  const { data } = await api.get(`/api/products/${id}`, withTimeout(config));
   return data?.product || data || null;
 };
 
-export const createOrder = async (payload) => {
-  const { data } = await api.post("/orders", payload);
+export const createOrder = async (payload, config = {}) => {
+  const { data } = await api.post("/api/orders", payload, withTimeout(config));
   return data;
 };
 
-export const getOrders = async () => {
-  const { data } = await api.get("/orders");
+export const getOrders = async (config = {}) => {
+  const { data } = await api.get("/api/orders", withTimeout(config));
   return data?.orders || data || [];
 };
 
-export const updateDeliveryStatus = async (payload) => {
-  const { data } = await api.patch("/orders/delivery-status", payload);
+export const updateDeliveryStatus = async (payload, config = {}) => {
+  const { data } = await api.patch("/api/orders/delivery-status", payload, withTimeout(config));
   return data;
 };
 
-export const verifyDeliveryOTP = async (payload) => {
-  const { data } = await api.post("/orders/verify-delivery", payload);
+export const verifyDeliveryOTP = async (payload, config = {}) => {
+  const { data } = await api.post("/api/orders/verify-delivery", payload, withTimeout(config));
   return data;
 };
 
-export const resendDeliveryOTP = async (payload) => {
-  const { data } = await api.post("/orders/resend-otp", payload);
+export const resendDeliveryOTP = async (payload, config = {}) => {
+  const { data } = await api.post("/api/orders/resend-otp", payload, withTimeout(config));
   return data;
 };
 

@@ -1,6 +1,6 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { formatPrice } from "../utils/priceCalculator";
+import { formatPrice } from "../services/utils/priceCalculator";
 
 function CartItem({ item }) {
   const { dispatch } = useCart();

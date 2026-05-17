@@ -11,9 +11,14 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/**
+ * Automatically exclude password and googleId from toJSON/toObject conversions
+ * Prevents accidental exposure of sensitive fields in API responses
+ */
 userSchema.set("toJSON", {
   transform: (_doc, ret) => {
     delete ret.password;
+    delete ret.googleId;
     return ret;
   }
 });
@@ -24,6 +29,20 @@ userSchema.set("toObject", {
     return ret;
   }
 });
+
+/**
+ * PERFORMANCE OPTIMIZATION: Database Indexes
+ * Speeds up common email/ID lookups and admin queries
+ */
+
+// Note: `email` is already defined with `unique: true` on the field.
+// Avoid duplicate index definitions to prevent Mongoose warnings.
+
+// Index for admin user queries (dashboard statistics)
+userSchema.index({ isAdmin: 1 });
+
+// Compound index for admin creation date (get recent admins)
+userSchema.index({ isAdmin: 1, createdAt: -1 });
 
 const User = mongoose.model("User", userSchema);
 

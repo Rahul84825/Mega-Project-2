@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { PlusCircle, Pencil, Trash2, X, Save, AlertCircle, ToggleLeft, ToggleRight, Upload } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
-import toast from "../utils/toast";
+import toast from "../services/utils/toast";
 
 const EMPTY_FORM = { name: "", is_active: true, showInNavbar: false, showInHomepage: false, type: "other", image: null, order: 0 };
 

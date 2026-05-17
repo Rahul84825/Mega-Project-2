@@ -3,14 +3,15 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import app from "./app.js";
 import { initializeSocket } from "./socket.js";
+import dns from "dns";
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
-
-// Fallback URI using direct hosts (non-SRV) for DNS resolver stability
-const MONGODB_URI_FALLBACK = "mongodb://activegamer789_db_user:Ci8H1Si9R4kSLHvG@ac-uobfb3v-shard-00-00.b2fiqdd.mongodb.net:27017,ac-uobfb3v-shard-00-01.b2fiqdd.mongodb.net:27017,ac-uobfb3v-shard-00-02.b2fiqdd.mongodb.net:27017/?ssl=true&replicaSet=atlas-tuwzmv-shard-0&authSource=admin&appName=Mithai-world";
+const MONGODB_URI_FALLBACK = (process.env.MONGODB_URI_FALLBACK || "").trim();
 // Create the Node HTTP server from the configured Express app.
 const server = http.createServer(app);
 
@@ -27,32 +28,29 @@ server.on("error", (error) => {
 initializeSocket(server);
 
 const connectDB = async () => {
-  // Try primary URI first, fallback to direct URI if SRV fails
-  const urisToTry = [
-    MONGODB_URI,
-    MONGODB_URI_FALLBACK
-  ].filter(Boolean);
+  const candidates = [MONGODB_URI, MONGODB_URI_FALLBACK].filter(Boolean);
 
-  if (urisToTry.length === 0) {
+  if (candidates.length === 0) {
     throw new Error("No MongoDB URIs available");
   }
 
   let lastError;
-  for (const uri of urisToTry) {
+
+  for (const [index, uri] of candidates.entries()) {
     try {
-      console.log("Attempting MongoDB connection...");
+      const isFallback = index > 0;
+      console.log(`Attempting MongoDB connection${isFallback ? " (fallback)" : ""}...`);
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 5000
       });
-      console.log("✅ MongoDB connected successfully");
+      console.log(`✅ MongoDB connected successfully${isFallback ? " using fallback URI" : ""}`);
       return true;
     } catch (error) {
       lastError = error;
-      console.error("❌ Connection attempt failed:", error.message);
+      console.error(`❌ Connection attempt ${index + 1} failed:`, error.message);
     }
   }
 
-  console.error("❌ All MongoDB connection attempts failed");
   throw lastError;
 };
 

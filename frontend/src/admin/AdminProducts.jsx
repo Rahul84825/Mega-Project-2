@@ -8,7 +8,7 @@ import {
   Package,
 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
-import { calculateFinalPriceWithGST, formatPrice } from "../utils/priceCalculator";
+import { calculateFinalPriceWithGST, formatPrice } from "../services/utils/priceCalculator";
 
 const AdminProducts = () => {
   const { products, categories, deleteProduct } = useProducts();
@@ -114,7 +114,7 @@ const AdminProducts = () => {
         <select
           value={filterCat}
           onChange={(e) => setFilterCat(e.target.value)}
-          className="px-4 py-2.5 text-[13px] font-medium bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/20 text-black min-w-[200px] shadow-sm transition-all cursor-pointer"
+          className="w-full sm:w-auto px-4 py-2.5 text-[13px] font-medium bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/20 text-black sm:min-w-[200px] shadow-sm transition-all cursor-pointer"
         >
           <option value="all">All Categories</option>
           {(categories || []).map((c) => (
@@ -170,7 +170,7 @@ const AdminProducts = () => {
                             )}
                           </div>
                           <div>
-                            <p className="text-[14px] font-bold text-black max-w-[220px] truncate" title={product.name}>{product.name}</p>
+                            <p className="text-[14px] font-bold text-black max-w-xs sm:max-w-[220px] truncate" title={product.name}>{product.name}</p>
                             <p className="text-[12px] text-gray-400 font-medium">{(product.images || []).length} image(s)</p>
                           </div>
                         </div>

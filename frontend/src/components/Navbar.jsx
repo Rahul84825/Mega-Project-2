@@ -11,7 +11,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
-import { slugify } from "../utils/category";
+import { slugify } from "../services/utils/category";
 import brandLogo from "../assets/image.png";
 
 const toSlug = slugify;
@@ -41,7 +41,7 @@ function IBtn({ label, onClick, badge, children }) {
 /* ═══════════════════════════════════════════════════════
    NAVBAR
 ═══════════════════════════════════════════════════════ */
-function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
+function Navbar({ page, selectedCategory = "all" }) {
   const { cart, toggleCart } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const { categories: allCategories } = useProducts();
@@ -86,8 +86,6 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
   const closeAll = () => { setMobileOpen(false); };
 
   const handleLogoClick = () => {
-    setPage("home");
-    setCategory?.("all");
     setDropOpen(false);
     setSearchOpen(false);
     setProfileOpen(false);
@@ -101,18 +99,12 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
       handleLogoClick();
       return;
     } else if (normalizedSlug === "all") {
-      setPage("all");
-      setCategory?.("all");
       navigate("/products");
     } else if (normalizedSlug === "sweets") {
       if (!sweetsCategories.length) return;
       const defaultSweets = sweetsCategories[0];
-      setPage("category");
-      setCategory?.(defaultSweets.slug);
       navigate(`/products?category=${encodeURIComponent(defaultSweets.slug)}`);
     } else {
-      setPage("category");
-      setCategory?.(normalizedSlug);
       navigate(`/products?category=${encodeURIComponent(normalizedSlug)}`);
     }
     closeAll();
@@ -121,8 +113,6 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
 
   const cat = (slug) => {
     const normalizedSlug = toSlug(slug);
-    setPage("category");
-    setCategory?.(normalizedSlug);
     navigate(`/products?category=${encodeURIComponent(normalizedSlug)}`);
     closeAll();
     setDropOpen(false);
@@ -139,7 +129,6 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
 
   const handleLogout = () => {
     logout();
-    setPage("home");
     setProfileOpen(false);
     navigate("/login");
   };
@@ -200,7 +189,7 @@ function Navbar({ page, selectedCategory = "all", setPage, setCategory }) {
                 onMouseEnter={() => setDropOpen(true)}
                 onMouseLeave={() => setDropOpen(false)}
               >
-                <button type="button" onClick={() => go("sweets")} className={navLinkClass("sweets")}>
+                <button type="button" className={navLinkClass("sweets")}>
                   SWEETS
                   <ChevronDown
                     size={11}

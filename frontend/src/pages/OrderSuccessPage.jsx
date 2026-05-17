@@ -1,5 +1,11 @@
-function OrderSuccessPage({ setPage, paymentInfo }) {
-  const orderId = paymentInfo?.razorpayOrderId || paymentInfo?.razorpay_order_id || paymentInfo?.orderId || paymentInfo?._id;
+import { useLocation, useNavigate } from "react-router-dom";
+
+function OrderSuccessPage({ paymentInfo }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const stateOrder = location?.state?.order;
+  const order = stateOrder || paymentInfo;
+  const orderId = order?.razorpayOrderId || order?.razorpay_order_id || order?.orderId || order?._id;
   const itemCount = Array.isArray(paymentInfo?.items)
     ? paymentInfo.items.reduce((sum, item) => sum + (item?.quantity || item?.qty || 1), 0)
     : 0;
@@ -25,10 +31,10 @@ function OrderSuccessPage({ setPage, paymentInfo }) {
         </div>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button className="btn-primary" onClick={() => setPage("payment-success")} style={{ padding: "14px 24px" }}>
+          <button className="btn-primary" onClick={() => navigate("/payment-success", { state: { order } })} style={{ padding: "14px 24px" }}>
             View Payment & Delivery
           </button>
-          <button className="btn-outline" onClick={() => setPage("home")} style={{ padding: "14px 24px" }}>
+          <button className="btn-outline" onClick={() => navigate("/")} style={{ padding: "14px 24px" }}>
             Continue Shopping
           </button>
         </div>

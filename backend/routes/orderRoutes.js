@@ -1,24 +1,29 @@
 import { Router } from "express";
-import { getOrders, resendDeliveryOTP, updateDeliveryStatus, updateOrderById, verifyDeliveryOTP } from "../controllers/orderController.js";
-import { adminOnly, protect } from "../middleware/authMiddleware.js";
-import { otpLimiter, otpResendLimiter } from "../middleware/rateLimiters.js";
-import { validateRequest } from "../middleware/validateRequest.js";
 import {
-	deliveryOtpValidation,
-	deliveryStatusValidation,
-	orderCreateValidation,
-	resendDeliveryOtpValidation
-} from "../validators/index.js";
-import { createOrder } from "../controllers/orderController.js";
+	acceptOrder,
+	getOrdersByStatus,
+	getSingleOrder,
+	markDelivered,
+	markPickedUp,
+	markPreparing,
+	markReadyForPickup,
+	placeOrder,
+	rejectOrder
+} from "../controllers/orderController.js";
+import { adminOnly, protect } from "../middleware/authMiddleware.js";
+import { validateRequest } from "../middleware/validateRequest.js";
+import { orderCreateValidation } from "../validators/index.js";
 
 const router = Router();
 
-router.get("/", getOrders);
-router.post("/", orderCreateValidation, validateRequest, createOrder);
-router.put("/:id", protect, adminOnly, updateOrderById);
-router.patch("/:id", protect, adminOnly, updateOrderById);
-router.post("/verify-delivery", otpLimiter, deliveryOtpValidation, validateRequest, verifyDeliveryOTP);
-router.post("/resend-otp", otpResendLimiter, resendDeliveryOtpValidation, validateRequest, resendDeliveryOTP);
-router.patch("/delivery-status", protect, adminOnly, deliveryStatusValidation, validateRequest, updateDeliveryStatus);
+router.get("/", protect, adminOnly, getOrdersByStatus);
+router.get("/:id", protect, adminOnly, getSingleOrder);
+router.post("/", orderCreateValidation, validateRequest, placeOrder);
+router.patch("/:id/accept", protect, adminOnly, acceptOrder);
+router.patch("/:id/reject", protect, adminOnly, rejectOrder);
+router.patch("/:id/preparing", protect, adminOnly, markPreparing);
+router.patch("/:id/ready", protect, adminOnly, markReadyForPickup);
+router.patch("/:id/picked-up", protect, adminOnly, markPickedUp);
+router.patch("/:id/delivered", protect, adminOnly, markDelivered);
 
 export default router;

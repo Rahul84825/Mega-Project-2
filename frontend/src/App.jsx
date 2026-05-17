@@ -1,255 +1,270 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import AdminHeroBannerManager from "./admin/AdminHeroBannerManager";
-import AdminCategories from "./admin/AdminCategories";
-import AdminLayout from "./admin/AdminLayout";
-import AdminDashboard from "./admin/AdminDashboard";
-import AdminOffers from "./admin/AdminOffers";
-import AdminOrders from "./admin/AdminOrders";
-import AdminProductForm from "./admin/AdminProductForm";
-import AdminProducts from "./admin/AdminProducts";
+
+// Core Components (always loaded)
 import CartDrawer from "./components/CartDrawer";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ScrollButton from "./components/ScrollButton";
 import ScrollToTop from "./components/ScrollToTop";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./context/CartContext";
 import { ProductProvider } from "./context/ProductContext";
-import Login from "./pages/Login";
+import GlobalStyle from "./services/utils/GlobalStyle";
+
+// Store Pages (core pages, loaded early)
+import HomePage from "./pages/HomePage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
-import HomePage from "./pages/HomePage";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ProductsPage from "./pages/ProductsPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import ProductDetailPage from "./pages/ProductDetailPage";
-import ProductsPage from "./pages/ProductsPage";
-import Register from "./pages/Register";
-import GlobalStyle from "./utils/GlobalStyle";
 
-const normalizeSlug = (value) => String(value || "").trim().toLowerCase();
+// Policy Pages (lazy loaded)
+const ShippingPolicy = lazy(() => import("./pages/policies/ShippingPolicy"));
+const PrivacyPolicy = lazy(() => import("./pages/policies/PrivacyPolicy"));
+const ReturnsExchange = lazy(() => import("./pages/policies/ReturnsExchange"));
+const TermsConditions = lazy(() => import("./pages/policies/TermsConditions"));
+
+// Store Components (lazy loaded)
+const About = lazy(() => import("./components/About"));
+const Contact = lazy(() => import("./components/Contact"));
+const BuiltBy = lazy(() => import("./components/BuiltBy"));
+
+// Admin Components (lazy loaded - heavy bundle)
+const AdminLayout = lazy(() => import("./admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
+const AdminCategories = lazy(() => import("./admin/AdminCategories"));
+const AdminProducts = lazy(() => import("./admin/AdminProducts"));
+const AdminProductForm = lazy(() => import("./admin/AdminProductForm"));
+const AdminOffers = lazy(() => import("./admin/AdminOffers"));
+const AdminOrders = lazy(() => import("./admin/AdminOrders"));
+const AdminHeroBannerManager = lazy(() => import("./admin/AdminHeroBannerManager"));
+
+/**
+ * Fallback loading component for lazy-loaded routes
+ */
+const LazyFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[var(--cream)]">
+    <div className="text-center">
+      <div className="mb-4 inline-flex h-12 w-12 animate-spin rounded-full border-4 border-[var(--surface)] border-t-[var(--saffron)]" />
+      <p className="text-sm text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
+
+/**
+ * StoreLayout Component
+ * Wraps store pages with Navbar, Cart, and Footer
+ * FIXED: Was previously undefined, now properly implemented
+ */
+function StoreLayout({ children }) {
+  return (
+    <div className="flex flex-col min-h-screen" style={{ background: "var(--cream)" }}>
+      <Navbar />
+      <CartDrawer />
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
 function App() {
-  const getInitialProductId = () => {
-    const match = window.location.pathname.match(/^\/product\/([^/]+)$/);
-    return match?.[1] || null;
-  };
-
-  const getInitialPage = () => {
-    if (window.location.pathname.startsWith("/admin")) {
-      return "admin";
-    }
-
-    if (/^\/product\/[^/]+$/.test(window.location.pathname)) {
-      return "product";
-    }
-
-    if (window.location.pathname === "/products") {
-      const selected = normalizeSlug(new URLSearchParams(window.location.search).get("category"));
-      return selected && selected !== "all" ? "category" : "all";
-    }
-
-    return "home";
-  };
-
-  const getInitialCategory = () => {
-    if (window.location.pathname !== "/products") {
-      return "all";
-    }
-
-    const selected = normalizeSlug(new URLSearchParams(window.location.search).get("category"));
-    return selected || "all";
-  };
-
-  const [page, setPage] = useState(getInitialPage);
-  const [selectedProductId, setSelectedProductId] = useState(getInitialProductId);
-  const [selectedCategory, setSelectedCategory] = useState(getInitialCategory);
-  const [products, setProducts] = useState([]);
-  const [paymentInfo, setPaymentInfo] = useState(() => {
-    try {
-      const storedOrder = localStorage.getItem("mithai-world-current-order");
-      return storedOrder ? JSON.parse(storedOrder) : null;
-    } catch (_error) {
-      return null;
-    }
-  });
-
-  useEffect(() => {
-    const handlePopState = () => {
-      if (window.location.pathname.startsWith("/admin")) {
-        setPage("admin");
-        return;
-      }
-
-      if (/^\/product\/[^/]+$/.test(window.location.pathname)) {
-        const match = window.location.pathname.match(/^\/product\/([^/]+)$/);
-        setSelectedProductId(match?.[1] || null);
-        setPage("product");
-        return;
-      }
-
-      if (window.location.pathname === "/products") {
-        const selected = normalizeSlug(new URLSearchParams(window.location.search).get("category"));
-        const nextCategory = selected || "all";
-        setSelectedCategory(nextCategory);
-        setPage(nextCategory === "all" ? "all" : "category");
-        return;
-      }
-
-      setPage("home");
-      setSelectedCategory("all");
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
-  useEffect(() => {
-    try {
-      if (paymentInfo) {
-        localStorage.setItem("mithai-world-current-order", JSON.stringify(paymentInfo));
-      } else {
-        localStorage.removeItem("mithai-world-current-order");
-      }
-    } catch (_error) {
-      // Ignore storage errors in constrained environments.
-    }
-  }, [paymentInfo]);
-
-  const setPageWithRoute = (nextPage) => {
-    setPage(nextPage);
-
-    if (nextPage === "admin") {
-      if (!window.location.pathname.startsWith("/admin")) {
-        window.history.pushState({}, "", "/admin");
-      }
-      return;
-    }
-
-    if (nextPage === "all") {
-      window.history.pushState({}, "", "/products");
-      setSelectedCategory("all");
-      return;
-    }
-
-    if (nextPage === "category") {
-      const slug = normalizeSlug(selectedCategory || "all");
-      window.history.pushState({}, "", `/products?category=${encodeURIComponent(slug)}`);
-      return;
-    }
-
-    if (nextPage === "product" && selectedProductId) {
-      window.history.pushState({}, "", `/product/${encodeURIComponent(selectedProductId)}`);
-      return;
-    }
-
-    if (nextPage === "home" || window.location.pathname.startsWith("/admin")) {
-      window.history.pushState({}, "", "/");
-    }
-  };
-
-  const renderPage = () => {
-    switch (page) {
-      case "home":
-        return (
-          <HomePage
-            setPage={setPageWithRoute}
-            setSelectedCategory={setSelectedCategory}
-            setSelectedProductId={setSelectedProductId}
-            products={products}
-            setProducts={setProducts}
-          />
-        );
-      case "all":
-        return <ProductsPage initialCategory="all" />;
-      case "category":
-        return <ProductsPage initialCategory={selectedCategory || "all"} />;
-      case "product":
-        return <ProductDetailPage />;
-      case "cart":
-        return <CartPage setPage={setPageWithRoute} />;
-      case "checkout":
-        return <CheckoutPage setPage={setPageWithRoute} setPaymentInfo={setPaymentInfo} setProducts={setProducts} />;
-      case "order-success":
-        return <OrderSuccessPage setPage={setPageWithRoute} paymentInfo={paymentInfo} />;
-      case "payment-success":
-        return <PaymentSuccessPage setPage={setPageWithRoute} paymentInfo={paymentInfo} setPaymentInfo={setPaymentInfo} onReturnHome={() => setPaymentInfo(null)} />;
-      case "admin":
-        return <AdminDashboard />;
-      default:
-        return (
-          <HomePage
-            setPage={setPageWithRoute}
-            setSelectedCategory={setSelectedCategory}
-            setSelectedProductId={setSelectedProductId}
-            products={products}
-            setProducts={setProducts}
-          />
-        );
-    }
-  };
-
   return (
-    <CartProvider>
-      <ProductProvider>
-        <GlobalStyle />
-        <ScrollToTop />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/product/:id"
-            element={
-              <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
-                <Navbar page="product" selectedCategory={selectedCategory} setPage={setPageWithRoute} setCategory={setSelectedCategory} />
-                <CartDrawer setPage={setPageWithRoute} />
-                <ProductDetailPage />
-                <footer style={{ background: "var(--charcoal)", padding: "32px 32px", textAlign: "center" }}>
-                  <div className="serif" style={{ fontSize: 22, color: "var(--saffron)", marginBottom: 8 }}>Mithai World</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", letterSpacing: 1 }}>© 2025 · Crafting Sweetness Since 1985 · All Rights Reserved</div>
-                </footer>
-              </div>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="add-product" element={<AdminProductForm />} />
-            <Route path="products/add" element={<Navigate to="/admin/add-product" replace />} />
-            <Route path="products/edit/:id" element={<Navigate to="/admin/add-product" replace />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="offers" element={<AdminOffers />} />
-            <Route path="hero-banners" element={<AdminHeroBannerManager />} />
-            <Route path="brands" element={<Navigate to="/admin/products" replace />} />
-          </Route>
-          <Route
-            path="*"
-            element={
-              <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
-                <Navbar page={page} selectedCategory={selectedCategory} setPage={setPageWithRoute} setCategory={setSelectedCategory} />
-                <CartDrawer setPage={setPageWithRoute} />
-                {renderPage()}
-                <footer style={{ background: "var(--charcoal)", padding: "32px 32px", textAlign: "center" }}>
-                  <div className="serif" style={{ fontSize: 22, color: "var(--saffron)", marginBottom: 8 }}>Mithai World</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", letterSpacing: 1 }}>© 2025 · Crafting Sweetness Since 1985 · All Rights Reserved</div>
-                </footer>
-              </div>
-            }
-          />
-        </Routes>
-        <ScrollButton />
-      </ProductProvider>
-    </CartProvider>
+    <ErrorBoundary>
+      <CartProvider>
+        <ProductProvider>
+          <GlobalStyle />
+          <ScrollToTop />
+
+          <Routes>
+            {/* ═══════════════════════════════════════════ */}
+            {/* AUTH ROUTES (No layout) */}
+            {/* ═══════════════════════════════════════════ */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* ═══════════════════════════════════════════ */}
+            {/* STORE ROUTES (With StoreLayout) */}
+            {/* ═══════════════════════════════════════════ */}
+            <Route
+              path="/"
+              element={
+                <StoreLayout>
+                  <HomePage />
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/products"
+              element={
+                <StoreLayout>
+                  <ProductsPage />
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/product/:id"
+              element={
+                <StoreLayout>
+                  <ProductDetailPage />
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/cart"
+              element={
+                <StoreLayout>
+                  <CartPage />
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/checkout"
+              element={
+                <StoreLayout>
+                  <CheckoutPage />
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/order-success"
+              element={
+                <StoreLayout>
+                  <OrderSuccessPage />
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/payment-success"
+              element={
+                <StoreLayout>
+                  <PaymentSuccessPage />
+                </StoreLayout>
+              }
+            />
+
+            {/* Policy Pages (Lazy loaded with Suspense) */}
+            <Route
+              path="/contact"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <Contact />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/about"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <About />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/built-by"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <BuiltBy />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/shipping-policy"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <ShippingPolicy />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/returns-exchanges"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <ReturnsExchange />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/privacy-policy"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <PrivacyPolicy />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            <Route
+              path="/terms-conditions"
+              element={
+                <StoreLayout>
+                  <Suspense fallback={<LazyFallback />}>
+                    <TermsConditions />
+                  </Suspense>
+                </StoreLayout>
+              }
+            />
+
+            {/* ═══════════════════════════════════════════ */}
+            {/* ADMIN ROUTES (Protected, lazy loaded) */}
+            {/* ═══════════════════════════════════════════ */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Suspense fallback={<LazyFallback />}>
+                    <AdminLayout />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="add-product" element={<AdminProductForm />} />
+              <Route path="products/edit/:id" element={<Navigate to="/admin/add-product" replace />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="offers" element={<AdminOffers />} />
+              <Route path="hero-banners" element={<AdminHeroBannerManager />} />
+              <Route path="brands" element={<Navigate to="/admin/products" replace />} />
+            </Route>
+
+            {/* ═══════════════════════════════════════════ */}
+            {/* 404 FALLBACK */}
+            {/* ═══════════════════════════════════════════ */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ProductProvider>
+      </CartProvider>
+    </ErrorBoundary>
   );
 }
 

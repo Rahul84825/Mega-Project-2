@@ -8,70 +8,249 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import productsRoutes from "./routes/productsRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
+import offerRoutes from "./routes/offerRoutes.js";
 import heroSlideRoutes from "./routes/heroSlideRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import debugRoutes from "./routes/debugRoutes.js";
 import User from "./models/User.js";
 import { adminOnly, protect } from "./middleware/authMiddleware.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { sanitizeRequestData } from "./middleware/requestSanitizer.js";
+import { logger } from "./utils/logger.js";
 
 const app = express();
 
 const getFrontendOrigin = () => process.env.FRONTEND_URL || "http://localhost:5173";
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
+const getAllowedScriptOrigins = () => [
+  "'self'",
+  "https://accounts.google.com",
+  "https://accounts.googleusercontent.com",
+  "https://checkout.razorpay.com"
+];
+
+/**
+ * SECURITY: Helmet - Sets various HTTP headers for security
+ * Protects against: XSS, Clickjacking, MIME type sniffing, etc.
+ */
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: getAllowedScriptOrigins(),
+      connectSrc: ["'self'", "https://accounts.google.com", "https://accounts.googleusercontent.com", "https://checkout.razorpay.com"],
+      frameSrc: ["'self'", "https://accounts.google.com", "https://checkout.razorpay.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  frameguard: { action: "deny" },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+}));
+
+/**
+ * SECURITY: CORS with strict configuration
+ * Prevents requests from unauthorized origins
+ */
+app.use(cors({
+  origin: getFrontendOrigin(),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200
+}));
+
+app.set("trust proxy", 1);
+
+/**
+ * RATE LIMITING CONFIGURATION
+ * Different limits for different types of endpoints
+ */
+
+// Global API rate limiter (applied to all requests)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // 300 requests per 15 min (20 req/min average)
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  message: "Too many requests, please try again later",
+  skip: (req) => req.path === "/api/health" // Don't count health checks
 });
 
-// Core HTTP security headers for common vulnerabilities.
-app.use(helmet());
-app.use(
-  cors({
-    origin: getFrontendOrigin(),
-    credentials: true
-  })
-);
-// Apply basic request throttling to reduce abuse.
-app.use(apiLimiter);
-app.use(express.json({ limit: "20kb" }));
-app.use(express.urlencoded({ extended: true, limit: "20kb" }));
-// Strip dangerous MongoDB operators and normalize raw input before validation.
+// Strict rate limiter for authentication endpoints (prevent brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Only 5 attempts per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many login attempts, please try again later",
+  skipSuccessfulRequests: true // Don't count successful requests
+});
+
+// Moderate rate limiter for product/category endpoints
+const readLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === "GET" // Only apply to non-GET
+});
+
+// Apply global limiter to all requests
+app.use(globalLimiter);
+
+/**
+ * PARSING & VALIDATION
+ */
+app.use(express.json({ limit: "10kb" })); // Reduced from 20kb for security
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
+/**
+ * SECURITY: Input Sanitization
+ * Sanitizes MongoDB operators and normalizes raw input before validation
+ */
 app.use(sanitizeRequestData);
-// Sanitize request payloads to reduce reflected/stored XSS vectors.
+
+/**
+ * SECURITY: XSS Protection
+ * Sanitizes request payloads to reduce reflected/stored XSS vectors
+ */
 app.use(xss());
 
-// Health endpoint used by frontend and uptime checks.
+/**
+ * PRODUCTION LOGGING
+ * Logs all incoming requests (disabled in dev for clarity)
+ */
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.originalUrl}`, {
+      method: req.method,
+      path: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+    next();
+  });
+}
+
+/**
+ * DEVELOPMENT API REQUEST LOGGING
+ * Logs all API requests in development for debugging
+ */
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api", (req, res, next) => {
+    console.log(`📡 [API] ${req.method.toUpperCase()} ${req.path}`);
+    if (Object.keys(req.body).length > 0) {
+      console.log(`   Body:`, JSON.stringify(req.body).substring(0, 200));
+    }
+    next();
+  });
+}
+
+/**
+ * HEALTH CHECK ENDPOINT
+ * Used by frontend and monitoring services
+ */
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
     success: true,
-    message: "mithai-world backend is running"
+    message: "mithai-world backend is running",
+    timestamp: new Date().toISOString()
   });
 });
 
-// Modular API route registration.
-app.use("/api/auth", authRoutes);
-app.use("/api/payment", paymentRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/products", productsRoutes);
-app.use("/api/categories", categoryRoutes);
-app.use("/api/hero-slides", heroSlideRoutes);
-app.use("/api/upload", uploadRoutes);
+/**
+ * MODULAR API ROUTE REGISTRATION
+ * Each route group has rate limiting applied appropriately
+ */
 
+// Authentication routes (strict rate limiting)
+app.use("/api/auth", authLimiter, authRoutes);
+
+// Payment debugging middleware (logs all payment requests in detail)
+app.use("/api/payment", (req, res, next) => {
+  if (req.method === "POST") {
+    logger.info("🔵 PAYMENT REQUEST RECEIVED", {
+      endpoint: req.path,
+      method: req.method,
+      bodyKeys: Object.keys(req.body),
+      hasRazorpayOrderId: !!req.body?.razorpay_order_id,
+      hasRazorpayPaymentId: !!req.body?.razorpay_payment_id,
+      hasRazorpaySignature: !!req.body?.razorpay_signature,
+      hasOrderData: !!req.body?.orderData,
+      timestamp: new Date().toISOString()
+    });
+
+    if (req.path === "/verify") {
+      logger.info("🔐 PAYMENT VERIFY REQUEST DETAILS", {
+        razorpayOrderId: req.body?.razorpay_order_id,
+        razorpayPaymentId: req.body?.razorpay_payment_id,
+        signatureProvided: req.body?.razorpay_signature,
+        orderDataCustomer: req.body?.orderData?.customer?.name,
+        orderDataItemCount: Array.isArray(req.body?.orderData?.items) ? req.body.orderData.items.length : 0,
+        orderDataAmount: req.body?.orderData?.amount
+      });
+    }
+  }
+  next();
+});
+
+// Payment routes (global limiter + read limiter)
+app.use("/api/payment", readLimiter, paymentRoutes);
+
+// Order routes (moderate rate limiting)
+app.use("/api/orders", readLimiter, orderRoutes);
+
+// Product routes (general rate limiting)
+app.use("/api/products", productsRoutes);
+
+// Category routes (general rate limiting)
+app.use("/api/categories", categoryRoutes);
+
+// Offer routes (general rate limiting)
+app.use("/api/offers", offerRoutes);
+
+// Hero slide routes (general rate limiting)
+app.use("/api/hero-slides", heroSlideRoutes);
+
+// Upload routes (strict for file security)
+app.use("/api/upload", rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 10,
+  message: "Too many file uploads"
+}), uploadRoutes);
+
+// Debug routes (development/debugging only)
+app.use("/api/debug", debugRoutes);
+
+/**
+ * ADMIN STATISTICS ENDPOINT
+ * SECURITY: Protected with auth and admin-only middleware
+ * Returns aggregated, non-sensitive stats only
+ */
 app.get("/api/admin/stats", protect, adminOnly, async (_req, res, next) => {
   try {
-    const totalUsers = await User.countDocuments();
+    const totalUsers = await User.countDocuments({ isAdmin: false });
+    const adminUsers = await User.countDocuments({ isAdmin: true });
+
     return res.status(200).json({
       success: true,
-      totalUsers
+      stats: {
+        totalUsers,
+        adminUsers,
+        timestamp: new Date().toISOString()
+      }
     });
   } catch (error) {
+    logger.error("Failed to fetch admin stats", { error: error.message });
     return next(error);
   }
 });
 
-// Centralized 404 and error serialization.
+/**
+ * ERROR HANDLING
+ * Centralized 404 and error serialization
+ * Must be defined AFTER all routes
+ */
 app.use(notFoundHandler);
 app.use(errorHandler);
 

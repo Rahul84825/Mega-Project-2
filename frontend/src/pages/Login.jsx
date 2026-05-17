@@ -1,122 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { loginUser, loginWithGoogle, getApiErrorMessage } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-
-const loadGoogleScript = () => {
-  if (window.google?.accounts?.id) {
-    return Promise.resolve(true);
-  }
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-google-identity="true"]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve(true), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Google Identity Services failed to load")), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.dataset.googleIdentity = "true";
-    script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error("Google Identity Services failed to load"));
-    document.head.appendChild(script);
-  });
-};
+import GoogleLoginButton from "../components/auth/GoogleLoginButton";
 
 function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-  const googleButtonRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isAdmin } = useAuth();
+  const { login, logout, isAuthenticated, isAdmin, authReady } = useAuth();
 
   const destination = location.state?.from || (isAdmin === true ? "/admin" : "/");
 
-  const clearStaleAuth = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("mithai-world-auth");
-  };
-
   useEffect(() => {
-    if (isAuthenticated) {
+    if (authReady && isAuthenticated) {
       navigate(destination, { replace: true });
     }
-  }, [destination, isAuthenticated, navigate]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const initGoogle = async () => {
-      try {
-        await loadGoogleScript();
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-        if (!clientId || !googleButtonRef.current || !window.google?.accounts?.id) {
-          return;
-        }
-
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            if (!response?.credential) {
-              return;
-            }
-
-            try {
-              setGoogleLoading(true);
-              setError("");
-              clearStaleAuth();
-              const data = await loginWithGoogle({ idToken: response.credential });
-              console.log("Login response:", data);
-              if (data?.token && data?.user) {
-                login(data.user, data.token);
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("user", JSON.stringify(data.user));
-                console.log("Stored user:", localStorage.getItem("user"));
-                navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
-              }
-            } catch (googleError) {
-              console.error("Google login failed:", googleError);
-              if (isMounted) {
-                setError(getApiErrorMessage(googleError, "Google login failed."));
-              }
-            } finally {
-              if (isMounted) {
-                setGoogleLoading(false);
-              }
-            }
-          }
-        });
-
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: "outline",
-          size: "large",
-          type: "standard",
-          text: "continue_with",
-          shape: "pill",
-          width: 320
-        });
-      } catch (googleError) {
-        if (isMounted) {
-          setError(getApiErrorMessage(googleError, "Google login is unavailable right now."));
-        }
-      }
-    };
-
-    initGoogle();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [login, navigate]);
+  }, [authReady, destination, isAuthenticated, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -124,19 +27,13 @@ function Login() {
     try {
       setLoading(true);
       setError("");
-      clearStaleAuth();
+      logout({ redirectToLogin: false });
       const data = await loginUser(form);
-      console.log("Login response:", data);
 
-      if (data?.token && data?.user) {
-        login(data.user, data.token);
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        console.log("Stored user:", localStorage.getItem("user"));
+      if (data?.token && data?.user && login(data.user, data.token)) {
         navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
       }
     } catch (submitError) {
-      console.error("Login failed:", submitError);
       setError(getApiErrorMessage(submitError, "Unable to sign in."));
     } finally {
       setLoading(false);
@@ -216,7 +113,29 @@ function Login() {
 
         {/* Google Button */}
         <div className="flex justify-center mb-3 sm:mb-4">
-          <div ref={googleButtonRef} className="flex justify-center" />
+          <GoogleLoginButton
+            clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
+            onCredential={async (response) => {
+              if (!response?.credential) {
+                return;
+              }
+
+              try {
+                setGoogleLoading(true);
+                setError("");
+                logout({ redirectToLogin: false });
+                const data = await loginWithGoogle({ idToken: response.credential });
+
+                if (data?.token && data?.user && login(data.user, data.token)) {
+                  navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
+                }
+              } catch (googleError) {
+                setError(getApiErrorMessage(googleError, "Google login failed."));
+              } finally {
+                setGoogleLoading(false);
+              }
+            }}
+          />
         </div>
         
         {googleLoading && (

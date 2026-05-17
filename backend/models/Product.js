@@ -101,6 +101,30 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/**
+ * PERFORMANCE OPTIMIZATION: Database Indexes
+ * Indexes are created on commonly queried fields to improve query performance
+ * Each index speeds up filtering, sorting, and lookups
+ */
+
+// Index for category filtering (used in product list views)
+productSchema.index({ category: 1 });
+
+// Compound index for hero products (common dashboard query)
+productSchema.index({ isHero: 1, createdAt: -1 });
+
+// Index for creation date sorting (most common sort in list views)
+productSchema.index({ createdAt: -1 });
+
+// Text index for search functionality
+productSchema.index({ name: "text", description: "text", tags: "text" });
+
+// Index for stock queries (filtering in-stock items)
+productSchema.index({ "variants.stock": 1 });
+
+// Compound index for category + active products (dashboard queries)
+productSchema.index({ category: 1, isHero: 1 });
+
 const Product = mongoose.model("Product", productSchema);
 
 export default Product;

@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, UploadCloud, AlertCircle, CheckCircle2, X, Plus, Trash2 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
-import { api } from "../utils/api";
-import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount, formatPrice } from "../utils/priceCalculator";
+import api from "../services/api";
+import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount, formatPrice } from "../services/utils/priceCalculator";
 
 const EMPTY_FORM_BASE = {
   name: "",
@@ -51,7 +51,6 @@ const AdminProductForm = () => {
   const productFromState = location.state?.product || null;
   const isEditMode = Boolean(productFromState?._id || productFromState?.id);
 
-  const token = localStorage.getItem("token");
   const variantCounterRef = useRef(0);
 
   const createVariantId = () => {
@@ -249,7 +248,9 @@ const AdminProductForm = () => {
       const formData = new FormData();
       files.forEach((file) => formData.append("images", file));
 
-      const data = await api.upload("/api/upload/multiple", formData, token);
+      const { data } = await api.post("/api/upload/multiple", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
       const uploadedUrls = (data.images || []).map((img) => img.url).filter(Boolean);
 
       if (!uploadedUrls.length) throw new Error("Upload failed");
@@ -523,7 +524,7 @@ const AdminProductForm = () => {
           {errors.variants && <p className="text-[11px] font-medium text-red-500">{errors.variants}</p>}
 
           <div className="rounded-[16px] border border-gray-200 overflow-hidden bg-white shadow-sm">
-            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_1fr_auto] gap-2 bg-gray-50 border-b border-gray-200 px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wide">
+            <div className="hidden md:grid md:grid-cols-[1fr_1fr_1fr_1fr_1.2fr_1fr_auto] gap-2 bg-gray-50 border-b border-gray-200 px-4 py-3 text-[11px] font-medium text-gray-400 uppercase tracking-wide">
               <span>Label</span>
               <span>MRP</span>
               <span>Discount %</span>
@@ -541,8 +542,9 @@ const AdminProductForm = () => {
                 const finalPrice = calculateFinalPriceWithGST(sellingPrice, Number(form.gstPercent || 0));
                 
                 return (
-                  <div key={variant.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1.2fr_1fr_auto] gap-3 px-4 py-3 items-start">
+                  <div key={variant.id} className="md:grid md:grid-cols-[1fr_1fr_1fr_1fr_1.2fr_1fr_auto] gap-3 px-4 py-3 items-start grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
+                      <label className="md:hidden text-[11px] font-bold text-gray-600 uppercase tracking-wide block mb-2">Label</label>
                       <input
                         type="text"
                         value={variant.label}
@@ -556,6 +558,7 @@ const AdminProductForm = () => {
                     </div>
 
                     <div>
+                      <label className="md:hidden text-[11px] font-bold text-gray-600 uppercase tracking-wide block mb-2">MRP</label>
                       <input
                         type="number"
                         min="0"
@@ -571,6 +574,7 @@ const AdminProductForm = () => {
                     </div>
 
                     <div>
+                      <label className="md:hidden text-[11px] font-bold text-gray-600 uppercase tracking-wide block mb-2">Discount %</label>
                       <input
                         type="number"
                         min="0"
@@ -585,15 +589,22 @@ const AdminProductForm = () => {
                       )}
                     </div>
 
-                    <div className="pt-2 text-[13px] font-medium text-gray-500">
-                      {sellingPrice > 0 ? formatPrice(sellingPrice) : "-"}
-                    </div>
-
-                    <div className="pt-2 text-[14px] font-bold text-black">
-                      {finalPrice > 0 ? formatPrice(finalPrice) : "-"}
+                    <div>
+                      <label className="md:hidden text-[11px] font-bold text-gray-600 uppercase tracking-wide block mb-2">Selling Price</label>
+                      <div className="pt-2 md:pt-0 text-[13px] font-medium text-gray-500">
+                        {sellingPrice > 0 ? formatPrice(sellingPrice) : "-"}
+                      </div>
                     </div>
 
                     <div>
+                      <label className="md:hidden text-[11px] font-bold text-gray-600 uppercase tracking-wide block mb-2">Final (incl. GST)</label>
+                      <div className="pt-2 md:pt-0 text-[14px] font-bold text-black">
+                        {finalPrice > 0 ? formatPrice(finalPrice) : "-"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="md:hidden text-[11px] font-bold text-gray-600 uppercase tracking-wide block mb-2">Stock</label>
                       <input
                         type="number"
                         min="0"
@@ -608,7 +619,7 @@ const AdminProductForm = () => {
                       )}
                     </div>
 
-                    <div className="flex justify-end pt-1">
+                    <div className="flex justify-end pt-1 md:pt-0 sm:col-span-2 md:col-span-auto">
                       <button
                         type="button"
                         onClick={() => removeVariant(variant.id)}

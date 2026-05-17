@@ -1,10 +1,12 @@
 import { useCart } from "../context/CartContext";
+import { useNavigate } from "react-router-dom";
+import { calculateCartTotals, amountForFreeDelivery } from "../utils/pricingUtils";
 
-function CartPage({ setPage }) {
+function CartPage() {
   const { cart, dispatch } = useCart();
-  const subtotal = cart.reduce((s, i) => s + (Number(i?.price) || 0) * i.quantity, 0);
-  const delivery = subtotal > 999 ? 0 : 60;
-  const total = subtotal + delivery;
+  const navigate = useNavigate();
+  const { subtotal, deliveryFee, gst, total } = calculateCartTotals(cart);
+  const amountNeeded = amountForFreeDelivery(subtotal);
 
   if (cart.length === 0) {
     return (
@@ -14,7 +16,7 @@ function CartPage({ setPage }) {
         <p className="text-[var(--muted)] text-center text-sm md:text-base">Add some sweet goodness first!</p>
         <button 
           className="btn-primary mt-2 px-6 py-3 rounded-lg" 
-          onClick={() => setPage("home")}
+          onClick={() => navigate("/")}
         >
           Browse Sweets
         </button>
@@ -25,12 +27,12 @@ function CartPage({ setPage }) {
   return (
     <div className="page-enter bg-white min-h-screen px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-14">
       <div className="max-w-7xl mx-auto">
-        <h1 className="serif text-3xl md:text-4xl lg:text-5xl font-bold text-[var(--charcoal)] mb-8 md:mb-12">
+        <h1 className="serif text-2xl md:text-3xl lg:text-4xl font-bold text-[var(--charcoal)] mb-8 md:mb-12">
           Your Cart <span className="ornament">✦</span>
         </h1>
 
         {/* Mobile/Tablet: Stacked, Desktop: Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
           
           {/* Items column - takes 2 cols on desktop */}
           <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
@@ -125,21 +127,26 @@ function CartPage({ setPage }) {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
                   <span>Subtotal</span>
-                  <span className="font-medium text-[var(--charcoal)]">₹{subtotal}</span>
+                  <span className="font-medium text-[var(--charcoal)]">₹{subtotal.toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
                   <span>Delivery</span>
-                  {delivery === 0 ? (
+                  {deliveryFee === 0 ? (
                     <span className="font-bold text-green-600">FREE</span>
                   ) : (
-                    <span className="font-medium text-[var(--charcoal)]">₹{delivery}</span>
+                    <span className="font-medium text-[var(--charcoal)]">₹{deliveryFee}</span>
                   )}
                 </div>
 
-                {delivery > 0 && (
+                <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
+                  <span>GST (5%)</span>
+                  <span className="font-medium text-[var(--charcoal)]">₹{gst.toFixed(2)}</span>
+                </div>
+
+                {deliveryFee > 0 && amountNeeded > 0 && (
                   <p className="text-xs text-[var(--saffron)] bg-[var(--saffron)]/10 p-3 rounded-lg">
-                    Add ₹{999 - subtotal} more for free delivery
+                    Add ₹{amountNeeded.toFixed(2)} more for free delivery
                   </p>
                 )}
               </div>
@@ -150,7 +157,7 @@ function CartPage({ setPage }) {
                   Total
                 </span>
                 <span className="serif text-2xl md:text-3xl font-black text-[var(--burgundy)]">
-                  ₹{total}
+                  ₹{total.toFixed(2)}
                 </span>
               </div>
 
@@ -158,13 +165,13 @@ function CartPage({ setPage }) {
               <div className="space-y-3">
                 <button
                   className="btn-primary w-full py-3 md:py-4 rounded-lg font-bold text-sm md:text-base"
-                  onClick={() => setPage("checkout")}
+                  onClick={() => navigate("/checkout")}
                 >
                   Proceed to Checkout
                 </button>
                 <button
                   className="btn-outline w-full py-3 md:py-4 rounded-lg font-bold text-sm md:text-base"
-                  onClick={() => setPage("home")}
+                  onClick={() => navigate("/")}
                 >
                   Continue Shopping
                 </button>

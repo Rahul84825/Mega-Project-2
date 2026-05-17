@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, UploadCloud, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
-import { api } from "../utils/api";
+import api, { getHeroSlidesAdmin, deleteHeroSlide } from "../services/api";
 
 const MAX_PREVIEW_COUNT = 10;
 
@@ -11,8 +11,6 @@ const AdminHeroBannerManager = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState("");
-
-  const token = localStorage.getItem("token");
 
   const previewItems = useMemo(
     () =>
@@ -32,8 +30,15 @@ const AdminHeroBannerManager = () => {
   const fetchHeroImages = async () => {
     try {
       setLoading(true);
-      const data = await api.get("/api/hero");
-      setImages(Array.isArray(data.images) ? data.images : []);
+      const slides = await getHeroSlidesAdmin();
+      const images = (Array.isArray(slides) ? slides : []).map((slide) => ({
+        _id: slide._id,
+        id: slide._id,
+        url: slide.image,
+        title: slide.title || "",
+        order: Number(slide.order || 0)
+      }));
+      setImages(images);
     } catch (error) {
       setStatus({ type: "error", message: error.message || "Failed to load hero images" });
     } finally {
@@ -68,8 +73,24 @@ const AdminHeroBannerManager = () => {
 
     try {
       setUploading(true);
-      const data = await api.upload("/api/hero/add", formData, token);
-      setImages(Array.isArray(data.images) ? data.images : []);
+      // Upload each image via axios instance
+      for (const file of selectedFiles) {
+        const imageFormData = new FormData();
+        imageFormData.append("image", file);
+        await api.post("/api/hero-slides", imageFormData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+      }
+      // Fetch updated list
+      const slides = await getHeroSlidesAdmin();
+      const images = (Array.isArray(slides) ? slides : []).map((slide) => ({
+        _id: slide._id,
+        id: slide._id,
+        url: slide.image,
+        title: slide.title || "",
+        order: Number(slide.order || 0)
+      }));
+      setImages(images);
       setSelectedFiles([]);
       setStatus({ type: "success", message: "Hero images uploaded successfully." });
     } catch (error) {
@@ -82,8 +103,17 @@ const AdminHeroBannerManager = () => {
   const handleDelete = async (imageId) => {
     try {
       setDeletingId(imageId);
-      const data = await api.delete(`/api/hero/${imageId}`, token);
-      setImages(Array.isArray(data.images) ? data.images : []);
+      await deleteHeroSlide(imageId);
+      // Fetch updated list
+      const slides = await getHeroSlidesAdmin();
+      const images = (Array.isArray(slides) ? slides : []).map((slide) => ({
+        _id: slide._id,
+        id: slide._id,
+        url: slide.image,
+        title: slide.title || "",
+        order: Number(slide.order || 0)
+      }));
+      setImages(images);
       setStatus({ type: "success", message: "Hero image deleted." });
     } catch (error) {
       setStatus({ type: "error", message: error.message || "Failed to delete image" });

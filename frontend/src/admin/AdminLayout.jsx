@@ -59,12 +59,7 @@ const AdminLayout = () => {
               <img
                 src={brandLogo}
                 alt="Mithai World"
-                style={{
-                  height: "80px",
-                  width: "auto",
-                  objectFit: "contain",
-                  flexShrink: 0
-                }}
+                className="h-16 sm:h-20 w-auto object-contain flex-shrink-0"
               />
             </button>
           </div>

@@ -1,9 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api } from "../utils/api";
-import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount } from "../utils/priceCalculator";
-import { getDisplayPrice, sortVariantsByLabel } from "@/utils/price";
-
-const OFFERS_STORAGE_KEY = "mithai-world-admin-offers";
+import api from "../services/api";
+import { socket } from "../services/socket";
+import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount } from "../services/utils/priceCalculator";
+import { getDisplayPrice, sortVariantsByLabel } from "@/services/utils/price";
 
 const ProductContext = createContext(null);
 
@@ -16,6 +15,8 @@ const toSlug = (value) =>
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+
+  const OFFERS_STORAGE_KEY = "mithai-world-admin-offers";
 
 const normalizeCategory = (category) => ({
   _id: category?._id || category?.id || "",
@@ -82,8 +83,11 @@ export const normalizeProduct = (product) => {
 
 const normalizeOrder = (order) => {
   const items = toArray(order?.items);
+  const totals = order?.totals || {};
   const amount = Number(order?.amount || 0);
-  const total = Number(order?.total || 0);
+  const total = Number(totals?.grandTotal ?? order?.total ?? amount);
+  const rawStatus = order?.status || order?.deliveryStatus || "PLACED";
+  const status = String(rawStatus).toUpperCase();
 
   return {
     ...order,
@@ -92,15 +96,37 @@ const normalizeOrder = (order) => {
     items,
     itemCount: order?.itemCount || items.length,
     total: total || (amount > 1000 ? amount / 100 : amount),
-    status: order?.status || (order?.deliveryStatus === "delivered" ? "delivered" : "processing"),
-    deliveryStatus: order?.deliveryStatus || "pending",
+    status,
+    deliveryStatus: String(order?.deliveryStatus || "pending").toLowerCase(),
     deliveryOTP: order?.deliveryOTP || "",
     otpExpiresAt: order?.otpExpiresAt || null,
     deliveryVerified: Boolean(order?.deliveryVerified)
   };
 };
 
-const loadStoredOffers = () => {
+const normalizeOffer = (offer = {}) => {
+  const isActive = offer?.isActive !== undefined
+    ? Boolean(offer.isActive)
+    : offer?.active !== undefined
+      ? Boolean(offer.active)
+      : offer?.is_active !== undefined
+        ? Boolean(offer.is_active)
+        : true;
+
+  return {
+    ...offer,
+    id: offer?._id || offer?.id,
+    isActive,
+    active: isActive,
+    is_active: isActive,
+    offerType: offer?.offerType || offer?.offer_type || "banner",
+    discountPercent: Number(offer?.discountPercent ?? offer?.discount_percentage ?? 0),
+    linked_product_id: offer?.linked_product_id || offer?.targetProduct || "",
+    linked_category_id: offer?.linked_category_id || offer?.targetCategory || ""
+  };
+};
+
+const readLegacyOffers = () => {
   try {
     const raw = localStorage.getItem(OFFERS_STORAGE_KEY);
     if (!raw) {
@@ -108,7 +134,7 @@ const loadStoredOffers = () => {
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeOffer) : [];
   } catch (_error) {
     return [];
   }
@@ -117,25 +143,19 @@ const loadStoredOffers = () => {
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [offers, setOffers] = useState(loadStoredOffers);
+  const [offers, setOffers] = useState([]);
   const [categories, setCategories] = useState([]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(offers));
-    } catch (_error) {
-      // Ignore storage errors.
-    }
-  }, [offers]);
+  const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState("");
 
   const fetchProducts = useCallback(async () => {
     try {
       const data = await api.get("/api/products");
-      const nextProducts = toArray(data?.products || data).map(normalizeProduct);
+      const nextProducts = toArray(data?.products || data?.data?.products || data).map(normalizeProduct);
       setProducts(nextProducts);
       return nextProducts;
     } catch (error) {
-      console.error("❌ Error fetching products:", error);
+      console.error("Error fetching products:", error);
       throw error;
     }
   }, []);
@@ -143,46 +163,232 @@ export function ProductProvider({ children }) {
   const fetchOrders = useCallback(async () => {
     try {
       const data = await api.get("/api/orders");
-      const nextOrders = toArray(data?.orders || data).map(normalizeOrder);
+      const nextOrders = toArray(data?.orders || data?.data?.orders || data).map(normalizeOrder);
       setOrders(nextOrders);
       return nextOrders;
     } catch (error) {
-      console.error("❌ Error fetching orders:", error);
+      console.error("Error fetching orders:", error);
       throw error;
     }
   }, []);
 
   const fetchCategories = useCallback(async () => {
     try {
-      console.log("🔄 Fetching categories from /api/categories...");
       const data = await api.get("/api/categories");
-      console.log("✅ Categories API response:", data);
-      const nextCategories = toArray(data?.categories || data)
+      const nextCategories = toArray(data?.categories || data?.data?.categories || data)
         .map(normalizeCategory)
         .filter((category) => Boolean(category.slug && category.name));
-      console.log("✅ Normalized categories:", nextCategories);
       setCategories(nextCategories);
       return nextCategories;
     } catch (error) {
-      console.error("❌ Error fetching categories:", error);
+      console.error("Error fetching categories:", error);
       setCategories([]);
       throw error;
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    await Promise.all([fetchProducts(), fetchOrders(), fetchCategories()]);
-  }, [fetchProducts, fetchOrders, fetchCategories]);
+  const fetchOffers = useCallback(async () => {
+    try {
+      const data = await api.get("/api/offers");
+      const nextOffers = toArray(data?.offers || data?.data?.offers || data).map(normalizeOffer);
 
+      if (nextOffers.length === 0) {
+        const legacyOffers = readLegacyOffers();
+        const token = localStorage.getItem("token");
+
+        if (legacyOffers.length > 0 && token) {
+          const migratedOffers = [];
+
+          for (const offer of legacyOffers) {
+            const payload = {
+              title: offer.title,
+              description: offer.description,
+              image: offer.image,
+              discount_percentage: Number(offer.discountPercent || offer.discount_percentage || 0),
+              offer_type: offer.offerType || offer.offer_type || "banner",
+              linked_product_id: offer.linked_product_id || offer.targetProduct || "",
+              linked_category_id: offer.linked_category_id || offer.targetCategory || "",
+              priority: Number(offer.priority || 0),
+              isActive: Boolean(offer.isActive ?? offer.active ?? offer.is_active ?? true)
+            };
+
+            const created = await api.post("/api/offers", payload);
+            migratedOffers.push(normalizeOffer(created?.offer || created));
+          }
+
+          localStorage.removeItem(OFFERS_STORAGE_KEY);
+          setOffers(migratedOffers);
+          return migratedOffers;
+        }
+      }
+
+      setOffers(nextOffers);
+      return nextOffers;
+    } catch (error) {
+      console.error("Error fetching offers:", error);
+      setOffers([]);
+      throw error;
+    }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([fetchProducts(), fetchCategories(), fetchOffers()]);
+  }, [fetchProducts, fetchCategories, fetchOffers]);
+
+  /**
+   * IMPORTANT: fetchOrders is NOT called automatically at startup.
+   * Admin data (orders, offers) are protected routes that require authentication.
+   * Fetching them on public pages causes 401 spam.
+   * Admin routes will call fetchOrders explicitly when needed.
+   */
   useEffect(() => {
-    refresh().catch(() => {
-      // Admin components surface fetch failures.
-    });
-  }, [refresh]);
+    let active = true;
+
+    const loadInitialCatalog = async () => {
+      try {
+        setLoading(true);
+        setLoadingError("");
+        await Promise.all([fetchProducts(), fetchCategories()]);
+      } catch (error) {
+        if (active) {
+          setLoadingError(error?.message || "Failed to load catalog");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadInitialCatalog();
+
+    // ✅ SOCKET.IO INTEGRATION: Connect to real-time updates
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    // Listen for product updates from admin
+    const handleProductUpdate = (updatedProduct) => {
+      if (active) {
+        const normalized = normalizeProduct(updatedProduct);
+        setProducts((prev) =>
+          prev.map((p) => ((p._id || p.id) === (normalized._id || normalized.id) ? normalized : p))
+        );
+      }
+    };
+
+    // Listen for new product created
+    const handleProductCreated = (newProduct) => {
+      if (active) {
+        const normalized = normalizeProduct(newProduct);
+        setProducts((prev) => [normalized, ...prev]);
+      }
+    };
+
+    // Listen for product deleted
+    const handleProductDeleted = (productId) => {
+      if (active) {
+        setProducts((prev) => prev.filter((p) => (p._id || p.id) !== productId));
+      }
+    };
+
+    // Listen for stock updates
+    const handleStockUpdate = ({ productId, variantId, newStock }) => {
+      if (active) {
+        setProducts((prev) =>
+          prev.map((product) => {
+            if ((product._id || product.id) !== productId) return product;
+            
+            if (variantId) {
+              // Variant product
+              return {
+                ...product,
+                variants: (product.variants || []).map((v) =>
+                  ((v._id || v.id) === variantId ? { ...v, stock: newStock } : v)
+                )
+              };
+            } else {
+              // Simple product
+              return { ...product, stock: newStock };
+            }
+          })
+        );
+      }
+    };
+
+    // Listen for category updates
+    const handleCategoryUpdate = (updatedCategory) => {
+      if (active) {
+        const normalized = normalizeCategory(updatedCategory);
+        setCategories((prev) =>
+          prev.map((c) => ((c._id || c.id) === (normalized._id || normalized.id) ? normalized : c))
+        );
+      }
+    };
+
+    // Listen for category created
+    const handleCategoryCreated = (newCategory) => {
+      if (active) {
+        const normalized = normalizeCategory(newCategory);
+        setCategories((prev) => [...prev, normalized].sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    };
+
+    // Listen for category deleted
+    const handleCategoryDeleted = (categoryId) => {
+      if (active) {
+        setCategories((prev) => prev.filter((c) => (c._id || c.id) !== categoryId));
+      }
+    };
+
+    // Listen for new order created (admin notification)
+    const handleNewOrder = (newOrder) => {
+      if (active) {
+        const normalized = normalizeOrder(newOrder);
+        setOrders((prev) => [normalized, ...prev]);
+      }
+    };
+
+    // Listen for order status update (admin notification)
+    const handleOrderUpdated = (updatedOrder) => {
+      if (active) {
+        const normalized = normalizeOrder(updatedOrder);
+        setOrders((prev) =>
+          prev.map((o) => ((o._id || o.id) === (normalized._id || normalized.id) ? normalized : o))
+        );
+      }
+    };
+
+    // Attach socket listeners
+    socket.on("product:updated", handleProductUpdate);
+    socket.on("product:created", handleProductCreated);
+    socket.on("product:deleted", handleProductDeleted);
+    socket.on("stock:updated", handleStockUpdate);
+    socket.on("category:updated", handleCategoryUpdate);
+    socket.on("category:created", handleCategoryCreated);
+    socket.on("category:deleted", handleCategoryDeleted);
+    socket.on("newOrder", handleNewOrder);
+    socket.on("order:updated", handleOrderUpdated);
+
+    return () => {
+      active = false;
+      // Clean up socket listeners
+      socket.off("product:updated", handleProductUpdate);
+      socket.off("product:created", handleProductCreated);
+      socket.off("product:deleted", handleProductDeleted);
+      socket.off("stock:updated", handleStockUpdate);
+      socket.off("category:updated", handleCategoryUpdate);
+      socket.off("category:created", handleCategoryCreated);
+      socket.off("category:deleted", handleCategoryDeleted);
+      socket.off("newOrder", handleNewOrder);
+      socket.off("order:updated", handleOrderUpdated);
+    };
+  }, [fetchProducts, fetchCategories]);
 
   useEffect(() => {
     const handleFocus = () => {
       fetchProducts().catch(() => {});
+      fetchCategories().catch(() => {});
     };
 
     window.addEventListener("focus", handleFocus);
@@ -307,30 +513,41 @@ export function ProductProvider({ children }) {
     return true;
   }, []);
 
-  const updateOrder = useCallback(async (orderId, payload) => {
-    const data = await api.put(`/api/orders/${orderId}`, payload);
-    const updatedOrder = normalizeOrder(data?.order || data);
-    setOrders((prev) => prev.map((order) => ((order._id || order.id) === orderId ? updatedOrder : order)));
-    return updatedOrder;
+  const updateOrderState = useCallback((updatedOrder) => {
+    if (!updatedOrder) {
+      return null;
+    }
+
+    const normalized = normalizeOrder(updatedOrder);
+    const updatedId = normalized._id || normalized.id || normalized.orderId;
+    setOrders((prev) =>
+      prev.map((order) => {
+        const orderId = order._id || order.id || order.orderId;
+        return orderId === updatedId ? normalized : order;
+      })
+    );
+    return normalized;
   }, []);
 
-  const markOrderDelivered = useCallback(
-    async (orderId) =>
-      updateOrder(orderId, {
-        status: "delivered",
-        deliveryStatus: "delivered",
-        deliveryVerified: true
-      }),
-    [updateOrder]
-  );
+  const acceptOrder = useCallback(async (orderId, etaMinutes) => {
+    const data = await api.patch(`/api/orders/${orderId}/accept`, { etaMinutes });
+    return updateOrderState(data?.order || data);
+  }, [updateOrderState]);
 
-  const markOrderPaid = useCallback(
-    async (orderId) =>
-      updateOrder(orderId, {
-        paymentStatus: "paid"
-      }),
-    [updateOrder]
-  );
+  const rejectOrder = useCallback(async (orderId, reason) => {
+    const data = await api.patch(`/api/orders/${orderId}/reject`, { reason });
+    return updateOrderState(data?.order || data);
+  }, [updateOrderState]);
+
+  const markOrderReady = useCallback(async (orderId) => {
+    const data = await api.patch(`/api/orders/${orderId}/ready`);
+    return updateOrderState(data?.order || data);
+  }, [updateOrderState]);
+
+  const markOrderDelivered = useCallback(async (orderId) => {
+    const data = await api.patch(`/api/orders/${orderId}/delivered`);
+    return updateOrderState(data?.order || data);
+  }, [updateOrderState]);
 
   const addIncomingOrder = useCallback((incomingOrder) => {
     const normalized = normalizeOrder(incomingOrder);
@@ -362,75 +579,57 @@ export function ProductProvider({ children }) {
   }, []);
 
   const addOffer = useCallback(async (payload) => {
-    const created = {
-      ...payload,
-      _id: `offer_${Date.now().toString(36)}`,
-      id: `offer_${Date.now().toString(36)}`,
-      active: payload?.is_active !== undefined ? Boolean(payload.is_active) : true,
-      isActive: payload?.is_active !== undefined ? Boolean(payload.is_active) : true,
-      offerType: payload?.offer_type || "banner",
-      discountPercent: Number(payload?.discount_percentage || 0),
-      image: payload?.image || "",
-      title: payload?.title || "Offer",
-      description: payload?.description || "",
-      priority: Number(payload?.priority || 0),
-      themeColor: payload?.theme_color
-    };
-
+    console.log("📝 Creating offer with payload:", payload);
+    const data = await api.post("/api/offers", payload);
+    console.log("✅ Create offer response:", data);
+    const created = normalizeOffer(data?.offer || data);
     setOffers((prev) => [created, ...prev]);
     return created;
   }, []);
 
   const updateOffer = useCallback(async (id, payload) => {
-    let updatedOffer = null;
-    setOffers((prev) =>
-      prev.map((offer) => {
-        const offerId = offer._id || offer.id;
-        if (offerId !== id) {
-          return offer;
-        }
-
-        updatedOffer = {
-          ...offer,
-          ...payload,
-          offerType: payload?.offer_type || offer.offerType,
-          discountPercent: payload?.discount_percentage ?? offer.discountPercent,
-          active: payload?.is_active !== undefined ? Boolean(payload.is_active) : offer.active,
-          isActive: payload?.is_active !== undefined ? Boolean(payload.is_active) : offer.isActive,
-          themeColor: payload?.theme_color || offer.themeColor
-        };
-
-        return updatedOffer;
-      })
-    );
-
+    console.log("✏️ Updating offer", id, "with payload:", payload);
+    const data = await api.put(`/api/offers/${id}`, payload);
+    console.log("✅ Update offer response:", data);
+    const updatedOffer = normalizeOffer(data?.offer || data);
+    setOffers((prev) => prev.map((offer) => ((offer._id || offer.id) === id ? updatedOffer : offer)));
     return updatedOffer;
   }, []);
 
   const deleteOffer = useCallback(async (id) => {
+    console.log("🗑️ Deleting offer:", id);
+    await api.delete(`/api/offers/${id}`);
     setOffers((prev) => prev.filter((offer) => (offer._id || offer.id) !== id));
     return true;
   }, []);
 
   const toggleOffer = useCallback(async (id) => {
-    setOffers((prev) =>
-      prev.map((offer) => {
-        const offerId = offer._id || offer.id;
-        if (offerId !== id) {
-          return offer;
-        }
+    const current = offers.find((offer) => (offer._id || offer.id) === id);
+    if (!current) {
+      throw new Error("Offer not found");
+    }
 
-        const nextActive = !(offer.isActive !== undefined ? offer.isActive : offer.active);
-        return {
-          ...offer,
-          active: nextActive,
-          isActive: nextActive
-        };
-      })
+    const nextActive = !Boolean(current.isActive);
+    console.log("🔄 Toggling offer active state:", { id, current: current.isActive, nextActive });
+
+    setOffers((prev) =>
+      prev.map((offer) => ((offer._id || offer.id) === id ? { ...offer, isActive: nextActive, active: nextActive, is_active: nextActive } : offer))
     );
 
-    return true;
-  }, []);
+    try {
+      const data = await api.patch(`/api/offers/${id}/toggle`, { isActive: nextActive });
+      console.log("✅ Toggle offer response:", data);
+      const updatedOffer = normalizeOffer(data?.offer || data);
+      setOffers((prev) => prev.map((offer) => ((offer._id || offer.id) === id ? updatedOffer : offer)));
+      return updatedOffer;
+    } catch (error) {
+      console.error("❌ Offer toggle failed, rolling back:", error);
+      setOffers((prev) =>
+        prev.map((offer) => ((offer._id || offer.id) === id ? { ...offer, isActive: current.isActive, active: current.isActive, is_active: current.isActive } : offer))
+      );
+      throw error;
+    }
+  }, [offers]);
 
   const value = useMemo(
     () => ({
@@ -438,6 +637,8 @@ export function ProductProvider({ children }) {
       orders,
       offers,
       categories,
+      loading,
+      loadingError,
       fetchCategories,
       fetchProducts,
       fetchOrders,
@@ -450,8 +651,10 @@ export function ProductProvider({ children }) {
       addProduct,
       updateProduct,
       deleteProduct,
+      acceptOrder,
+      rejectOrder,
+      markOrderReady,
       markOrderDelivered,
-      markOrderPaid,
       addIncomingOrder,
       addOffer,
       updateOffer,
@@ -463,6 +666,8 @@ export function ProductProvider({ children }) {
       orders,
       offers,
       categories,
+      loading,
+      loadingError,
       fetchCategories,
       fetchProducts,
       fetchOrders,
@@ -475,8 +680,10 @@ export function ProductProvider({ children }) {
       addProduct,
       updateProduct,
       deleteProduct,
+      acceptOrder,
+      rejectOrder,
+      markOrderReady,
       markOrderDelivered,
-      markOrderPaid,
       addIncomingOrder,
       addOffer,
       updateOffer,

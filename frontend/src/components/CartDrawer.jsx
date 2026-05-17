@@ -3,23 +3,23 @@ import { createPortal } from "react-dom";
 import { X, ShoppingBag, ArrowRight, ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import CartItem from "./CartItem";
-import { formatPrice } from "../utils/priceCalculator";
+import { calculateCartTotals, amountForFreeDelivery } from "../utils/pricingUtils";
+import { formatPrice } from "../services/utils/priceCalculator";
+import { useNavigate } from "react-router-dom";
 
-function CartDrawer({ setPage }) {
+function CartDrawer() {
   const { cart, isCartOpen, closeCart } = useCart();
+  const navigate = useNavigate();
 
-  const cartTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + (Number(item?.price) || 0) * (Number(item.quantity) || 0), 0),
-    [cart]
-  );
+  // Use centralized pricing utility
+  const { subtotal, deliveryFee, gst, total: grandTotal } = calculateCartTotals(cart);
 
   const cartCount = useMemo(
     () => cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
     [cart]
   );
 
-  const delivery = cartTotal >= 999 ? 0 : 79;
-  const grandTotal = cartTotal + delivery;
+  const amountNeeded = amountForFreeDelivery(subtotal);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -51,8 +51,8 @@ function CartDrawer({ setPage }) {
 
   const handleCheckout = useCallback(() => {
     closeCart();
-    setPage?.("checkout");
-  }, [closeCart, setPage]);
+    navigate("/checkout");
+  }, [closeCart, navigate]);
 
   return createPortal(
     <>
@@ -128,19 +128,23 @@ function CartDrawer({ setPage }) {
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between text-[#876b51]">
                 <span>Subtotal</span>
-                <span className="font-medium text-[#4b3324]">{formatPrice(cartTotal)}</span>
+                <span className="font-medium text-[#4b3324]">{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between text-[#876b51]">
                 <span>Delivery</span>
-                {delivery === 0 ? (
+                {deliveryFee === 0 ? (
                   <span className="text-emerald-600 font-semibold">FREE</span>
                 ) : (
-                  <span className="font-medium text-[#4b3324]">{formatPrice(delivery)}</span>
+                  <span className="font-medium text-[#4b3324]">{formatPrice(deliveryFee)}</span>
                 )}
               </div>
-              {delivery > 0 && (
+              <div className="flex justify-between text-[#876b51]">
+                <span>GST (5%)</span>
+                <span className="font-medium text-[#4b3324]">{formatPrice(gst)}</span>
+              </div>
+              {deliveryFee > 0 && amountNeeded > 0 && (
                 <p className="text-[11px] text-[#9a8064]">
-                  Add {formatPrice(999 - cartTotal)} more for free delivery
+                  Add {formatPrice(amountNeeded)} more for free delivery
                 </p>
               )}
             </div>
