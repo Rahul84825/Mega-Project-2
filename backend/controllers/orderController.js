@@ -90,7 +90,10 @@ export const placeOrder = async (req, res) => {
           {
             orderId,
             orderNumber,
-            customer: orderData.customer,
+            customer: {
+              ...orderData.customer,
+              userId: req.user?.userId || orderData.customer?.userId || null
+            },
             shippingAddress: orderData.shippingAddress,
             items: itemSnapshots,
             payment: {
@@ -185,7 +188,22 @@ export const placeOrder = async (req, res) => {
 export const getMyOrders = async (req, res) => {
   try {
     const { userId } = req.user;
-    const orders = await Order.find({ "customer.userId": userId }).sort({ createdAt: -1 });
+    
+    // Fetch the user to get their email (in case userId was missing in previous orders)
+    const user = await mongoose.model("User").findById(userId);
+    const email = user?.email;
+
+    const query = {
+      $or: [
+        { "customer.userId": userId }
+      ]
+    };
+
+    if (email) {
+      query.$or.push({ "customer.email": email });
+    }
+
+    const orders = await Order.find(query).sort({ createdAt: -1 });
     return res.status(200).json({ success: true, orders: sanitizeOrders(orders) });
   } catch (error) {
     logger.error("Failed to fetch my orders", { error: error.message });

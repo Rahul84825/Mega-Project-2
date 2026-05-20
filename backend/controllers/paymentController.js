@@ -349,7 +349,7 @@ export const verifyPayment = async (req, res) => {
       orderId,
       orderNumber: `RZP-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       customer: {
-        userId: null,
+        userId: orderData?.customer?.userId || req.user?.userId || null,
         name: orderData?.customer?.name || "Guest",
         email: orderData?.customer?.email || "",
         phone: orderData?.customer?.phone || ""
