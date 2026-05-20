@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, UploadCloud, AlertCircle, CheckCircle2, X, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, UploadCloud, AlertCircle, CheckCircle2, X, Plus, Trash2, Sparkles } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import api from "../services/api";
 import { formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
