@@ -326,6 +326,7 @@ export function ProductProvider({ children }) {
       toggleCategoryFeatured,
       acceptOrder,
       rejectOrder,
+      verifyPickupOtp,
       markOrderReady,
       markOrderDelivered,
       addOffer,
@@ -339,7 +340,7 @@ export function ProductProvider({ children }) {
       fetchCategories, fetchProducts, fetchOrders, fetchOffers, refreshAll,
       addProduct, updateProduct, deleteProduct,
       addCategory, updateCategory, deleteCategory, toggleCategory, toggleCategoryFeatured,
-      acceptOrder, rejectOrder, markOrderReady, markOrderDelivered,
+      acceptOrder, rejectOrder, verifyPickupOtp, markOrderReady, markOrderDelivered,
       addOffer, updateOffer, deleteOffer, toggleOffer, updateOrderState
     ]
   );

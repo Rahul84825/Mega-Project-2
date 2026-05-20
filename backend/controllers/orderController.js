@@ -39,7 +39,9 @@ const sanitizeOrders = (orders) => orders.map((order) => sanitizeOrder(order));
 const emitOrderEvent = (event, payload) => {
   const io = getIo();
   if (io) {
-    io.emit(event, payload);
+    // Standardize to order:new for placement and order:updated for all state changes
+    const mappedEvent = (event === "orderPlaced" || event === "order:new") ? "order:new" : "order:updated";
+    io.emit(mappedEvent, payload);
   }
 };
 

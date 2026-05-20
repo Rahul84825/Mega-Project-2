@@ -74,7 +74,7 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
         await order.save();
         
         const io = getIo();
-        if (io) io.emit("orderUpdated", order); // Also matches standard order events
+        if (io) io.emit("order:updated", order); // Matches frontend listener name
         
         logger.info(`✅ Order ${order.orderNumber} is now READY. Waiting for rider.`);
       }
