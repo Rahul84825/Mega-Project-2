@@ -31,7 +31,7 @@ export const assignDeliveryPartner = async (orderId) => {
     const assignedRider = mockRiderProfiles[Math.floor(Math.random() * mockRiderProfiles.length)];
 
     order.delivery = {
-      ...order.delivery,
+      ...(order.delivery || {}),
       provider: "Shadowfax Mock",
       providerOrderId: `SFX-${Date.now()}`,
       trackingId: `TRK-${Math.floor(Math.random() * 1000000)}`,
