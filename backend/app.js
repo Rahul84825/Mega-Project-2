@@ -13,6 +13,7 @@ import heroSlideRoutes from "./routes/heroSlideRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import debugRoutes from "./routes/debugRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import newsletterRoutes from "./routes/newsletterRoutes.js";
 import User from "./models/User.js";
 import { adminOnly, protect } from "./middleware/authMiddleware.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
@@ -215,6 +216,9 @@ app.use("/api/hero-slides", heroSlideRoutes);
 
 // Contact routes
 app.use("/api/contact", contactRoutes);
+
+// Newsletter routes
+app.use("/api/newsletter", newsletterRoutes);
 
 // Upload routes (strict for file security)
 app.use("/api/upload", rateLimit({

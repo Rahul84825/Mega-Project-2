@@ -1,7 +1,31 @@
-import { Mail, Gift, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Mail, Gift, ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
 import SectionContainer from "./home/SectionContainer";
+import api from "../services/api";
 
 const Newsletter = () => {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setLoading(true);
+    try {
+      const { data } = await api.post("/api/newsletter/subscribe", { email });
+      if (data.success) {
+        toast.success(data.message || "Welcome to the Festive Club! 🍬");
+        setEmail("");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="py-20 bg-[var(--charcoal)] text-white relative overflow-hidden">
       {/* Background patterns */}
@@ -21,17 +45,27 @@ const Newsletter = () => {
             Subscribe to our newsletter and be the first to know about seasonal launches, festive gift boxes, and exclusive member-only offers.
           </p>
 
-          <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto" onSubmit={handleSubscribe}>
             <div className="flex-1 relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
               <input 
                 type="email" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address" 
                 className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm focus:outline-none focus:border-[var(--saffron)] transition-colors placeholder:text-white/30"
               />
             </div>
-            <button className="h-14 px-8 rounded-2xl bg-[var(--saffron)] text-[var(--charcoal)] font-bold text-xs uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 group">
-              Subscribe <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <button 
+              disabled={loading}
+              className="h-14 px-8 rounded-2xl bg-[var(--saffron)] text-[var(--charcoal)] font-bold text-xs uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : (
+                <>
+                  Subscribe <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
           </form>
           
