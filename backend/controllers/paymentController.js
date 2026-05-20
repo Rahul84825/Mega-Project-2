@@ -11,6 +11,7 @@ import { InventoryError, reserveStock } from "../services/inventoryService.js";
 import {
   sendPaymentSuccessEmail,
   sendPaymentFailedEmail,
+  sendOrderPlacedEmail,
   sendAdminNewOrderAlert
 } from "../services/emailService.js";
 
@@ -192,12 +193,6 @@ export const verifyPayment = async (req, res) => {
 
     // Verify signature
     const verificationString = `${razorpay_order_id}|${razorpay_payment_id}`;
-    logger.info("🔐 CALCULATING HMAC SIGNATURE", {
-      verificationString: verificationString,
-      keySecretLength: process.env.RAZORPAY_KEY_SECRET?.length || 0,
-      keySecretExists: !!process.env.RAZORPAY_KEY_SECRET
-    });
-
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
       .update(verificationString)
@@ -205,19 +200,10 @@ export const verifyPayment = async (req, res) => {
 
     const signatureMatches = expectedSignature === razorpay_signature;
     
-    logger.info("🔐 SIGNATURE VERIFICATION RESULT", {
-      received: razorpay_signature,
-      expected: expectedSignature,
-      matches: signatureMatches,
-      receivedLength: razorpay_signature.length,
-      expectedLength: expectedSignature.length
-    });
-
     if (!signatureMatches) {
-      logger.error("❌ SIGNATURE VERIFICATION FAILED - MISMATCH DETECTED", {
+      logger.error("❌ SIGNATURE VERIFICATION FAILED", {
         received: razorpay_signature,
         expected: expectedSignature,
-        verificationString: verificationString,
         orderId: razorpay_order_id,
         paymentId: razorpay_payment_id
       });
@@ -240,24 +226,14 @@ export const verifyPayment = async (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message: "Invalid payment signature - verification failed",
-        details: {
-          reason: "Signature mismatch",
-          received: razorpay_signature,
-          expected: expectedSignature
-        }
+        message: "Invalid payment signature",
+        details: { reason: "Signature mismatch" }
       });
     }
 
-    logger.info("✅ SIGNATURE VERIFIED SUCCESSFULLY");
-
-    // Check if payment already processed
-    const existingOrder = await Order.findOne({ razorpayPaymentId: razorpay_payment_id });
+    // Check if payment already processed (using correct nested field path)
+    const existingOrder = await Order.findOne({ "payment.razorpayPaymentId": razorpay_payment_id });
     if (existingOrder) {
-      logger.warn("⚠️ PAYMENT ALREADY PROCESSED", { 
-        existingOrderId: existingOrder._id,
-        razorpayPaymentId: razorpay_payment_id
-      });
       return res.status(409).json({
         success: false,
         message: "Payment already processed",
@@ -266,137 +242,98 @@ export const verifyPayment = async (req, res) => {
     }
 
     // Fetch and validate Razorpay order
-    logger.info("🔍 FETCHING RAZORPAY ORDER DETAILS", { razorpayOrderId: razorpay_order_id });
-    
     const razorpay = getRazorpayClient();
     let razorpayOrder;
     try {
       razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
-      logger.info("✅ RAZORPAY ORDER FETCHED", { 
-        orderId: razorpayOrder.id,
-        status: razorpayOrder.status,
-        amount: razorpayOrder.amount
-      });
     } catch (razorpayFetchError) {
       logger.error("❌ FAILED TO FETCH RAZORPAY ORDER", {
         razorpayOrderId: razorpay_order_id,
-        error: razorpayFetchError.message,
-        status: razorpayFetchError.statusCode
+        error: razorpayFetchError.message
       });
       return res.status(400).json({
         success: false,
-        message: "Unable to validate Razorpay order",
-        details: razorpayFetchError.message
+        message: "Unable to validate Razorpay order"
       });
     }
 
     if (!razorpayOrder || razorpayOrder.id !== razorpay_order_id) {
-      logger.error("❌ RAZORPAY ORDER VALIDATION FAILED", { 
-        expectedId: razorpay_order_id,
-        receivedId: razorpayOrder?.id
-      });
       return res.status(400).json({
         success: false,
-        message: "Unable to validate Razorpay order",
-        details: {
-          expectedId: razorpay_order_id,
-          receivedId: razorpayOrder?.id
-        }
+        message: "Razorpay order validation failed"
       });
     }
 
-    // ✅ USE UNIFIED RESERVESTOCK SERVICE - This handles:
-    // - Stock validation for all items
-    // - Stock reduction (both variants and simple products)
-    // - Inventory logging
-    // - Transaction safety via session
-    logger.info("📦 STARTING TRANSACTION FOR STOCK RESERVATION", {
-      itemCount: Array.isArray(orderData?.items) ? orderData.items.length : 0
-    });
-
-    let itemSnapshots, totals;
+    let createdOrder;
+    // Execute stock reservation AND order creation inside the same transaction
     await session.withTransaction(async () => {
       try {
-        const reserveResult = await reserveStock({
+        const { itemSnapshots, totals } = await reserveStock({
           items: orderData?.items || [],
           session,
-          orderNumber: `RZP-${Date.now()}`, // Temporary order number for Razorpay
+          orderNumber: `RZP-${Date.now()}`,
           reason: "Razorpay payment verified",
           discountTotal: orderData?.totals?.discountTotal || 0,
           shippingFee: orderData?.totals?.shippingFee || 0,
           roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
         });
-        itemSnapshots = reserveResult.itemSnapshots;
-        totals = reserveResult.totals;
-        logger.info("✅ STOCK RESERVED SUCCESSFULLY", {
-          itemCount: itemSnapshots.length,
-          grandTotal: totals.grandTotal
-        });
-      } catch (inventoryErr) {
-        if (inventoryErr instanceof InventoryError) {
-          throw inventoryErr;
-        }
-        throw new InventoryError(inventoryErr.message, 500, "INVENTORY_SERVICE_ERROR");
+
+        // Create order in database within the transaction
+        const [orderDoc] = await Order.create([{
+          orderId: generateOrderId(),
+          orderNumber: `ORD-RZP-${Date.now().toString(36).toUpperCase()}`,
+          customer: {
+            userId: orderData?.customer?.userId || req.user?.userId || null,
+            name: orderData?.customer?.name || "Guest",
+            email: orderData?.customer?.email || "",
+            phone: orderData?.customer?.phone || ""
+          },
+          shippingAddress: {
+            line1: orderData?.shippingAddress?.line1 || orderData?.customer?.address || "",
+            city: orderData?.shippingAddress?.city || orderData?.customer?.city || "",
+            state: orderData?.shippingAddress?.state || orderData?.customer?.state || "Maharashtra",
+            postalCode: orderData?.shippingAddress?.pincode || orderData?.customer?.pincode || "",
+            country: "IN"
+          },
+          items: itemSnapshots,
+          payment: {
+            method: "RAZORPAY",
+            status: "PAID",
+            gateway: "razorpay",
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: razorpay_signature,
+            paidAt: new Date()
+          },
+          status: "PLACED",
+          statusTimestamps: {
+            placedAt: new Date()
+          },
+          totals: {
+            ...totals,
+            currency: razorpayOrder.currency || "INR"
+          },
+          metadata: {
+            razorpayOrderStatus: razorpayOrder.status,
+            ...orderData?.metadata
+          }
+        }], { session });
+
+        createdOrder = orderDoc;
+      } catch (err) {
+        logger.error("❌ TRANSACTION FAILED", { error: err.message });
+        throw err;
       }
     });
 
-    // Generate internal order ID
-    const orderId = generateOrderId();
-    logger.info("🆔 INTERNAL ORDER ID GENERATED", { orderId });
+    if (!createdOrder) {
+      throw new Error("Order creation failed during transaction");
+    }
 
-    // Create order in database (outside transaction since stock already reduced in transaction)
-    const createdOrder = await Order.create({
-      orderId,
-      orderNumber: `RZP-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-      customer: {
-        userId: orderData?.customer?.userId || req.user?.userId || null,
-        name: orderData?.customer?.name || "Guest",
-        email: orderData?.customer?.email || "",
-        phone: orderData?.customer?.phone || ""
-      },
-      shippingAddress: {
-        line1: orderData?.customer?.address || "",
-        city: orderData?.customer?.city || "",
-        state: orderData?.customer?.state || "Maharashtra",
-        postalCode: orderData?.customer?.pincode || "",
-        country: "IN"
-      },
-      items: itemSnapshots,
-      payment: {
-        method: "RAZORPAY",
-        status: "PAID",
-        gateway: "razorpay",
-        razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
-        paidAt: new Date()
-      },
-      status: "PLACED",
-      statusTimestamps: {
-        placedAt: new Date()
-      },
-      totals: {
-        ...totals,
-        currency: razorpayOrder.currency || "INR"
-      },
-      metadata: {
-        razorpayOrderStatus: razorpayOrder.status,
-        ...orderData?.metadata
-      }
-    });
-
-    logger.info("✅ ORDER CREATED IN DATABASE", { 
-      orderId: createdOrder.orderId,
-      mongoId: createdOrder._id,
-      orderNumber: createdOrder.orderNumber,
-      razorpayOrderId: razorpay_order_id
-    });
-
-    // Emit socket event
+    // Emit socket event (Standardized)
     const io = getIo();
     if (io) {
-      io.emit("newOrder", createdOrder.toObject());
-      logger.info("📡 SOCKET.IO EVENT EMITTED - newOrder", { orderId: createdOrder._id });
+      io.emit("order:new", createdOrder.toObject());
     }
 
     // Send emails asynchronously
@@ -404,38 +341,17 @@ export const verifyPayment = async (req, res) => {
     sendOrderPlacedEmail(createdOrder).catch(err => logger.error("Failed to send order placed email", err));
     sendAdminNewOrderAlert(createdOrder).catch(err => logger.error("Failed to send admin alert email", err));
 
-    logger.info("✅ PAYMENT VERIFICATION COMPLETE - SUCCESS", {
-      orderId: createdOrder.orderId,
-      mongoId: createdOrder._id,
-      razorpayOrderId: razorpay_order_id,
-      totalAmount: createdOrder.totals?.grandTotal,
-      itemCount: createdOrder.items?.length,
-      timestamp: new Date().toISOString()
-    });
-
     return res.status(200).json({
       success: true,
       message: "Payment verified and order created successfully",
       order: createdOrder
     });
   } catch (error) {
-    logger.error("❌ PAYMENT VERIFICATION FAILED - EXCEPTION", {
+    logger.error("❌ PAYMENT VERIFICATION FAILED", {
       errorMessage: error.message,
-      errorStack: error.stack,
-      errorName: error.name,
-      errorCode: error.code,
-      isInventoryError: error instanceof InventoryError,
-      mongooseValidationErrors: error.errors,
-      receivedPayload: {
-        razorpayOrderId: req.body?.razorpay_order_id,
-        razorpayPaymentId: req.body?.razorpay_payment_id,
-        hasSignature: !!req.body?.razorpay_signature,
-        hasOrderData: !!req.body?.orderData
-      },
-      timestamp: new Date().toISOString()
+      errorCode: error.code
     });
 
-    // Handle inventory errors with proper HTTP status
     if (error instanceof InventoryError) {
       return res.status(error.status || 400).json({
         success: false,
@@ -444,18 +360,13 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // Return detailed error for debugging
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to verify payment",
-      errorCode: error.code,
-      errorName: error.name,
-      details: error.errors || error.message
+      message: error.message || "Failed to verify payment"
     });
   } finally {
     if (session) {
       await session.endSession();
-      logger.info("🔐 DATABASE SESSION CLOSED", { timestamp: new Date().toISOString() });
     }
   }
 };
