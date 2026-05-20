@@ -453,8 +453,15 @@ export const updateProduct = async (req, res, next) => {
       payload.category = linkedCategory.slug;
     }
 
-    if (payload.isHero === true) {
-      await Product.updateMany({ _id: { $ne: id } }, { isHero: false });
+    if (payload.isHero !== undefined) {
+      payload.isHero = Boolean(payload.isHero);
+      if (payload.isHero === true) {
+        await Product.updateMany({ _id: { $ne: id } }, { isHero: false });
+      }
+    }
+
+    if (payload.isSignature !== undefined) {
+      payload.isSignature = Boolean(payload.isSignature);
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, payload, {

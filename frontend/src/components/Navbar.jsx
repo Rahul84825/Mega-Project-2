@@ -153,10 +153,6 @@ function Navbar() {
               </div>
             </div>
 
-            <button className="hidden sm:flex p-3 text-[var(--charcoal)] hover:bg-white hover:text-[var(--burgundy)] hover:shadow-lg rounded-2xl transition-all active:scale-95">
-              <Heart size={22} />
-            </button>
-
             <button 
               onClick={toggleCart} 
               className="relative p-3 text-[var(--charcoal)] hover:bg-white hover:text-[var(--burgundy)] hover:shadow-lg rounded-2xl transition-all active:scale-95"
@@ -206,9 +202,6 @@ function Navbar() {
                     )}
                     <button onClick={() => handleNav("/my-orders")} className="w-full flex items-center gap-4 px-4 py-3 text-xs font-bold text-gray-600 hover:bg-[var(--cream)] hover:text-[var(--burgundy)] rounded-2xl transition-all">
                       <Package size={18} className="text-[var(--gold)]" /> My Orders
-                    </button>
-                    <button className="w-full flex items-center gap-4 px-4 py-3 text-xs font-bold text-gray-600 hover:bg-[var(--cream)] hover:text-[var(--burgundy)] rounded-2xl transition-all">
-                      <Heart size={18} className="text-[var(--gold)]" /> Wishlist
                     </button>
                   </div>
                   
