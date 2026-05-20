@@ -261,7 +261,7 @@ function App() {
               <Route path="categories" element={<AdminCategories />} />
               <Route path="offers" element={<AdminOffers />} />
               <Route path="hero-banners" element={<AdminHeroBannerManager />} />
-              <Route path="brands" element={<Navigate to="/admin/sweets" replace />} />
+              <Route path="brands" element={<Navigate to="/admin/products" replace />} />
             </Route>
 
             {/* ═══════════════════════════════════════════ */}

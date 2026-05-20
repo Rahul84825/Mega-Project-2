@@ -10,7 +10,7 @@ import brandLogo from "../assets/image.png";
 const NAV_ITEMS = [
   { to: "/admin",            label: "Dashboard",   icon: LayoutDashboard, end: true },
   { to: "/admin/orders",     label: "Orders",      icon: ShoppingBag },
-  { to: "/admin/sweets",   label: "Products",    icon: Package,     end: true },
+  { to: "/admin/products",    label: "Products",    icon: Package,     end: true },
   { to: "/admin/add-product", label: "Add Product", icon: PlusCircle },
   { to: "/admin/categories", label: "Categories",  icon: Tag },
   { to: "/admin/offers",     label: "Offers & Deals", icon: Percent },
