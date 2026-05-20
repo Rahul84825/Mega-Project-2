@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
+import Razorpay from "razorpay";
 import Order, { ORDER_STATUSES } from "../models/Order.js";
 import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
@@ -15,6 +16,13 @@ import {
   sendOrderDeliveredEmail,
   sendOrderRejectedEmail
   } from "../services/emailService.js";
+
+const getRazorpayClient = () => {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) return null;
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
+};
 
 
 const isValidOrderPayload = (orderData) => {
@@ -313,6 +321,38 @@ export const rejectOrder = async (req, res) => {
     }
 
     await session.withTransaction(async () => {
+      // ── REFUND LOGIC ──
+      // If payment was already made via Razorpay, trigger an automatic refund
+      if (order.payment?.method === "RAZORPAY" && order.payment?.status === "PAID" && order.payment?.razorpayPaymentId) {
+        const razorpay = getRazorpayClient();
+        if (razorpay) {
+          try {
+            const refund = await razorpay.payments.refund(order.payment.razorpayPaymentId, {
+              amount: Math.round(order.totals.grandTotal * 100), // Paise
+              notes: {
+                reason: rejectionReason || "Order rejected by admin",
+                orderNumber: order.orderNumber
+              }
+            });
+            
+            logger.info(`💰 REFUND_INITIATED`, { 
+              orderNumber: order.orderNumber, 
+              paymentId: order.payment.razorpayPaymentId,
+              refundId: refund.id 
+            });
+
+            order.payment.status = "REFUNDED";
+            order.payment.refundId = refund.id;
+          } catch (refundError) {
+            logger.error(`❌ REFUND_FAILED`, { 
+              orderNumber: order.orderNumber, 
+              error: refundError.message 
+            });
+            // We still proceed with rejection, but log the failure for manual intervention
+          }
+        }
+      }
+
       order.status = "REJECTED";
       order.statusTimestamps.rejectedAt = new Date();
       order.rejectionReason = rejectionReason;

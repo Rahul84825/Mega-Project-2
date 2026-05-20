@@ -89,12 +89,12 @@ function PaymentSuccessPage() {
               <div className="flex gap-3">
                 <MapPin size={16} className="text-[var(--muted)] shrink-0" />
                 <div className="text-sm font-medium text-[var(--charcoal)]">
-                  {order.shippingAddress?.line1}, {order.shippingAddress?.city}, {order.shippingAddress?.postalCode}
+                  {order.shippingAddress?.line1 || "No Address Provided"}, {order.shippingAddress?.city || ""}, {order.shippingAddress?.postalCode || ""}
                 </div>
               </div>
               <div className="flex gap-3 text-sm">
                 <Phone size={16} className="text-[var(--muted)] shrink-0" />
-                <div className="font-medium text-[var(--charcoal)]">{order.customer?.phone}</div>
+                <div className="font-medium text-[var(--charcoal)]">{order.customer?.phone || "No Phone"}</div>
               </div>
             </div>
           </div>
@@ -104,16 +104,16 @@ function PaymentSuccessPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm font-medium text-[var(--muted)]">
                 <span>Subtotal</span>
-                <span>{formatCurrency(order.subtotal)}</span>
+                <span>{formatCurrency(order.totals?.itemsSubtotal || order.subtotal || 0)}</span>
               </div>
               <div className="flex justify-between text-sm font-medium text-[var(--muted)]">
                 <span>Delivery</span>
-                <span>{order.deliveryFee > 0 ? formatCurrency(order.deliveryFee) : 'FREE'}</span>
+                <span>{(order.totals?.shippingFee || order.deliveryFee) > 0 ? formatCurrency(order.totals?.shippingFee || order.deliveryFee) : 'FREE'}</span>
               </div>
               <div className="h-px bg-[var(--surface-border)] my-2" />
               <div className="flex justify-between text-lg font-medium text-[var(--charcoal)]">
                 <span>Total</span>
-                <span className="text-[var(--burgundy)]">{formatCurrency(order.total)}</span>
+                <span className="text-[var(--burgundy)]">{formatCurrency(order.totals?.grandTotal || order.total || 0)}</span>
               </div>
               <p className="text-[9px] text-[var(--muted)] italic mt-2">{TAX_MESSAGE}</p>
             </div>
