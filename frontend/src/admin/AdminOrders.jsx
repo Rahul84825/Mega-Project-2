@@ -8,6 +8,7 @@ import OrderTabs from "./orders/OrderTabs";
 import RejectReasonModal from "./orders/RejectReasonModal";
 import AcceptOrderModal from "./orders/AcceptOrderModal";
 import VerifyPickupModal from "./orders/VerifyPickupModal";
+import OrderDetailsModal from "./orders/OrderDetailsModal";
 import { ORDER_TABS, resolveStatus } from "./orders/orderUtils";
 
 const AdminOrders = () => {
@@ -32,6 +33,10 @@ const AdminOrders = () => {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  const selectedOrder = useMemo(() => 
+    (orders || []).find(o => o._id === selectedId),
+  [orders, selectedId]);
 
   const tabCounts = useMemo(() => {
     const counts = Object.fromEntries(ORDER_TABS.map((tab) => [tab.id, 0]));
@@ -151,6 +156,15 @@ const AdminOrders = () => {
           ))
         )}
       </div>
+
+      <OrderDetailsModal
+        open={!!selectedId}
+        order={selectedOrder}
+        onClose={() => setSelectedId(null)}
+        onVerifyPickup={(o) => setVerifyModal({ open: true, order: o })}
+        onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
+        onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
+      />
 
       <AcceptOrderModal
         open={acceptModal.open}
