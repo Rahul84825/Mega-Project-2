@@ -88,6 +88,10 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    isSignature: {
+      type: Boolean,
+      default: false
+    },
     brand: {
       type: String,
       trim: true,

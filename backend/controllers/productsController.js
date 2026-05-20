@@ -217,7 +217,8 @@ export const createProduct = async (req, res, next) => {
       tags,
       variants,
       gstPercent,
-      isHero
+      isHero,
+      isSignature
     } = req.body || {};
 
     if (!name || !category) {
@@ -293,7 +294,8 @@ export const createProduct = async (req, res, next) => {
       brand: brand || "",
       tags: Array.isArray(tags) ? tags.filter(Boolean) : [],
       variants: normalizedVariants,
-      isHero: Boolean(isHero)
+      isHero: Boolean(isHero),
+      isSignature: Boolean(isSignature)
     });
 
     if (product.isHero) {

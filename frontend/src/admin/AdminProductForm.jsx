@@ -14,6 +14,7 @@ const EMPTY_FORM_BASE = {
   brand: "",
   tags: "",
   gstPercent: "0",
+  isSignature: false,
   variants: []
 };
 const MAX_VARIANT_PRICE = 10000000;
@@ -65,6 +66,7 @@ const AdminProductForm = () => {
         brand: productFromState.brand || "",
         tags: (productFromState.tags || []).join(", "),
         gstPercent: String(productFromState.gstPercent || "0"),
+        isSignature: Boolean(productFromState.isSignature),
         variants: (productFromState.variants || []).map(v => ({
           id: v._id || v.id,
           label: v.label || "",
@@ -287,6 +289,22 @@ const AdminProductForm = () => {
             <h3 className="serif text-xl text-[var(--saffron)]">Publish</h3>
             <p className="text-xs text-white/60">Ensure all details are correct. Products are visible to customers immediately after publishing.</p>
             
+            {/* Signature Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-[var(--saffron)] transition-colors cursor-pointer" onClick={() => set("isSignature", !form.isSignature)}>
+              <div className="flex items-center gap-3">
+                <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${form.isSignature ? 'bg-[var(--saffron)] text-[var(--charcoal)]' : 'bg-white/10 text-white/40'}`}>
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest leading-none mb-1">Signature Sweet</p>
+                  <p className="text-[9px] text-white/40 uppercase tracking-tighter">Feature on homepage</p>
+                </div>
+              </div>
+              <div className={`w-10 h-5 rounded-full relative transition-colors ${form.isSignature ? 'bg-green-500' : 'bg-white/20'}`}>
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.isSignature ? 'left-6' : 'left-1'}`} />
+              </div>
+            </div>
+
             <button 
               disabled={submitting || saved}
               onClick={handleSubmit}

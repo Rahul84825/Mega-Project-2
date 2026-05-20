@@ -12,11 +12,7 @@ const SignatureSweets = () => {
   const products = Array.isArray(contextProducts) ? contextProducts : [];
 
   const sweets = useMemo(() => {
-    // Attempt to filter by common category names for sweets
-    return products.filter(p => {
-      const cat = String(p.category || p.categorySlug || "").toLowerCase();
-      return cat.includes("sweet") || cat.includes("mithai");
-    }).slice(0, 4);
+    return products.filter(p => p.isSignature).slice(0, 4);
   }, [products]);
 
   if (!loading && sweets.length === 0) return null;
