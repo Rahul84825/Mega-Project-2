@@ -7,7 +7,28 @@ import { calculateTotals, formatCurrency, TAX_MESSAGE } from "../utils/priceCalc
 import api, { getApiErrorMessage } from "../services/api";
 
 let razorpayScriptPromise;
-// ... (loadRazorpayScript unchanged)
+
+const loadRazorpayScript = () => {
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+
+  razorpayScriptPromise = new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      razorpayScriptPromise = null;
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+
+  return razorpayScriptPromise;
+};
 
 function CheckoutPage() {
   const { cart, dispatch } = useCart();
