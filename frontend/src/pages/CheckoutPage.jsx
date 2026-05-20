@@ -41,7 +41,9 @@ function CheckoutPage() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const isAddressValid = ["name", "phone", "email", "address", "city", "pincode", "state"].every(k => String(form[k] || "").trim().length > 0);
+  const isAddressValid = ["name", "phone", "email", "address", "city", "pincode", "state"].every(k => String(form[k] || "").trim().length > 0) &&
+    /^\d{6}$/.test(form.pincode) &&
+    /^\d{10}$/.test(form.phone.replace(/\D/g, ""));
 
   const validateStock = () => {
     for (const item of cart) {

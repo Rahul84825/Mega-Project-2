@@ -163,7 +163,7 @@ const AdminProductForm = () => {
 
       setSaved(true);
       await fetchProducts();
-      setTimeout(() => navigate("/admin/sweets"), 1500);
+      setTimeout(() => navigate("/admin/products"), 1500);
     } catch (err) {
       setErrors({ submit: err.message });
     } finally {
@@ -174,7 +174,7 @@ const AdminProductForm = () => {
   return (
     <div className="max-w-4xl mx-auto page-enter pb-20">
       <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => navigate("/admin/sweets")} className="p-2 hover:bg-[var(--surface-strong)] rounded-full transition-colors"><ArrowLeft size={20} /></button>
+        <button onClick={() => navigate("/admin/products")} className="p-2 hover:bg-[var(--surface-strong)] rounded-full transition-colors"><ArrowLeft size={20} /></button>
         <div className="section-title mb-0">
           <h2 className="serif">{isEditMode ? "Edit Mithai" : "Add New Mithai"}</h2>
         </div>

@@ -24,9 +24,9 @@ const calculateSellingPrice = (mrp, discountPercent) => {
 };
 
 const calculateFinalPrice = (sellingPrice, gstPercent) => {
-  const safePrice = Math.max(0, Math.round(normalizeNumber(sellingPrice, 0)));
-  const safeGst = clampPercent(gstPercent);
-  return Math.max(0, Math.round(safePrice + (safePrice * safeGst) / 100));
+  // BUSINESS RULE: GST is already included in admin product pricing.
+  // DO NOT double-add GST anywhere.
+  return Math.max(0, Math.round(normalizeNumber(sellingPrice, 0)));
 };
 
 const resolveDiscountPercent = (variant, mrp, sellingPriceFallback) => {

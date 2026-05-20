@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Sparkles, Filter, LayoutGrid, List } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Sparkles, Filter } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency } from "../utils/priceCalculator";
