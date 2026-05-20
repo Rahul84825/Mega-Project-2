@@ -327,22 +327,27 @@ export const rejectOrder = async (req, res) => {
         const razorpay = getRazorpayClient();
         if (razorpay) {
           try {
-            const refund = await razorpay.payments.refund(order.payment.razorpayPaymentId, {
-              amount: Math.round(order.totals.grandTotal * 100), // Paise
-              notes: {
-                reason: rejectionReason || "Order rejected by admin",
-                orderNumber: order.orderNumber
-              }
-            });
-            
-            logger.info(`💰 REFUND_INITIATED`, { 
-              orderNumber: order.orderNumber, 
-              paymentId: order.payment.razorpayPaymentId,
-              refundId: refund.id 
-            });
+            const totalAmount = order.totals?.grandTotal || order.total || 0;
+            if (totalAmount <= 0) {
+              logger.warn(`⚠️ REFUND_SKIPPED - Zero amount`, { orderNumber: order.orderNumber });
+            } else {
+              const refund = await razorpay.payments.refund(order.payment.razorpayPaymentId, {
+                amount: Math.round(totalAmount * 100), // Paise
+                notes: {
+                  reason: rejectionReason || "Order rejected by admin",
+                  orderNumber: order.orderNumber
+                }
+              });
+              
+              logger.info(`💰 REFUND_INITIATED`, { 
+                orderNumber: order.orderNumber, 
+                paymentId: order.payment.razorpayPaymentId,
+                refundId: refund.id 
+              });
 
-            order.payment.status = "REFUNDED";
-            order.payment.refundId = refund.id;
+              order.payment.status = "REFUNDED";
+              order.payment.refundId = refund.id;
+            }
           } catch (refundError) {
             logger.error(`❌ REFUND_FAILED`, { 
               orderNumber: order.orderNumber, 
