@@ -24,7 +24,7 @@ const SECTIONS = [
     icon: Lock,
     title: "Data Protection",
     content: [
-      "Your personal information is stored securely and is only accessible to authorized personnel at Mahalaxmi Steels and Home Appliance.",
+      "Your personal information is stored securely and is only accessible to authorized personnel at Mithai World.",
       "We use industry-standard security measures to protect your data from unauthorized access, alteration, or disclosure.",
       "We will never sell, rent, or share your personal information with third parties for their marketing purposes.",
     ],
@@ -58,7 +58,7 @@ const PrivacyPolicy = () => (
                       rounded-full bg-[rgba(232,136,58,0.06)] blur-[70px]" />
       <div className="relative mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <NavLink to="/"
-                 className="mb-4 inline-flex items-center gap-2 text-sm font-bold
+                 className="mb-4 inline-flex items-center gap-2 text-sm font-medium
                             text-[rgba(83,44,22,0.50)] transition-colors hover:text-[#7a2828]">
           <ArrowLeft className="h-4 w-4" /> Back to Home
         </NavLink>
@@ -67,7 +67,7 @@ const PrivacyPolicy = () => (
                           bg-[rgba(212,160,23,0.12)] ring-1 ring-[rgba(212,160,23,0.22)]">
             <Shield className="h-5 w-5 text-[#b76a1f]" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#24140f] sm:text-4xl">
+          <h1 className="text-3xl font-medium tracking-tight text-[#24140f] sm:text-4xl">
             Privacy Policy
           </h1>
         </div>
@@ -85,7 +85,7 @@ const PrivacyPolicy = () => (
         {/* Intro */}
         <div className="space-y-3">
           <p className="text-[13px] leading-relaxed text-[#6e5443]">
-            <strong className="text-[#24140f]">Mahalaxmi Steels and Home Appliance</strong>,
+            <strong className="text-[#24140f]">Mithai World</strong>,
             owned by <strong className="text-[#24140f]">Sakharam Choudhary</strong>, is committed
             to protecting the privacy of our customers. This Privacy Policy explains what information
             we collect and how we use it when you visit our website or make a purchase.
@@ -98,7 +98,7 @@ const PrivacyPolicy = () => (
         {/* Sections */}
         {SECTIONS.map(({ icon: Icon, title, content }) => (
           <div key={title}>
-            <h2 className="mb-4 flex items-center gap-2 text-[15px] font-bold text-[#24140f]">
+            <h2 className="mb-4 flex items-center gap-2 text-[15px] font-medium text-[#24140f]">
               <Icon className="h-4 w-4 text-[#b76a1f]" /> {title}
             </h2>
             <ul className="space-y-2">
@@ -115,27 +115,27 @@ const PrivacyPolicy = () => (
         {/* Contact box */}
         <div className="rounded-xl border border-[rgba(212,160,23,0.25)]
                         bg-[rgba(212,160,23,0.07)] p-5">
-          <h3 className="mb-2 text-sm font-bold text-[#24140f]">Privacy concerns?</h3>
+          <h3 className="mb-2 text-sm font-medium text-[#24140f]">Privacy concerns?</h3>
           <p className="mb-3 text-[13px] leading-relaxed text-[#6e5443]">
             If you have any questions about this Privacy Policy or how we handle your data, contact us:
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <a href="tel:+919561878293"
-               className="inline-flex items-center gap-2 text-sm font-bold
+               className="inline-flex items-center gap-2 text-sm font-medium
                           text-[#7a2828] hover:underline">
               <Phone className="h-4 w-4" /> +91 95618 78293
             </a>
-            <a href="mailto:mahalaxmisteels08@gmail.com"
-               className="inline-flex items-center gap-2 text-sm font-bold
+            <a href="mailto:mithaiworld08@gmail.com"
+               className="inline-flex items-center gap-2 text-sm font-medium
                           text-[#7a2828] hover:underline">
-              <Mail className="h-4 w-4" /> mahalaxmisteels08@gmail.com
+              <Mail className="h-4 w-4" /> mithaiworld08@gmail.com
             </a>
           </div>
         </div>
 
         <p className="border-t border-[rgba(83,44,22,0.08)] pt-4 text-center
                       text-xs text-[rgba(83,44,22,0.35)]">
-          Last updated: March 2026 · Mahalaxmi Steels and Home Appliance
+          Last updated: March 2026 · Mithai World
         </p>
       </div>
     </div>

@@ -1,321 +1,133 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getApiErrorMessage, resendDeliveryOTP, verifyDeliveryOTP } from "../services/api";
+import { CheckCircle2, Package, Truck, MapPin, Phone, Home, ArrowRight, AlertCircle } from "lucide-react";
+import { formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
 import { socket } from "../services/socket";
 
-const OTP_RESEND_COOLDOWN_SECONDS = 30;
-const OTP_RESEND_MAX_ATTEMPTS = 3;
-
-const getResendCooldownFromOrder = (order) => {
-  if (!order?.otpLastSentAt) {
-    return 0;
-  }
-
-  const elapsedSeconds = Math.floor((Date.now() - new Date(order.otpLastSentAt).getTime()) / 1000);
-  return Math.max(0, OTP_RESEND_COOLDOWN_SECONDS - elapsedSeconds);
-};
-
-const normalizeOrder = (order) => {
-  if (!order || typeof order !== "object") {
-    return null;
-  }
-
-  return order;
-};
-
-function PaymentSuccessPage({ paymentInfo, setPaymentInfo, onReturnHome }) {
+function PaymentSuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const stateOrder = location?.state?.order;
-  const [order, setOrder] = useState(() => normalizeOrder(stateOrder || paymentInfo));
-  const [otp, setOtp] = useState("");
-  const [message, setMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [maxResendReached, setMaxResendReached] = useState(false);
-  const [toast, setToast] = useState("");
+  const [order, setOrder] = useState(location.state?.order || null);
+
+  const orderId = order?._id || order?.id;
 
   useEffect(() => {
-    setOrder(normalizeOrder(paymentInfo));
-  }, [paymentInfo]);
+    if (!orderId) return;
 
-  useEffect(() => {
-    setResendCooldown(getResendCooldownFromOrder(order));
-    setMaxResendReached((order?.otpResendCount || 0) >= OTP_RESEND_MAX_ATTEMPTS);
-  }, [order]);
+    if (!socket.connected) socket.connect();
 
-  useEffect(() => {
-    if (resendCooldown <= 0) {
-      return undefined;
-    }
-
-    const interval = window.setInterval(() => {
-      setResendCooldown((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [resendCooldown]);
-
-  useEffect(() => {
-    if (!toast) {
-      return undefined;
-    }
-
-    const timer = window.setTimeout(() => {
-      setToast("");
-    }, 2500);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [toast]);
-
-  const orderId = useMemo(
-    () => order?.razorpayOrderId || order?.razorpay_order_id || order?.orderId || order?._id,
-    [order]
-  );
-
-  const amount = order?.amount ? String(Math.round(order.amount / 100)) : null;
-  const deliveryStatus = order?.deliveryStatus || "pending";
-
-  useEffect(() => {
-    if (!orderId) {
-      return undefined;
-    }
-
-    socket.auth = { role: "user" };
-
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleOrderUpdated = (updatedOrder) => {
-      const updatedOrderId = updatedOrder?.razorpayOrderId || updatedOrder?.razorpay_order_id || updatedOrder?.orderId || updatedOrder?._id;
-
-      if (!updatedOrderId || String(updatedOrderId) !== String(orderId)) {
-        return;
-      }
-
-      setOrder(updatedOrder);
-      if (setPaymentInfo) {
-        setPaymentInfo(updatedOrder);
-      }
+    const handleUpdate = (updated) => {
+      if (updated._id === orderId) setOrder(updated);
     };
 
-    socket.off("orderUpdated", handleOrderUpdated);
-    socket.on("orderUpdated", handleOrderUpdated);
+    socket.on("order:updated", handleUpdate);
+    return () => { socket.off("order:updated", handleUpdate); };
+  }, [orderId]);
 
-    return () => {
-      socket.off("orderUpdated", handleOrderUpdated);
-      socket.disconnect();
-    };
-  }, [orderId, setPaymentInfo]);
-
-  const handleVerifyDeliveryOTP = async () => {
-    if (!orderId || !otp.trim()) {
-      setErrorMessage("Enter the OTP shared by the delivery person.");
-      return;
-    }
-
-    setSubmitting(true);
-    setMessage("");
-    setErrorMessage("");
-
-    try {
-      const response = await verifyDeliveryOTP({ orderId: order._id || orderId, otp: otp.trim() });
-
-      if (!response?.success) {
-        throw new Error(response?.message || "OTP verification failed");
-      }
-
-      setOrder(response.order);
-      setOtp("");
-      setMessage("Delivery verified successfully.");
-      if (setPaymentInfo) {
-        setPaymentInfo(response.order);
-      }
-    } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, "Failed to verify OTP."));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!orderId || resendCooldown > 0 || maxResendReached) {
-      return;
-    }
-
-    setResending(true);
-    setMessage("");
-    setErrorMessage("");
-
-    try {
-      const response = await resendDeliveryOTP({ orderId: order._id || orderId });
-
-      if (!response?.success) {
-        throw new Error(response?.message || "Failed to resend OTP");
-      }
-
-      if (response?.order) {
-        setOrder(response.order);
-        if (setPaymentInfo) {
-          setPaymentInfo(response.order);
-        }
-      }
-
-      setResendCooldown(OTP_RESEND_COOLDOWN_SECONDS);
-      const reachedLimit = (response?.order?.otpResendCount || 0) >= OTP_RESEND_MAX_ATTEMPTS;
-      setMaxResendReached(reachedLimit);
-      setToast("OTP resent successfully");
-      setMessage("OTP resent successfully");
-    } catch (error) {
-      const nextError = getApiErrorMessage(error, "Failed to resend OTP.");
-      setErrorMessage(nextError);
-      setToast(nextError);
-
-      if (nextError === "Maximum resend attempts reached") {
-        setMaxResendReached(true);
-      }
-
-      if (nextError === "Please wait before requesting OTP again") {
-        setResendCooldown((prev) => Math.max(prev, OTP_RESEND_COOLDOWN_SECONDS));
-      }
-    } finally {
-      setResending(false);
-    }
-  };
-
-  const statusText = {
-    pending: "Pending",
-    out_for_delivery: "Out for Delivery",
-    delivered: "Delivered"
-  }[deliveryStatus] || "Pending";
-
-  const statusColor = {
-    pending: "#B7950B",
-    out_for_delivery: "#1A5276",
-    delivered: "#2C6E49"
-  }[deliveryStatus] || "#B7950B";
-
-  if (!orderId) {
+  if (!order) {
     return (
-      <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "64px 32px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto", background: "white", border: "1px solid rgba(212,160,23,0.15)", padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>📦</div>
-          <h1 className="serif" style={{ fontSize: 34, marginBottom: 12 }}>Order Not Found</h1>
-          <p style={{ color: "var(--muted)", marginBottom: 24 }}>We could not load your payment details. Please return to the shop and try again.</p>
-          <button className="btn-primary" onClick={() => navigate("/")} style={{ padding: "14px 28px" }}>
-            Back to Shop
-          </button>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-10 bg-[var(--cream)]">
+        <div className="bg-white p-10 rounded-3xl border border-[var(--surface-border)] shadow-xl text-center max-w-md">
+          <div className="h-20 w-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500">
+            <AlertCircle size={40} />
+          </div>
+          <h2 className="serif text-3xl mb-4 text-[var(--charcoal)]">Order Not Found</h2>
+          <p className="text-[var(--muted)] mb-8">We couldn't retrieve your order details. If you've just placed an order, it might take a moment to sync.</p>
+          <button onClick={() => navigate("/")} className="btn-primary w-full">Return to Shop</button>
         </div>
       </div>
     );
   }
 
+  const status = (order.status || "PLACED").toUpperCase();
+
   return (
-    <div className="page-enter pattern-bg" style={{ minHeight: "100vh", padding: "64px 32px" }}>
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            right: 20,
-            top: 20,
-            zIndex: 60,
-            background: "#1A0F0A",
-            color: "white",
-            padding: "10px 14px",
-            border: "1px solid rgba(244,160,36,0.3)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            fontSize: 12
-          }}
-        >
-          {toast}
-        </div>
-      )}
-
-      <div style={{ maxWidth: 760, margin: "0 auto", background: "white", border: "1px solid rgba(212,160,23,0.15)", padding: 40, textAlign: "center" }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-        <h1 className="serif" style={{ fontSize: 34, marginBottom: 12 }}>Payment Successful</h1>
-        <p style={{ color: "var(--muted)", marginBottom: 24 }}>Your order has been verified and sent for processing.</p>
-
-        <div style={{ display: "grid", gap: 12, marginBottom: 28, textAlign: "left", background: "var(--cream)", padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-            <span style={{ color: "var(--muted)" }}>Order ID</span>
-            <strong>{orderId || "N/A"}</strong>
+    <div className="page-enter min-h-[60vh] bg-[var(--cream)] pattern-bg px-4 py-12 md:py-20">
+      <div className="max-w-3xl mx-auto">
+        {/* ── SUCCESS HEADER ── */}
+        <div className="bg-white rounded-t-3xl border-x border-t border-[var(--surface-border)] p-8 md:p-12 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-green-500" />
+          <div className="h-20 w-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 shadow-inner">
+            <CheckCircle2 size={40} />
           </div>
-          {amount !== null && (
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-              <span style={{ color: "var(--muted)" }}>Amount</span>
-              <strong>₹{amount}</strong>
-            </div>
-          )}
+          <h1 className="serif text-4xl md:text-5xl mb-3 text-[var(--charcoal)]">Order Placed!</h1>
+          <p className="text-[var(--muted)] font-medium">Thank you for choosing Mithai World. Your treats are being prepared with love.</p>
+          
+          <div className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] font-medium text-sm uppercase tracking-widest">
+            Order #{order.orderNumber || order._id?.slice(-6).toUpperCase()}
+          </div>
         </div>
 
-        <div style={{ textAlign: "left", background: "rgba(244,160,36,0.06)", border: "1px solid rgba(244,160,36,0.18)", padding: 20, marginBottom: 28 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
-            <strong className="serif" style={{ fontSize: 20 }}>Delivery Status</strong>
-            <span className="badge" style={{ background: `${statusColor}20`, color: statusColor, textTransform: "capitalize" }}>
-              {statusText}
-            </span>
+        {/* ── STATUS TRACKER ── */}
+        <div className="bg-white border-x border-[var(--surface-border)] p-8 border-t border-dashed">
+          <div className="flex justify-between relative">
+            <div className="absolute top-5 left-0 w-full h-0.5 bg-[var(--surface-strong)] -z-0" />
+            <div className="absolute top-5 left-0 h-0.5 bg-green-500 transition-all duration-1000 -z-0" 
+                 style={{ width: status === 'DELIVERED' ? '100%' : status === 'READY' ? '66%' : status === 'PREPARING' ? '33%' : '10%' }} />
+            
+            {[
+              { label: 'Placed', icon: Package, active: true },
+              { label: 'Preparing', icon: Home, active: ['PREPARING', 'READY', 'DELIVERED'].includes(status) },
+              { label: 'Out for Delivery', icon: Truck, active: ['READY', 'DELIVERED'].includes(status) },
+              { label: 'Delivered', icon: CheckCircle2, active: status === 'DELIVERED' }
+            ].map((s, i) => (
+              <div key={i} className="flex flex-col items-center gap-3 relative z-10">
+                <div className={`h-10 w-10 rounded-full flex items-center justify-center border-2 transition-colors duration-500 ${s.active ? 'bg-white border-green-500 text-green-500' : 'bg-white border-[var(--surface-border)] text-[var(--muted)]'}`}>
+                  <s.icon size={20} />
+                </div>
+                <span className={`text-[10px] font-medium uppercase tracking-widest ${s.active ? 'text-green-600' : 'text-[var(--muted)]'}`}>{s.label}</span>
+              </div>
+            ))}
           </div>
+        </div>
 
-          {deliveryStatus === "pending" && (
-            <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>Your order is being prepared. You will see OTP verification when it is dispatched.</p>
-          )}
-
-          {deliveryStatus === "out_for_delivery" && (
-            <div style={{ display: "grid", gap: 12 }}>
-              <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>Your order is on the way. Enter the OTP shared by the delivery person to confirm delivery.</p>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  placeholder="Enter delivery OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  style={{ maxWidth: 220 }}
-                />
-                <button className="btn-primary" onClick={handleVerifyDeliveryOTP} disabled={submitting} style={{ padding: "13px 20px" }}>
-                  {submitting ? "Verifying..." : "Verify OTP"}
-                </button>
-                <button
-                  className="btn-outline"
-                  onClick={handleResendOtp}
-                  disabled={resending || resendCooldown > 0 || maxResendReached}
-                  style={{
-                    padding: "13px 20px",
-                    opacity: resending || resendCooldown > 0 || maxResendReached ? 0.7 : 1,
-                    cursor: resending || resendCooldown > 0 || maxResendReached ? "not-allowed" : "pointer"
-                  }}
-                >
-                  {resending
-                    ? "Resending..."
-                    : resendCooldown > 0
-                      ? `Resend in ${resendCooldown}s`
-                      : maxResendReached
-                        ? "Max resend reached"
-                        : "Resend OTP"}
-                </button>
+        {/* ── DETAILS GRID ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 bg-white border-x border-b border-[var(--surface-border)] rounded-b-3xl overflow-hidden shadow-2xl shadow-[var(--burgundy)]/5">
+          <div className="p-8 border-r border-[var(--surface-border)] border-t">
+            <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gold)] mb-4">Delivery Details</h3>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <MapPin size={16} className="text-[var(--muted)] shrink-0" />
+                <div className="text-sm font-medium text-[var(--charcoal)]">
+                  {order.shippingAddress?.line1}, {order.shippingAddress?.city}, {order.shippingAddress?.postalCode}
+                </div>
+              </div>
+              <div className="flex gap-3 text-sm">
+                <Phone size={16} className="text-[var(--muted)] shrink-0" />
+                <div className="font-medium text-[var(--charcoal)]">{order.customer?.phone}</div>
               </div>
             </div>
-          )}
+          </div>
 
-          {deliveryStatus === "delivered" && (
-            <p style={{ margin: 0, color: "#2C6E49", fontSize: 14, fontWeight: 600 }}>Delivery confirmed. Thank you for ordering from Mithai World.</p>
-          )}
-
-          {message && <div style={{ marginTop: 12, color: "#2C6E49", fontSize: 13 }}>{message}</div>}
-          {errorMessage && <div style={{ marginTop: 12, color: "#B00020", fontSize: 13 }}>{errorMessage}</div>}
+          <div className="p-8 border-t bg-[var(--cream)]/30">
+            <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--gold)] mb-4">Summary</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm font-medium text-[var(--muted)]">
+                <span>Subtotal</span>
+                <span>{formatCurrency(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-medium text-[var(--muted)]">
+                <span>Delivery</span>
+                <span>{order.deliveryFee > 0 ? formatCurrency(order.deliveryFee) : 'FREE'}</span>
+              </div>
+              <div className="h-px bg-[var(--surface-border)] my-2" />
+              <div className="flex justify-between text-lg font-medium text-[var(--charcoal)]">
+                <span>Total</span>
+                <span className="text-[var(--burgundy)]">{formatCurrency(order.total)}</span>
+              </div>
+              <p className="text-[9px] text-[var(--muted)] italic mt-2">{TAX_MESSAGE}</p>
+            </div>
+          </div>
         </div>
 
-        <button className="btn-primary" disabled={submitting} onClick={() => (onReturnHome ? onReturnHome() : navigate("/"))} style={{ padding: "14px 28px", opacity: submitting ? 0.7 : 1, cursor: submitting ? "not-allowed" : "pointer" }}>
-          Continue Shopping
-        </button>
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <button onClick={() => navigate("/")} className="btn-primary px-10 h-14 w-full sm:w-auto shadow-lg">
+            Continue Shopping
+          </button>
+          <button onClick={() => navigate("/sweets")} className="btn-outline px-10 h-14 w-full sm:w-auto">
+            Order More Sweets
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -8,61 +8,61 @@ import {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const STATS = [
-  { value: "2+",   label: "Years in Business",  icon: Award  },
-  { value: "500+", label: "Happy Customers",     icon: Users  },
-  { value: "200+", label: "Products Available",  icon: Star   },
-  { value: "4.8★", label: "Average Rating",      icon: Heart  },
+  { value: "5+",   label: "Years in Business",  icon: Award  },
+  { value: "5000+", label: "Happy Customers",     icon: Users  },
+  { value: "100+", label: "Sweet Varieties",  icon: Star   },
+  { value: "4.9★", label: "Average Rating",      icon: Heart  },
 ];
 
 const VALUES = [
   {
     icon: Shield,
     title: "Quality First",
-    desc: "Every product we sell is hand-picked and quality checked. We never compromise on the materials we offer to your family.",
+    desc: "Every sweet we make is prepared with the finest ingredients. We never compromise on the authentic taste your family loves.",
   },
   {
     icon: Heart,
     title: "Customer is Family",
-    desc: "We treat every customer like a guest at home. Your satisfaction is not just our goal — it's our commitment.",
+    desc: "We treat every customer like a guest at our home. Your satisfaction is our highest commitment.",
   },
   {
     icon: CheckCircle,
-    title: "Honest Pricing",
-    desc: "No hidden charges, no inflated MRPs. We offer the fairest prices in the market because we believe in long-term relationships.",
+    title: "Fresh Daily",
+    desc: "No preservatives, no old stock. We prepare our sweets fresh every single day to ensure the highest quality.",
   },
 ];
 
 const WHY_US = [
-  { icon: Shield,     label: "100% Genuine Products"    },
+  { icon: Shield,     label: "100% Authentic Recipes"    },
   { icon: Truck,      label: "Free Delivery above ₹999" },
-  { icon: RefreshCw,  label: "Easy 7-Day Returns"       },
+  { icon: RefreshCw,  label: "Freshness Guaranteed"       },
   { icon: Headphones, label: "Friendly Local Support"   },
-  { icon: Star,       label: "Curated Quality Products" },
-  { icon: Heart,      label: "Trusted by 500+ Families" },
+  { icon: Star,       label: "Premium Ingredients" },
+  { icon: Heart,      label: "Trusted by 5000+ Families" },
 ];
 
 const TIMELINE = [
   {
     year: "2022",
     title: "The Beginning",
-    desc: "Sakharam Choudhary founded Mahalaxmi Steels and Home Appliance in Akurdi, Pune with a carefully curated collection of stainless steel utensils and kitchen essentials.",
+    desc: "Sakharam Choudhary founded Mithai World in Viman Nagar, Pune with a passion for authentic Indian sweets and traditional recipes.",
   },
   {
     year: "2023",
     title: "Growing Family",
-    desc: "Within our first year, over 200 families in Akurdi and Pimpri-Chinchwad trusted us for their kitchen needs. We expanded to include Pital (Brass) items, Pooja Essentials, and home appliances.",
+    desc: "Within our first year, over 2000 families in Pune trusted us for their celebrations. We expanded our range to include dry fruit mithais.",
   },
   {
     year: "2024",
-    title: "500+ Happy Homes",
-    desc: "Today we proudly serve 500+ happy customers across Pimpri-Chinchwad and have grown our product range to include modern home appliances alongside our traditional offerings.",
+    title: "5000+ Happy Homes",
+    desc: "Today we proudly serve 5000+ happy customers across Pune, becoming a household name for premium quality sweets.",
   },
 ];
 
 // ── About Page ────────────────────────────────────────────────────────────────
 const About = () => {
   return (
-    <main className="min-h-screen bg-[#fff8f0] font-['Inter',system-ui,sans-serif]">
+    <main className="min-h-[60vh] bg-[#fff8f0] font-['Inter',system-ui,sans-serif]">
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden text-white"
@@ -76,22 +76,22 @@ const About = () => {
           <div className="max-w-2xl">
             <div className="mb-5 inline-flex items-center gap-1.5 rounded-full
                             border border-white/20 bg-white/10 px-3 py-1
-                            text-[10px] font-bold uppercase tracking-[0.24em] text-white/80">
+                            text-[10px] font-medium uppercase tracking-[0.24em] text-white/80">
               <Star className="h-3 w-3 fill-current" /> Our Story
             </div>
-            <h1 className="mb-4 text-3xl font-extrabold leading-[1.15] tracking-tight sm:text-4xl lg:text-5xl">
-              A Family Store Built on{" "}
-              <span className="text-[#e8a852]">Trust & Quality</span>
+            <h1 className="mb-4 text-3xl font-medium leading-[1.15] tracking-tight sm:text-4xl lg:text-5xl">
+              Spreading Sweetness with{" "}
+              <span className="text-[#e8a852]">Trust & Tradition</span>
             </h1>
             <p className="mb-8 max-w-lg text-sm leading-relaxed text-white/80 sm:text-base">
-              From a local shop in Akurdi, Pune to 500+ happy homes —
-              Mahalaxmi Steels and Home Appliance is more than a store. It's a promise
-              to every family we serve in the Pimpri-Chinchwad community.
+              From a local shop in Viman Nagar, Pune to 5000+ happy homes —
+              Mithai World is more than a store. It's a promise
+              to every family we serve in the Pune community.
             </p>
             <NavLink
-              to="/products"
+              to="/sweets"
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5
-                         text-sm font-bold text-[#7a2828] shadow-lg transition-all duration-300
+                         text-sm font-medium text-[#7a2828] shadow-lg transition-all duration-300
                          hover:-translate-y-0.5 hover:shadow-xl hover:bg-[#fff8f0]"
             >
               Shop Our Collection <ArrowRight className="h-4 w-4" />
@@ -109,8 +109,8 @@ const About = () => {
                 <div className="mb-2 flex justify-center">
                   <Icon className="h-4 w-4 text-[#e8883a] opacity-80" />
                 </div>
-                <p className="mb-0.5 text-2xl font-black tracking-tight text-white">{value}</p>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">{label}</p>
+                <p className="mb-0.5 text-2xl font-medium tracking-tight text-white">{value}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-white/45">{label}</p>
               </div>
             ))}
           </div>
@@ -124,31 +124,30 @@ const About = () => {
 
             {/* Story text */}
             <div className="max-w-lg">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#9c6a18]">
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
                 How We Started
               </p>
-              <h2 className="mb-5 text-2xl font-extrabold tracking-tight text-[#24140f] sm:text-3xl">
-                Born from a love for quality kitchenware
+              <h2 className="mb-5 text-2xl font-medium tracking-tight text-[#24140f] sm:text-3xl">
+                Born from a love for authentic sweets
               </h2>
               <div className="space-y-4 text-[13px] leading-relaxed text-[#6e5443]">
                 <p>
-                  Mahalaxmi Steels was started by{" "}
+                  Mithai World was started by{" "}
                   <strong className="text-[#24140f]">Sakharam Choudhary</strong> with a simple
-                  dream — to bring premium quality stainless steel utensils, kitchen essentials,
-                  cookware, and reliable home appliances to families of Akurdi and Pimpri-Chinchwad
+                  dream — to bring premium quality, authentic Indian sweets to families of Pune
                   at honest, affordable prices.
                 </p>
                 <p>
-                  Located at{" "}
-                  <strong className="text-[#24140f]">Ekta Nagar, Akurdi Gaothan, Dattawadi, Pune</strong>,
-                  we started small, but our commitment to quality quickly earned the trust of the
+                  Located in the heart of{" "}
+                  <strong className="text-[#24140f]">Viman Nagar</strong>,
+                  we started small, but our commitment to freshness and taste quickly earned the trust of the
                   community. Today, over{" "}
-                  <strong className="text-[#24140f]">500+ families</strong> rely on us for their
-                  kitchen and home needs.
+                  <strong className="text-[#24140f]">5000+ families</strong> rely on us for their
+                  celebrations and daily treats.
                 </p>
                 <p>
-                  Every product we stock is handpicked with care — from durable stainless steel kadais
-                  and cookware to everyday kitchen essentials and modern home appliances.
+                  Every sweet we make is prepared with care — using traditional methods and the 
+                  finest ingredients to ensure that every bite is a journey back to your roots.
                 </p>
               </div>
             </div>
@@ -169,10 +168,10 @@ const About = () => {
                                     hover:-translate-y-0.5 hover:border-[rgba(212,160,23,0.30)]
                                     hover:shadow-[0_8px_24px_rgba(83,44,22,0.08)]">
                       <span className="mb-2 inline-block rounded-md bg-[rgba(212,160,23,0.12)]
-                                       px-2 py-0.5 text-[10px] font-bold text-[#8a5a15]">
+                                       px-2 py-0.5 text-[10px] font-medium text-[#8a5a15]">
                         {item.year}
                       </span>
-                      <h3 className="mb-1 text-sm font-bold text-[#24140f]
+                      <h3 className="mb-1 text-sm font-medium text-[#24140f]
                                      transition-colors group-hover:text-[#7a2828]">
                         {item.title}
                       </h3>
@@ -202,14 +201,14 @@ const About = () => {
                                 transition-transform duration-500 group-hover:scale-105">
                   <span className="text-3xl">👨‍💼</span>
                 </div>
-                <p className="text-sm font-bold text-[#24140f]">Sakharam Choudhary</p>
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#9c6a18]">
+                <p className="text-sm font-medium text-[#24140f]">Sakharam Choudhary</p>
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#9c6a18]">
                   Founder & Owner
                 </p>
               </div>
               {/* Quote */}
               <div className="flex flex-1 flex-col justify-center p-6 sm:p-8">
-                <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold
+                <p className="mb-3 flex items-center gap-1.5 text-[10px] font-medium
                                uppercase tracking-[0.24em] text-[#9c6a18]">
                   <span className="h-px w-4 bg-[#d4a017]" /> Behind the Brand
                 </p>
@@ -217,9 +216,9 @@ const About = () => {
                   <span className="absolute -left-1 -top-2 font-serif text-4xl leading-none
                                    text-[rgba(212,160,23,0.25)] select-none">"</span>
                   <span className="relative z-10">
-                    I started Mahalaxmi Steels because I believe every family in Akurdi and
-                    Pimpri-Chinchwad deserves durable, high-quality products at affordable prices.
-                    Our customers are not just buyers — they are part of the Mahalaxmi family.
+                    I started Mithai World because I believe every family in Pune deserves 
+                    authentic, high-quality sweets prepared with traditional love.
+                    Our customers are not just buyers — they are part of the Mithai World family.
                   </span>
                 </blockquote>
               </div>
@@ -232,10 +231,10 @@ const About = () => {
       <section className="bg-[#fffaf3] py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#9c6a18]">
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
               What Drives Us
             </p>
-            <h2 className="mb-3 text-2xl font-extrabold tracking-tight text-[#24140f] sm:text-3xl">
+            <h2 className="mb-3 text-2xl font-medium tracking-tight text-[#24140f] sm:text-3xl">
               Our Mission & Values
             </h2>
             <p className="mx-auto max-w-xl text-[13px] leading-relaxed text-[#6e5443]">
@@ -254,7 +253,7 @@ const About = () => {
                                 transition-transform duration-300 group-hover:scale-110">
                   <Icon className="h-4.5 w-4.5 text-[#b76a1f]" />
                 </div>
-                <h3 className="mb-2 text-sm font-bold text-[#24140f]">{title}</h3>
+                <h3 className="mb-2 text-sm font-medium text-[#24140f]">{title}</h3>
                 <p className="text-[13px] leading-relaxed text-[#6e5443]">{desc}</p>
               </div>
             ))}
@@ -267,10 +266,10 @@ const About = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col items-end justify-between gap-4 sm:flex-row">
             <div>
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#9c6a18]">
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
                 Our Promise
               </p>
-              <h2 className="text-2xl font-extrabold tracking-tight text-[#24140f] sm:text-3xl">
+              <h2 className="text-2xl font-medium tracking-tight text-[#24140f] sm:text-3xl">
                 Why Families Choose Us
               </h2>
             </div>
@@ -288,7 +287,7 @@ const About = () => {
                                 transition-transform duration-300 group-hover:scale-110">
                   <Icon className="h-4 w-4 text-[#b76a1f]" />
                 </div>
-                <p className="text-[11px] font-bold leading-snug text-[#3b2417]">{label}</p>
+                <p className="text-[11px] font-medium leading-snug text-[#3b2417]">{label}</p>
               </div>
             ))}
           </div>
@@ -299,23 +298,23 @@ const About = () => {
       <section className="border-t border-[rgba(83,44,22,0.08)] bg-[#fffaf3] py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#9c6a18]">
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
               Find Us
             </p>
-            <h2 className="mb-3 text-2xl font-extrabold tracking-tight text-[#24140f] sm:text-3xl">
+            <h2 className="mb-3 text-2xl font-medium tracking-tight text-[#24140f] sm:text-3xl">
               Visit Our Shop
             </h2>
             <p className="text-[13px] text-[#6e5443]">
-              Come visit us in person — we'd love to help you find the perfect product for your home.
+              Come visit us in person — we'd love to serve you the freshest sweets.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_2fr]">
             {/* Contact cards */}
             <div className="flex flex-col gap-3">
               {[
-                { icon: MapPin, label: "Address", value: "Ekta Nagar, Akurdi Gaothan, Dattawadi, Akurdi, Pune 411035", href: "https://maps.app.goo.gl/i7VqYRV4YFvNRdTc8" },
-                { icon: Phone, label: "Phone",   value: "+91 95618 78293", href: "tel:+919561878293" },
-                { icon: Mail,  label: "Email",   value: "mahalaxmisteels08@gmail.com", href: "mailto:mahalaxmisteels08@gmail.com" },
+                { icon: MapPin, label: "Address", value: "Shop no. 04, Roshma Residency, Konark Nagar, Viman Nagar, Pune 411014", href: "https://maps.app.goo.gl/i7VqYRV4YFvNRdTc8" },
+                { icon: Phone, label: "Phone",   value: "+91 95112 89914", href: "tel:+919511289914" },
+                { icon: Mail,  label: "Email",   value: "mithaiworld08@gmail.com", href: "mailto:mithaiworld08@gmail.com" },
                 { icon: Clock, label: "Hours",   value: "Mon – Sun: 9:00 AM – 10:00 PM", href: null },
               ].map(({ icon: Icon, label, value, href }) => (
                 <div key={label}
@@ -328,18 +327,18 @@ const About = () => {
                     <Icon className="h-3.5 w-3.5 text-[#b76a1f]" />
                   </div>
                   <div>
-                    <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em]
+                    <p className="mb-0.5 text-[10px] font-medium uppercase tracking-[0.18em]
                                   text-[rgba(83,44,22,0.45)]">
                       {label}
                     </p>
                     {href ? (
                       <a href={href}
-                         className="text-sm font-semibold text-[#3b2417] transition-colors
+                         className="text-sm font-medium text-[#3b2417] transition-colors
                                     hover:text-[#7a2828]">
                         {value}
                       </a>
                     ) : (
-                      <p className="text-sm font-semibold text-[#3b2417]">{value}</p>
+                      <p className="text-sm font-medium text-[#3b2417]">{value}</p>
                     )}
                   </div>
                 </div>
@@ -353,8 +352,8 @@ const About = () => {
                 <MapPin className="h-4 w-4" /> Map Embed Area
               </p>
               <iframe
-                title="Mahalaxmi Steels Location"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d236.26597118488425!2d73.77872675657274!3d18.65252551471866!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e89355ae2d%3A0x423742e2b19d30e3!2sMahalaxmi%20steel%20and%20Home%20appliances!5e0!3m2!1sen!2sin!4v1773241762037!5m2!1sen!2sin"
+                title="Mithai World Location"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3782.3686866164283!2d73.9114251!3d18.5574347!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2c147b8b2135d%3A0xbb16399ba14a7e9e!2sViman%20Nagar%2C%20Pune%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1716130000000!5m2!1sen!2sin"
                 width="100%" height="100%"
                 className="absolute inset-0 z-10 h-full w-full opacity-60
                            transition-opacity duration-500 group-hover:opacity-100"
@@ -371,22 +370,22 @@ const About = () => {
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 text-center sm:flex-row sm:text-left">
             <div>
-              <h2 className="mb-1.5 text-xl font-bold tracking-tight sm:text-2xl">
-                Ready to shop with us?
+              <h2 className="mb-1.5 text-xl font-medium tracking-tight sm:text-2xl">
+                Ready to taste the tradition?
               </h2>
-              <p className="text-sm text-white/50">Browse our full collection of premium home essentials.</p>
+              <p className="text-sm text-white/50">Browse our full collection of premium Indian sweets.</p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <NavLink to="/contact"
                        className="rounded-full border border-white/20 bg-white/10 px-5 py-2.5
-                                  text-sm font-bold text-white transition-colors hover:bg-white/15">
+                                  text-sm font-medium text-white transition-colors hover:bg-white/15">
                 Contact Us
               </NavLink>
-              <NavLink to="/products"
+              <NavLink to="/sweets"
                        className="inline-flex items-center gap-2 rounded-full bg-[#e8883a]
-                                  px-5 py-2.5 text-sm font-bold text-[#1e0f0a] shadow-sm
+                                  px-5 py-2.5 text-sm font-medium text-[#1e0f0a] shadow-sm
                                   transition-all hover:bg-[#d4793a] hover:-translate-y-0.5">
-                Shop Now <ArrowRight className="h-4 w-4" />
+                Order Now <ArrowRight className="h-4 w-4" />
               </NavLink>
             </div>
           </div>

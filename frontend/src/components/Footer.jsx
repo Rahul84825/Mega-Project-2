@@ -9,10 +9,10 @@ import {
 // ── Data ─────────────────────────────────────────────────────────────────────
 const QUICK_LINKS = [
   { label: "Home",         to: "/"         },
-  { label: "All Products", to: "/products" },
+  { label: "All Products", to: "/sweets"   },
+  { label: "My Orders",    to: "/my-orders" },
   { label: "About Us",     to: "/about"    },
   { label: "Contact Us",   to: "/contact"  },
-  { label: "My Cart",      to: "/cart"     },
 ];
 
 const SUPPORT_LINKS = [
@@ -94,13 +94,13 @@ const Footer = () => {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl
                               bg-gradient-to-br from-[#7a2828] to-[#a83232]
                               shadow-[0_4px_14px_rgba(122,40,40,0.45)]">
-                <span className="text-lg font-extrabold text-white">M</span>
+                <span className="text-lg font-medium text-white">M</span>
               </div>
               <div>
-                <p className="text-lg font-extrabold leading-tight tracking-tight text-[#fff8f0]">
+                <p className="text-lg font-medium leading-tight tracking-tight text-[#fff8f0]">
                   Mithai World
                 </p>
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e8883a]">
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-[#e8883a]">
                   Premium Sweets
                 </p>
               </div>
@@ -151,7 +151,7 @@ const Footer = () => {
                     <Icon className="h-4 w-4" />
                   </a>
                 ))}
-                <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.16em]
+                <span className="ml-1 text-[10px] font-medium uppercase tracking-[0.16em]
                                  text-[rgba(255,248,240,0.30)]">
                   Follow us
                 </span>
@@ -160,7 +160,7 @@ const Footer = () => {
 
             {/* Col 2 — Quick Links */}
             <div className="lg:col-span-2">
-              <h4 className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#fff8f0]">
+              <h4 className="mb-5 text-[11px] font-medium uppercase tracking-[0.16em] text-[#fff8f0]">
                 Quick Links
               </h4>
               <ul className="flex flex-col gap-2.5 p-0 m-0 list-none">
@@ -184,7 +184,7 @@ const Footer = () => {
 
             {/* Col 3 — Support */}
             <div className="lg:col-span-3">
-              <h4 className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#fff8f0]">
+              <h4 className="mb-5 text-[11px] font-medium uppercase tracking-[0.16em] text-[#fff8f0]">
                 Support
               </h4>
               <ul className="flex flex-col gap-2.5 p-0 m-0 list-none">
@@ -208,7 +208,7 @@ const Footer = () => {
 
             {/* Col 4 — Contact */}
             <div className="lg:col-span-3">
-              <h4 className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#fff8f0]">
+              <h4 className="mb-5 text-[11px] font-medium uppercase tracking-[0.16em] text-[#fff8f0]">
                 Contact Us
               </h4>
               <ul className="flex flex-col gap-4 p-0 m-0 list-none">
@@ -223,7 +223,7 @@ const Footer = () => {
                       <Icon className="h-3.5 w-3.5 text-[#e8883a]" />
                     </div>
                     <div>
-                      <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.18em]
+                      <p className="mb-0.5 text-[9px] font-medium uppercase tracking-[0.18em]
                                    text-[rgba(255,248,240,0.30)]">
                         {label}
                       </p>
@@ -258,7 +258,7 @@ const Footer = () => {
 
             <p className="text-xs font-medium text-[rgba(255,248,240,0.35)]">
               © {year}{" "}
-              <span className="font-bold text-[rgba(255,248,240,0.60)]">Mithai World</span>
+              <span className="font-medium text-[rgba(255,248,240,0.60)]">Mithai World</span>
               . All rights reserved.
             </p>
 
@@ -274,7 +274,7 @@ const Footer = () => {
 
               <NavLink
                 to="/built-by"
-                className="text-xs font-semibold text-[rgba(255,248,240,0.30)] no-underline
+                className="text-xs font-medium text-[rgba(255,248,240,0.30)] no-underline
                            transition-colors duration-150 hover:text-[#e8883a]"
               >
                 Who built this?

@@ -20,7 +20,7 @@ export const ORDER_TABS = [
   {
     id: "DELIVERED",
     label: "Delivered",
-    statuses: ["DELIVERED"],
+    statuses: ["PICKED_UP", "DELIVERED"],
     tone: "bg-emerald-100 text-emerald-900"
   },
   {
@@ -35,6 +35,7 @@ export const STATUS_META = {
   PLACED: { label: "Placed", cls: "bg-amber-100 text-amber-900" },
   PREPARING: { label: "Preparing", cls: "bg-orange-100 text-orange-900" },
   READY: { label: "Ready", cls: "bg-yellow-100 text-yellow-900" },
+  PICKED_UP: { label: "Picked Up", cls: "bg-blue-100 text-blue-900" },
   DELIVERED: { label: "Delivered", cls: "bg-emerald-100 text-emerald-900" },
   REJECTED: { label: "Rejected", cls: "bg-rose-100 text-rose-900" }
 };

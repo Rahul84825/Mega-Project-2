@@ -23,7 +23,7 @@ const EmptyState = () => (
   <div className="col-span-full flex items-center justify-center py-20 text-center">
     <div className="flex flex-col items-center gap-3">
       <PackageX className="h-7 w-7 text-[#a0836b]" />
-      <h3 className="text-[15px] font-semibold text-[#1c1c1c]">No products found</h3>
+      <h3 className="text-[15px] font-medium text-[#1c1c1c]">No products found</h3>
     </div>
   </div>
 );

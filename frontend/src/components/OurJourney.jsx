@@ -4,19 +4,19 @@ import Mithai from "../assets/Mithai world.jpeg";
 
 const DEFAULT_MILESTONES = [
   {
-    year: "2024",
-    title: "A Humble Start",
-    description: "We started as a family-run shop with one goal: bring reliable essentials to local homes.",
+    year: "2022",
+    title: "A Sweet Start",
+    description: "We started as a small family-run shop with one goal: bring authentic traditional sweets to Pune.",
   },
   {
-    year: "2025",
+    year: "2023",
     title: "Growing With Trust",
-    description: "Customer referrals and repeat purchases helped us expand while keeping service personal.",
+    description: "Customer love and word-of-mouth helped us expand our variety while keeping our handmade quality intact.",
   },
   {
     year: "Today",
-    title: "Built For Modern Homes",
-    description: "From steelware to pooja essentials, we continue to deliver practical quality with care.",
+    title: "A Pune Tradition",
+    description: "From classic laddus to premium dry fruit mithais, we continue to spread joy with every bite.",
   },
 ];
 
@@ -71,13 +71,13 @@ const OurJourney = ({
             {/* Eyebrow */}
             <div className="mb-4 flex items-center gap-2.5">
               <span className="block h-px w-7 bg-[#d4a017]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#9c6a18]">
+              <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
                 Our Story
               </span>
             </div>
 
             {/* Heading */}
-            <h2 className="mb-3.5 text-[clamp(26px,3vw,38px)] font-extrabold
+            <h2 className="mb-3.5 text-[clamp(26px,3vw,38px)] font-medium
                            leading-[1.15] tracking-[-0.02em] text-[#24140f]">
               {title}
             </h2>
@@ -127,11 +127,11 @@ const OurJourney = ({
                     <span className="mb-1 inline-block rounded-full
                                      border border-[rgba(212,160,23,0.28)]
                                      bg-[rgba(212,160,23,0.10)]
-                                     px-2.5 py-0.5 text-[10px] font-bold
+                                     px-2.5 py-0.5 text-[10px] font-medium
                                      uppercase tracking-[0.22em] text-[#8a5a15]">
                       {item.year}
                     </span>
-                    <h3 className="mb-1 text-[14px] font-bold leading-[1.3] text-[#24140f]">
+                    <h3 className="mb-1 text-[14px] font-medium leading-[1.3] text-[#24140f]">
                       {item.title}
                     </h3>
                     <p className="m-0 text-[13px] font-normal leading-[1.65] text-[#6e5443]">
@@ -188,7 +188,7 @@ const OurJourney = ({
               <div className="absolute bottom-4 left-4 rounded-full
                               border border-[rgba(83,44,22,0.20)]
                               bg-[rgba(255,246,233,0.92)]
-                              px-3.5 py-1.5 text-[11px] font-semibold
+                              px-3.5 py-1.5 text-[11px] font-medium
                               tracking-[0.04em] text-[#7a1f2c]
                               shadow-[0_2px_8px_rgba(83,44,22,0.10)]
                               backdrop-blur-md">

@@ -8,7 +8,9 @@ import {
 	markPreparing,
 	markReadyForPickup,
 	placeOrder,
-	rejectOrder
+	rejectOrder,
+	getMyOrders,
+	verifyPickupOtp
 } from "../controllers/orderController.js";
 import { adminOnly, protect } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validateRequest.js";
@@ -17,8 +19,10 @@ import { orderCreateValidation } from "../validators/index.js";
 const router = Router();
 
 router.get("/", protect, adminOnly, getOrdersByStatus);
+router.get("/my-orders", protect, getMyOrders);
 router.get("/:id", protect, adminOnly, getSingleOrder);
 router.post("/", orderCreateValidation, validateRequest, placeOrder);
+router.post("/:id/verify-pickup", protect, adminOnly, verifyPickupOtp);
 router.patch("/:id/accept", protect, adminOnly, acceptOrder);
 router.patch("/:id/reject", protect, adminOnly, rejectOrder);
 router.patch("/:id/preparing", protect, adminOnly, markPreparing);

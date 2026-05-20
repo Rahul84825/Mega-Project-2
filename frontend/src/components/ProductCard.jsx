@@ -1,155 +1,116 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { sortVariantsByLabel } from "@/services/utils/price";
+import { formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
+import { ShoppingBag, Check } from "lucide-react";
 
 function ProductCard({ product }) {
   const navigate = useNavigate();
-  const { dispatch } = useCart();
+  const { cart, dispatch } = useCart();
   const [added, setAdded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null);
 
-  const variants = useMemo(() => {
-    const incoming = Array.isArray(product?.variants) ? product.variants : [];
-    return sortVariantsByLabel(incoming).map((variant, index) => ({
-      _id: variant?._id || variant?.id || `v_${index}`,
-      label: variant?.label || `Variant ${index + 1}`,
-      mrp: Number(variant?.mrp ?? 0),
-      discountPercent: Number(variant?.discountPercent ?? 0),
-      sellingPrice: Number(variant?.sellingPrice ?? 0),
-      finalPrice: Number(variant?.finalPrice ?? 0),
-      stock: Math.max(0, Number(variant?.stock ?? 0))
-    }));
-  }, [product]);
-
-  useEffect(() => {
-    setSelectedVariant(variants[0] || null);
-  }, [variants]);
-
-  const visible = variants.slice(0, 2);
-  const remaining = variants.length - 2;
   const productId = product?._id || product?.id;
-  const isOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
-  const displayPrice = selectedVariant?.finalPrice || 0;
+  
+  const handleAdd = (e) => {
+    e.stopPropagation();
+    if (!product) return;
 
-  const handleAdd = () => {
-    if (!selectedVariant || selectedVariant.stock <= 0) {
-      return;
-    }
+    const variant = selectedVariant || { _id: "", label: "Default", sellingPrice: product.price || product.basePrice, finalPrice: product.price || product.basePrice, stock: product.stock };
 
     dispatch({
-      type: "ADD",
-      product: {
-        productId: productId,
-        variantId: String(selectedVariant._id || "default"),
-        quantity: 1,
-        price: Number(selectedVariant?.finalPrice || 0),
-        name: product?.name,
-        image: product?.image || product?.images?.[0],
-        category: product?.category,
-        variantLabel: selectedVariant?.label || "Default",
-        stock: selectedVariant?.stock ?? 0
+      type: "ADD_ITEM",
+      payload: {
+        productId,
+        variantId: variant._id,
+        variantLabel: variant.label,
+        name: product.name,
+        price: variant.sellingPrice,
+        image: product.images?.[0] || product.image,
+        stock: variant.stock
       }
     });
+
     setAdded(true);
-    setTimeout(() => setAdded(false), 1400);
+    setTimeout(() => setAdded(false), 2000);
   };
 
-  return (
-    <div
-      onClick={() => productId && navigate(`/product/${productId}`)}
-      className="w-full max-w-[320px] flex flex-col bg-white rounded-[12px] border border-gray-200 overflow-hidden
-                    transition-transform duration-200 hover:-translate-y-1 cursor-pointer"
-    >
+  const displayPrice = selectedVariant?.sellingPrice || product?.basePrice || 0;
+  const isOutOfStock = (selectedVariant?.stock || product?.stock || 0) <= 0;
 
-      {/* IMAGE — responsive aspect ratio */}
-      <div className="relative aspect-[4/5] overflow-hidden">
-        <img
-          src={product?.images?.[0]}
+  // Safe category name resolution
+  const categoryName = useMemo(() => {
+    if (!product?.category) return "";
+    if (typeof product.category === "string") return product.category;
+    return product.category.name || "";
+  }, [product?.category]);
+
+  return (
+    <div 
+      onClick={() => navigate(`/product/${productId}`)}
+      className="group bg-white rounded-2xl border border-[var(--surface-border)] overflow-hidden cursor-pointer card-hover flex flex-col h-full"
+    >
+      <div className="relative aspect-square overflow-hidden bg-[var(--surface-strong)]/30">
+        <img 
+          src={product?.images?.[0] || product?.image} 
           alt={product?.name}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        {product?.category && (
-          <span className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-yellow-300/90 text-yellow-900
-                           text-[10px] sm:text-[11px] font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-full tracking-wide pointer-events-none">
-            {product.category}
+        {categoryName && (
+          <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-medium uppercase tracking-widest text-[var(--burgundy)] shadow-sm">
+            {categoryName}
           </span>
+        )}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+            <span className="bg-white text-[var(--charcoal)] px-4 py-2 rounded-full text-xs font-medium uppercase tracking-widest shadow-xl">Out of Stock</span>
+          </div>
         )}
       </div>
 
-      {/* BODY — responsive padding and gaps */}
-      <div className="flex flex-col gap-2 sm:gap-3 p-2 sm:p-2.5">
-
-        {/* NAME */}
-        <h3 className="text-[13px] sm:text-[14px] font-medium text-black leading-snug">
-          {product?.name}
-        </h3>
-
-        {/* VARIANTS */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {visible.map(v => (
-            <button
-              key={v._id}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectedVariant(v);
-              }}
-              className={`px-2 sm:px-3 py-1 text-[11px] sm:text-[12px] rounded-full border transition-all duration-150
-                ${selectedVariant?._id === v._id
-                  ? "bg-[#d4a017] border-[#d4a017] text-white"
-                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-            >
-              {v.label}
-            </button>
-          ))}
-          {remaining > 0 && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (productId) {
-                  navigate(`/product/${productId}`);
-                }
-              }}
-              className="px-2 sm:px-3 py-1 text-[11px] sm:text-[12px] rounded-full bg-gray-50
-                         border border-dashed border-gray-300 text-gray-400 hover:border-gray-400"
-            >
-              +{remaining}
-            </button>
-          )}
+      <div className="p-4 sm:p-5 flex flex-col flex-1 gap-3">
+        <div className="flex-1">
+          <h3 className="text-sm sm:text-base font-medium text-[var(--charcoal)] line-clamp-2 min-h-[2.5rem] leading-snug">
+            {product?.name}
+          </h3>
+          <p className="text-[10px] text-[var(--muted)] mt-1 italic leading-tight line-clamp-1">{TAX_MESSAGE}</p>
         </div>
 
-        {/* PRICE */}
-        {isOutOfStock ? (
-          <p className="text-red-500 text-lg sm:text-[20px] font-medium">Out of Stock</p>
-        ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg sm:text-[20px] font-medium text-black">₹{displayPrice}</span>
-            <span className="text-[11px] sm:text-[12px] text-gray-400">incl. GST</span>
+        {product?.variants?.length > 1 && (
+          <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+            {product.variants.map((v, i) => (
+              <button
+                key={i}
+                onClick={(e) => { e.stopPropagation(); setSelectedVariant(v); }}
+                className={`px-2.5 py-1 rounded-full text-[9px] font-medium transition-all border
+                  ${selectedVariant?._id === v._id 
+                    ? 'bg-[var(--burgundy)] border-[var(--burgundy)] text-white shadow-md' 
+                    : 'bg-white border-[var(--surface-border)] text-[var(--muted)] hover:border-[var(--gold)]'}`}
+              >
+                {v.label}
+              </button>
+            ))}
           </div>
         )}
 
-        {/* BUTTON — full width, responsive height */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleAdd();
-          }}
-          disabled={isOutOfStock}
-          className={`w-full h-11 rounded-lg text-[13px] sm:text-[14px] font-medium text-white border-none
-                      transition-all duration-150 active:scale-[0.98]
-                      ${isOutOfStock
-                        ? "bg-gray-300 cursor-not-allowed opacity-60"
-                        : added
-                          ? "bg-green-700"
-                          : "bg-[#b91c1c] hover:bg-[#991b1b]"}`}
-        >
-          {isOutOfStock ? "Out of Stock" : added ? "Added!" : "Add to cart"}
-        </button>
-
+        <div className="flex items-center justify-between mt-auto pt-2">
+          <div className="flex flex-col">
+            <span className="text-lg sm:text-xl font-medium text-[var(--charcoal)]">{formatCurrency(displayPrice)}</span>
+          </div>
+          
+          <button 
+            disabled={isOutOfStock || added}
+            onClick={handleAdd}
+            className={`h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center transition-all shadow-md active:scale-90
+              ${added 
+                ? 'bg-green-500 text-white' 
+                : isOutOfStock 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-[var(--burgundy)] text-white hover:bg-[var(--charcoal)]'}`}
+          >
+            {added ? <Check size={20} strokeWidth={3} /> : <ShoppingBag size={20} />}
+          </button>
+        </div>
       </div>
     </div>
   );

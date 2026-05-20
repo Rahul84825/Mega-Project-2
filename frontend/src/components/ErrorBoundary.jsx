@@ -27,7 +27,7 @@ class ErrorBoundary extends Component {
 
           <div className="text-6xl mb-6">⚠️</div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Something went wrong</h1>
+          <h1 className="text-2xl font-medium text-gray-900 mb-3">Something went wrong</h1>
           <p className="text-gray-500 text-sm leading-relaxed mb-2">
             An unexpected error occurred. Please try refreshing the page.
           </p>
@@ -42,14 +42,14 @@ class ErrorBoundary extends Component {
             <button
               onClick={() => this.handleReset()}
               className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white
-                         px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                         px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
             >
               Try Again
             </button>
             <a
               href="/"
               className="inline-flex items-center justify-center gap-2 border border-gray-200
-                         text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+                         text-gray-700 px-6 py-3 rounded-xl font-medium hover:bg-gray-100 transition-colors"
             >
               Go Home
             </a>

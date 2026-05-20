@@ -85,7 +85,7 @@ const FilterDropdown = ({ label, value, options, onChange }) => {
   );
 };
 
-const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
+const ProductFilter = ({ filters = {}, onChange, totalResults, onClear }) => {
   const { categories } = useProducts();
 
   const activeCategories = (categories || []).filter((category) => category?.is_active ?? category?.isActive ?? category?.active);
@@ -99,12 +99,12 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
   ];
 
   const hasActiveFilters =
-    filters.category !== "" ||
-    filters.price !== "" ||
-    filters.sort !== "default" ||
-    filters.inStock;
+    (filters?.category || "") !== "" ||
+    (filters?.price || "") !== "" ||
+    (filters?.sort || "default") !== "default" ||
+    !!filters?.inStock;
 
-  const activeCategoryLabel = categoryOptions.find((item) => item.id === filters.category)?.label || filters.category;
+  const activeCategoryLabel = categoryOptions.find((item) => item.id === filters?.category)?.label || filters?.category || "";
 
   const updateFilters = (patch) => {
     console.log("[ProductFilter] updateFilters", patch);
@@ -114,19 +114,19 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
   };
 
   const activePills = [
-    filters.category !== "" && {
+    (filters?.category || "") !== "" && {
       label: activeCategoryLabel,
       onRemove: () => updateFilters({ category: "" })
     },
-    filters.price !== "" && {
-      label: PRICE_RANGES.find((item) => item.id === filters.price)?.label,
+    (filters?.price || "") !== "" && {
+      label: PRICE_RANGES.find((item) => item.id === filters?.price)?.label,
       onRemove: () => updateFilters({ price: "" })
     },
-    filters.sort !== "default" && {
-      label: SORT_OPTIONS.find((item) => item.id === filters.sort)?.label,
+    (filters?.sort || "default") !== "default" && {
+      label: SORT_OPTIONS.find((item) => item.id === filters?.sort)?.label,
       onRemove: () => updateFilters({ sort: "default" })
     },
-    filters.inStock && {
+    filters?.inStock && {
       label: "In Stock",
       onRemove: () => updateFilters({ inStock: false })
     }
@@ -137,24 +137,24 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-2 flex shrink-0 items-center gap-1.5 text-[#a0836b]">
           <SlidersHorizontal className="h-4 w-4" />
-          <span className="text-[11px] font-bold uppercase tracking-wider">Filters</span>
+          <span className="text-[11px] font-medium uppercase tracking-wider">Filters</span>
         </div>
 
         <FilterDropdown
           label="Category"
-          value={filters.category}
+          value={filters?.category || ""}
           options={categoryOptions}
           onChange={(value) => updateFilters({ category: value })}
         />
         <FilterDropdown
           label="Price"
-          value={filters.price}
+          value={filters?.price || ""}
           options={PRICE_RANGES}
           onChange={(value) => updateFilters({ price: value })}
         />
         <FilterDropdown
           label="Sort by"
-          value={filters.sort}
+          value={filters?.sort || "default"}
           options={SORT_OPTIONS}
           onChange={(value) => updateFilters({ sort: value })}
         />
@@ -162,11 +162,11 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
         <button
           type="button"
           onClick={() => {
-            console.log("[ProductFilter] toggle in stock", !filters.inStock);
-            updateFilters({ inStock: !filters.inStock });
+            console.log("[ProductFilter] toggle in stock", !filters?.inStock);
+            updateFilters({ inStock: !filters?.inStock });
           }}
           className={`inline-flex shrink-0 select-none items-center gap-2 rounded-full border px-4 py-2 text-[12px] font-medium transition-all duration-150 active:scale-[0.98]
-            ${filters.inStock
+            ${filters?.inStock
               ? "border-[#d4a017] bg-[#d4a017] text-white shadow-sm"
               : "border-[#e8d5b7] bg-[#fffaf3] text-[#3b2417] hover:border-red-900/20 hover:bg-[#fff3e0]"
             }`}
@@ -178,7 +178,7 @@ const ProductFilter = ({ filters, onChange, totalResults, onClear }) => {
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
           {totalResults !== undefined && (
             <span className="whitespace-nowrap text-[11px] text-[#a0836b] sm:text-[12px]">
-              <span className="font-semibold text-[#3b2417]">{totalResults}</span> products
+              <span className="font-medium text-[#3b2417]">{totalResults}</span> products
             </span>
           )}
 

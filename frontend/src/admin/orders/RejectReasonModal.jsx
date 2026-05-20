@@ -35,7 +35,7 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
         <div className="flex items-center justify-between border-b border-[#e6d3b3] px-5 py-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-[#b67b3a]">Reject Order</div>
-            <div className="text-base font-bold text-[#2d1b0e]">#{order?.orderNumber || order?.orderId}</div>
+            <div className="text-base font-medium text-[#2d1b0e]">#{order?.orderNumber || order?.orderId}</div>
           </div>
           <button
             onClick={onClose}
@@ -53,7 +53,7 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
             </p>
           </div>
 
-          <label className="text-xs font-semibold text-[#6d4c41]">Select reason</label>
+          <label className="text-xs font-medium text-[#6d4c41]">Select reason</label>
           <div className="mt-2 space-y-2">
             {REJECT_REASONS.map((reason) => (
               <button
@@ -74,7 +74,7 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
             ))}
           </div>
 
-          <label className="mt-4 block text-xs font-semibold text-[#6d4c41]">or add custom reason</label>
+          <label className="mt-4 block text-xs font-medium text-[#6d4c41]">or add custom reason</label>
           <textarea
             rows={3}
             value={customReason}
@@ -92,7 +92,7 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#e6d3b3] px-4 py-2 text-xs font-semibold text-[#7a5c3a] hover:bg-[#f5e6d3] transition-colors"
+              className="rounded-lg border border-[#e6d3b3] px-4 py-2 text-xs font-medium text-[#7a5c3a] hover:bg-[#f5e6d3] transition-colors"
             >
               Cancel
             </button>
@@ -100,7 +100,7 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
               type="button"
               onClick={handleSubmit}
               disabled={!hasReason}
-              className="rounded-lg bg-rose-500 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-rose-500 px-4 py-2 text-xs font-medium text-white hover:bg-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Reject Order
             </button>

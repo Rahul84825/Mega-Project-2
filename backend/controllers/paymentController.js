@@ -8,6 +8,12 @@ import { logger } from "../utils/logger.js";
 import generateOrderId from "../utils/orderIdGenerator.js";
 import { InventoryError, reserveStock } from "../services/inventoryService.js";
 
+import {
+  sendPaymentSuccessEmail,
+  sendPaymentFailedEmail,
+  sendAdminNewOrderAlert
+} from "../services/emailService.js";
+
 const getRazorpayClient = () => {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -215,6 +221,23 @@ export const verifyPayment = async (req, res) => {
         orderId: razorpay_order_id,
         paymentId: razorpay_payment_id
       });
+
+      // Notify customer about failed payment if email exists
+      if (orderData?.customer?.email) {
+        const mockOrder = {
+          orderNumber: razorpay_order_id,
+          customer: {
+            name: orderData?.customer?.name || "Guest",
+            email: orderData?.customer?.email
+          },
+          totals: {
+            grandTotal: orderData?.totals?.grandTotal || "0"
+          },
+          payment: { method: "RAZORPAY" }
+        };
+        sendPaymentFailedEmail(mockOrder).catch(err => logger.error("Failed to send payment failed email", err));
+      }
+
       return res.status(400).json({
         success: false,
         message: "Invalid payment signature - verification failed",
@@ -375,6 +398,11 @@ export const verifyPayment = async (req, res) => {
       io.emit("newOrder", createdOrder.toObject());
       logger.info("📡 SOCKET.IO EVENT EMITTED - newOrder", { orderId: createdOrder._id });
     }
+
+    // Send emails asynchronously
+    sendPaymentSuccessEmail(createdOrder).catch(err => logger.error("Failed to send payment success email", err));
+    sendOrderPlacedEmail(createdOrder).catch(err => logger.error("Failed to send order placed email", err));
+    sendAdminNewOrderAlert(createdOrder).catch(err => logger.error("Failed to send admin alert email", err));
 
     logger.info("✅ PAYMENT VERIFICATION COMPLETE - SUCCESS", {
       orderId: createdOrder.orderId,

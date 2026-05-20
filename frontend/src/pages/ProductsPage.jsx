@@ -1,206 +1,126 @@
-import { useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
+import ProductCard from "../components/ProductCard";
 import ProductFilter from "../components/ProductFilter";
-import ProductGrid from "../components/ProductGrid";
-import { getDisplayPrice } from "@/services/utils/price";
-import { normalizeCategory, getProductCategory } from "@/services/utils/category";
+import SectionContainer from "../components/home/SectionContainer";
+import { Filter, SlidersHorizontal, PackageSearch } from "lucide-react";
 
-const DEFAULT_FILTERS = {
-  category: "",
-  price: "",
-  sort: "default",
-  inStock: false,
-};
-
-const getProductSortPrice = (product) => {
-  return getDisplayPrice(product);
-};
-
-const getProductCreatedAt = (product) => {
-  return new Date(product?.createdAt || product?.created_at || 0).getTime();
-};
-
-const getProductPopularityScore = (product) => {
-  return Number(product?.salesCount || product?.soldCount || product?.views || product?.popularity || 0);
-};
-
-const ProductsPage = () => {
+function ProductsPage() {
+  const location = useLocation();
   const { products, loading } = useProducts();
+  const [filters, setFilters] = useState({
+    category: "",
+    price: "",
+    sort: "default",
+    inStock: false
+  });
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const category = params.get("category");
+    if (category) {
+      setFilters(prev => ({ ...prev, category: category.toLowerCase() }));
+    }
+  }, [location.search]);
 
-  /**
-   * URL = SINGLE SOURCE OF TRUTH
-   */
-  const filters = useMemo(() => {
-    const nextFilters = {
-      category: normalizeCategory(
-        searchParams.get("category") || DEFAULT_FILTERS.category
-      ),
-      price: searchParams.get("price") || DEFAULT_FILTERS.price,
-      sort: searchParams.get("sort") || DEFAULT_FILTERS.sort,
-      inStock: searchParams.get("inStock") === "true",
-    };
-    return nextFilters;
-  }, [searchParams]);
-
-  /**
-   * Update URL params directly
-   */
-  const updateFilters = (updates) => {
-    console.log("[ProductsPage] updateFilters", updates, "from", searchParams.toString());
-    const nextParams = new URLSearchParams(searchParams);
-
-    Object.entries(updates).forEach(([key, value]) => {
-      // Remove empty/default values from URL
-      if (
-        value === "" ||
-        value === false ||
-        value === null ||
-        value === undefined ||
-        value === "default"
-      ) {
-        nextParams.delete(key);
-      } else {
-        nextParams.set(key, value.toString());
-      }
-    });
-
-    console.log("[ProductsPage] next query", nextParams.toString() || "(empty)");
-    setSearchParams(nextParams);
-  };
-
-  /**
-   * Clear all filters
-   */
-  const clearFilters = () => {
-    console.log("[ProductsPage] clearFilters");
-    setSearchParams({});
-  };
-
-  /**
-   * Filter + sort products
-   */
   const filteredProducts = useMemo(() => {
-    const selectedCategory = normalizeCategory(filters.category);
-    const selectedPrice = String(filters.price || "").trim();
-    const selectedSort = filters.sort || "default";
+    let list = Array.isArray(products) ? [...products] : [];
+    
+    // Category Filter
+    if (filters.category) {
+      list = list.filter(p => {
+        const pCat = typeof p.category === 'object' ? (p.category?.slug || p.category?.name) : p.category;
+        return String(pCat || "").toLowerCase() === filters.category.toLowerCase();
+      });
+    }
 
-    const nextProducts = (products || []).filter((product) => {
-      /**
-       * Category filter
-       */
-      if (
-        selectedCategory &&
-        getProductCategory(product) !== selectedCategory
-      ) {
-        return false;
-      }
+    // Price Filter
+    if (filters.price) {
+      list = list.filter(p => {
+        const price = p.price || p.basePrice || 0;
+        if (filters.price === "low") return price < 500;
+        if (filters.price === "mid") return price >= 500 && price <= 1000;
+        if (filters.price === "high") return price > 1000;
+        return true;
+      });
+    }
 
-      /**
-       * Stock filter
-       */
-      if (filters.inStock) {
-        const hasStock = Array.isArray(product?.variants)
-          ? product.variants.some(
-              (variant) => Number(variant?.stock || 0) > 0
-            )
-          : Number(product?.stock || 0) > 0;
+    // Stock Filter
+    if (filters.inStock) {
+      list = list.filter(p => p.stock > 0);
+    }
 
-        if (!hasStock) {
-          return false;
-        }
-      }
-
-      /**
-       * Price filter
-       */
-      if (selectedPrice) {
-        const productPrice = getDisplayPrice(product);
-
-        if (selectedPrice === "low" && productPrice > 500) {
-          return false;
-        }
-
-        if (
-          selectedPrice === "mid" &&
-          (productPrice < 500 || productPrice > 1000)
-        ) {
-          return false;
-        }
-
-        if (selectedPrice === "high" && productPrice < 1000) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    /**
-     * Sorting
-     */
-    return nextProducts.sort((a, b) => {
-      const aPrice = getProductSortPrice(a);
-      const bPrice = getProductSortPrice(b);
-      const aCreatedAt = getProductCreatedAt(a);
-      const bCreatedAt = getProductCreatedAt(b);
-      const aPopularity = getProductPopularityScore(a);
-      const bPopularity = getProductPopularityScore(b);
-
-      switch (selectedSort) {
-        case "price_asc":
-          return aPrice - bPrice;
-
-        case "price_desc":
-          return bPrice - aPrice;
-
-        case "newest":
-          return bCreatedAt - aCreatedAt;
-
-        case "popular":
-          return bPopularity - aPopularity;
-
-        default:
-          return 0;
-      }
-    });
+    // Sort
+    if (filters.sort === "price_asc") list.sort((a, b) => (a.price || a.basePrice) - (b.price || b.basePrice));
+    if (filters.sort === "price_desc") list.sort((a, b) => (b.price || b.basePrice) - (a.price || a.basePrice));
+    if (filters.sort === "newest") list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    return list;
   }, [products, filters]);
 
-  useEffect(() => {
-    console.log("[ProductsPage] URL params changed", searchParams.toString() || "(empty)", filters);
-  }, [searchParams, filters]);
+  const handleFilterChange = (patch) => {
+    setFilters(prev => ({ ...prev, ...patch }));
+  };
 
-  useEffect(() => {
-    console.log("[ProductsPage] filtered product count", filteredProducts.length);
-  }, [filteredProducts.length]);
-
-  const heading = filters.category ? "Products" : "All Products";
+  const clearFilters = () => {
+    setFilters({
+      category: "",
+      price: "",
+      sort: "default",
+      inStock: false
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-[#fff8f0]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8">
+    <div className="page-enter bg-[var(--cream)] min-h-[60vh] pb-20 pt-4">
+      <SectionContainer>
+        <div className="flex flex-col gap-8">
+          <div className="section-title mb-0 border-b border-[var(--surface-border)] pb-6">
+            <div className="inline-flex items-center gap-2 text-[10px] font-medium text-[var(--gold)] uppercase tracking-widest mb-3">
+              <PackageSearch size={14} /> Our Collection
+            </div>
+            <h1 className="serif text-4xl md:text-5xl">Mithai & Treats</h1>
+            <p className="font-medium">{filteredProducts.length} unique items available for delivery.</p>
+          </div>
 
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#3b2f2f]">
-          {heading}
-        </h1>
+          {/* ── FILTER ── */}
+          <div className="sticky top-16 z-30 bg-[var(--cream)] py-2">
+            <ProductFilter 
+              filters={filters}
+              onChange={handleFilterChange}
+              onClear={clearFilters}
+              totalResults={filteredProducts.length}
+            />
+          </div>
 
-        <ProductFilter
-          filters={filters}
-          onChange={updateFilters}
-          totalResults={filteredProducts.length}
-          onClear={clearFilters}
-        />
-
-        <ProductGrid
-          products={filteredProducts}
-          loading={loading}
-          onClearFilters={clearFilters}
-        />
-      </div>
+          {/* ── GRID ── */}
+          <div>
+            {loading ? (
+              <div className="responsive-grid">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className="aspect-square bg-white rounded-2xl animate-pulse" />)}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="py-32 text-center bg-white rounded-3xl border border-[var(--surface-border)] shadow-sm">
+                <div className="h-16 w-16 bg-[var(--cream)] rounded-full flex items-center justify-center mx-auto mb-4 text-[var(--muted)]">
+                  <Filter size={32} strokeWidth={1.5} />
+                </div>
+                <h3 className="serif text-2xl text-[var(--charcoal)] mb-2 font-medium">No sweets found</h3>
+                <p className="text-[var(--muted)] max-w-xs mx-auto font-medium">Try selecting a different category or clearing your filters.</p>
+                <button onClick={clearFilters} className="btn-primary mt-6">Clear All Filters</button>
+              </div>
+            ) : (
+              <div className="responsive-grid">
+                {filteredProducts.map(product => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </SectionContainer>
     </div>
   );
-};
+}
 
 export default ProductsPage;

@@ -41,12 +41,12 @@ function Login() {
   };
 
   return (
-    <div className="page-enter min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[var(--cream)]">
+    <div className="page-enter min-h-[60vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[var(--cream)]">
       <div className="w-full max-w-[520px] bg-white rounded-xl border border-[rgba(212,160,23,0.18)] p-6 sm:p-9 shadow-lg">
         
         {/* Header */}
         <div className="text-center mb-8 sm:mb-10">
-          <h1 className="serif text-3xl sm:text-4xl font-bold text-[var(--charcoal)] mb-2 sm:mb-3">
+          <h1 className="serif text-3xl sm:text-4xl font-medium text-[var(--charcoal)] mb-2 sm:mb-3">
             Welcome back
           </h1>
           <p className="text-sm sm:text-base text-[var(--muted)]">
@@ -66,7 +66,7 @@ function Login() {
           
           {/* Email Field */}
           <div>
-            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+            <label className="text-[11px] sm:text-[11px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
               Email
             </label>
             <input
@@ -81,7 +81,7 @@ function Login() {
 
           {/* Password Field */}
           <div>
-            <label className="text-[11px] sm:text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
+            <label className="text-[11px] sm:text-[11px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-2 sm:mb-2.5">
               Password
             </label>
             <input
@@ -96,7 +96,7 @@ function Login() {
 
           {/* Sign In Button */}
           <button
-            className="w-full py-3 sm:py-3.5 rounded-lg bg-[var(--burgundy)] hover:bg-[#8B1E3F] text-white font-bold text-sm sm:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            className="w-full py-3 sm:py-3.5 rounded-lg bg-[var(--burgundy)] hover:bg-[#8B1E3F] text-white font-medium text-sm sm:text-base transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             type="submit"
             disabled={loading}
           >
@@ -150,7 +150,7 @@ function Login() {
           <button
             type="button"
             onClick={() => navigate("/register")}
-            className="text-[var(--burgundy)] hover:text-[#8B1E3F] font-bold transition-colors bg-none border-none cursor-pointer p-0 inline"
+            className="text-[var(--burgundy)] hover:text-[#8B1E3F] font-medium transition-colors bg-none border-none cursor-pointer p-0 inline"
           >
             Create an account
           </button>

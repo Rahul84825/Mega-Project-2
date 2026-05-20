@@ -4,6 +4,7 @@ const ORDER_STATUSES = [
   "PLACED",
   "PREPARING",
   "READY",
+  "PICKED_UP",
   "DELIVERED",
   "REJECTED"
 ];
@@ -117,7 +118,8 @@ const orderSchema = new mongoose.Schema(
       trackingUrl: { type: String, trim: true, default: "" },
       status: { type: String, trim: true, default: "" },
       assignedAt: { type: Date, default: null },
-      promisedBy: { type: Date, default: null }
+      promisedBy: { type: Date, default: null },
+      pickupOtp: { type: String, trim: true, default: "" }
     },
     rider: {
       name: { type: String, trim: true, default: "" },

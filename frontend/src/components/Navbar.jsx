@@ -1,525 +1,210 @@
-import { useMemo, useRef, useState } from "react";
-import {
-  ChevronDown,
-  Menu,
-  Search,
-  ShoppingBag,
-  User,
-  X,
+import { useMemo, useRef, useState, useEffect } from "react";
+import { 
+  ChevronDown, Menu, Search, 
+  ShoppingBag, User, X, 
+  Store, LogOut, Package, LayoutDashboard
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
-import { slugify } from "../services/utils/category";
 import brandLogo from "../assets/image.png";
 
-const toSlug = slugify;
-
-function IBtn({ label, onClick, badge, children }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full
-                 border-0 bg-transparent text-[var(--charcoal)]
-                 transition-all duration-200 hover:bg-[var(--surface-strong)]"
-    >
-      {children}
-      {badge > 0 && (
-        <span className="absolute right-[3px] top-[3px] flex h-[15px] min-w-[15px] items-center
-                         justify-center rounded-full bg-[var(--saffron)] px-[3px]
-                         text-[9px] font-extrabold leading-none text-[var(--charcoal)]">
-          {badge}
-        </span>
-      )}
-    </button>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   NAVBAR
-═══════════════════════════════════════════════════════ */
-function Navbar({ page, selectedCategory = "all" }) {
+function Navbar() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { cart, toggleCart } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
-  const { categories: allCategories } = useProducts();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const qty = cart.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
-
+  const { categories } = useProducts();
+  
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dropOpen, setDropOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const searchRef = useRef(null);
+  const [dropOpen, setDropOpen] = useState(false);
 
-  const sweetsCategories = useMemo(
-    () =>
-      (allCategories || [])
-        .filter((c) => c.type === "sweets" && c.is_active)
-        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-        .map((item) => ({ name: item?.name || "", slug: toSlug(item?.slug) }))
-        .filter((item) => Boolean(item.name && item.slug)),
-    [allCategories]
-  );
+  const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
-  const otherCategories = useMemo(
-    () =>
-      (allCategories || [])
-        .filter((c) => c.type === "other" && c.showInNavbar)
-        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-        .map((item) => ({ name: item?.name || "", slug: toSlug(item?.slug) }))
-        .filter((item) => Boolean(item.name && item.slug)),
-    [allCategories]
-  );
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  const navItems = useMemo(
-    () => [{ name: "ALL PRODUCTS", slug: "all" }, { name: "SWEETS", slug: "sweets" }, ...otherCategories],
-    [otherCategories]
-  );
+  const navbarCategories = useMemo(() => {
+    const list = Array.isArray(categories) ? categories : [];
+    return list.filter(c => c.showInNavbar && c.is_active !== false);
+  }, [categories]);
 
-  const currentCategoryFromURL = toSlug(new URLSearchParams(location.search).get("category") || "all");
+  const sweetsCategories = useMemo(() => {
+    const list = Array.isArray(categories) ? categories : [];
+    return list.filter(c => c.type === "sweets" && c.is_active !== false);
+  }, [categories]);
 
-  const closeAll = () => { setMobileOpen(false); };
-
-  const handleLogoClick = () => {
+  const handleNav = (path) => {
+    navigate(path);
+    setMobileOpen(false);
     setDropOpen(false);
-    setSearchOpen(false);
-    setProfileOpen(false);
-    closeAll();
-    navigate("/");
-  };
-
-  const go = (slug) => {
-    const normalizedSlug = toSlug(slug);
-    if (normalizedSlug === "home") {
-      handleLogoClick();
-      return;
-    } else if (normalizedSlug === "all") {
-      navigate("/products");
-    } else if (normalizedSlug === "sweets") {
-      if (!sweetsCategories.length) return;
-      const defaultSweets = sweetsCategories[0];
-      navigate(`/products?category=${encodeURIComponent(defaultSweets.slug)}`);
-    } else {
-      navigate(`/products?category=${encodeURIComponent(normalizedSlug)}`);
-    }
-    closeAll();
-    setSearchOpen(false);
-  };
-
-  const cat = (slug) => {
-    const normalizedSlug = toSlug(slug);
-    navigate(`/products?category=${encodeURIComponent(normalizedSlug)}`);
-    closeAll();
-    setDropOpen(false);
-    setSearchOpen(false);
-  };
-
-  const handleProfileClick = () => {
-    if (isAuthenticated) {
-      setProfileOpen((v) => !v);
-    } else {
-      navigate("/login");
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    setProfileOpen(false);
-    navigate("/login");
   };
 
   const isCategoryActive = (slug) => {
-    if (slug === "all") {
-      return location.pathname === "/products" && currentCategoryFromURL === "all";
-    }
-    if (slug === "sweets") {
-      return location.pathname === "/products" && sweetsCategories.some((item) => item.slug === currentCategoryFromURL);
-    }
-    return location.pathname === "/products" && currentCategoryFromURL === slug;
-  };
-
-  const navLinkClass = (slug) => {
-    const active = isCategoryActive(slug);
-    return `inline-flex items-center gap-1 whitespace-nowrap border-b-2 border-transparent
-            bg-transparent px-3 py-2 text-xs font-bold tracking-[0.13em]
-            transition-all duration-150 hover:-translate-y-px hover:text-[var(--saffron)]
-            ${active ? "text-[var(--saffron)]" : "text-[var(--muted)]"}`;
+    const params = new URLSearchParams(location.search);
+    return params.get("category") === slug;
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-[var(--surface-border)] bg-[var(--cream)]">
-
-      {/* ── Desktop bar ── */}
-      <div className="mx-auto hidden h-[85px] max-w-[1280px] items-center px-8 lg:grid [grid-template-columns:1fr_auto_1fr]">
-
-        {/* Logo */}
-        <div className="flex items-center">
-          <button
-            type="button"
-            aria-label="Go to home"
-            onClick={handleLogoClick}
-            className="cursor-pointer border-0 bg-transparent p-0"
-          >
-            <img src={brandLogo} alt="Mithai World" className="h-20 w-auto shrink-0 object-contain" />
-          </button>
-        </div>
-
-        {/* Nav links */}
-        <ul className="m-0 flex list-none items-center gap-1 p-0">
-          {navItems.map((item) => {
-            if (item.slug !== "sweets") {
-              return (
-                <li key={item.slug}>
-                  <button type="button" onClick={() => go(item.slug)} className={navLinkClass(item.slug)}>
-                    {item.name.toUpperCase()}
-                  </button>
-                </li>
-              );
-            }
-
-            return (
-              <li
-                key={item.slug}
-                className="relative"
-                onMouseEnter={() => setDropOpen(true)}
-                onMouseLeave={() => setDropOpen(false)}
-              >
-                <button type="button" className={navLinkClass("sweets")}>
-                  SWEETS
-                  <ChevronDown
-                    size={11}
-                    className={`shrink-0 transition-transform duration-200 ${dropOpen ? "rotate-180" : "rotate-0"}`}
-                  />
-                </button>
-
-                <div
-                  className={`absolute left-1/2 top-[calc(100%+10px)] z-[100] w-[560px] -translate-x-1/2
-                              rounded-xl border border-[var(--surface-border)] bg-[var(--surface)]
-                              p-5 transition-all duration-200
-                              ${dropOpen ? "visible translate-y-0 opacity-100 shadow-[0_8px_24px_rgba(139,80,20,0.10)]" : "invisible -translate-y-1.5 opacity-0"}`}
-                >
-                  <div className="mb-3.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--gold)]">
-                    Sweets Collection
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {sweetsCategories.map((navCat) => (
-                      <button
-                        key={navCat.slug}
-                        type="button"
-                        onClick={() => cat(navCat.slug)}
-                        className="rounded-lg border-0 bg-transparent px-2 py-2.5 text-left text-xs
-                                   font-medium text-[var(--charcoal)] transition-all duration-150
-                                   hover:bg-[var(--surface-strong)] hover:text-[var(--burgundy)]"
-                      >
-                        {navCat.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-
-        {/* Desktop right: search + cart + profile */}
-        <div className="flex items-center justify-end gap-1">
-
-          {/* Expanding search */}
-          <div
-            className={`flex h-11 items-center gap-1.5 overflow-hidden rounded-full transition-all duration-200
-              ${searchOpen
-                ? "max-w-[260px] border border-[var(--surface-border)] bg-[var(--surface-strong)] pl-1 pr-3"
-                : "max-w-11 border border-transparent bg-transparent p-0"
-              }`}
-          >
-            <IBtn
-              label="Search"
-              onClick={() => { setSearchOpen((v) => !v); setTimeout(() => searchRef.current?.focus(), 50); }}
-            >
-              <Search size={17} />
-            </IBtn>
-            <input
-              ref={searchRef}
-              className={`flex-1 border-none bg-transparent text-sm text-[var(--charcoal)]
-                          outline-none placeholder:text-[var(--muted)] transition-opacity duration-200
-                          ${searchOpen ? "opacity-100" : "opacity-0"}`}
-              placeholder="Search sweets…"
-              onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-            />
-          </div>
-
-          <IBtn label="Cart" onClick={toggleCart} badge={qty}>
-            <ShoppingBag size={17} />
-          </IBtn>
-
-          {/* Profile */}
-          <div className="relative">
-            <IBtn label={isAuthenticated ? "Profile" : "Login"} onClick={handleProfileClick}>
-              <User size={17} />
-            </IBtn>
-
-            {isAuthenticated && (
-              <div
-                className={`absolute right-0 top-[calc(100%+8px)] z-[1000] min-w-[200px] overflow-hidden
-                            rounded-xl border border-[var(--surface-border)] bg-[var(--surface)]
-                            transition-all duration-200
-                            ${profileOpen
-                              ? "visible opacity-100 shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
-                              : "invisible opacity-0"
-                            }`}
-              >
-                {/* User info */}
-                <div className="border-b border-[var(--surface-border)] px-4 py-3">
-                  <div className="text-sm font-semibold text-[var(--charcoal)]">
-                    {user?.name || "User"}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--muted)]">
-                    {user?.email}
-                  </div>
-                </div>
-
-                {user?.isAdmin === true && (
-                  <button
-                    type="button"
-                    onClick={() => { setProfileOpen(false); navigate("/admin"); }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-[var(--charcoal)]
-                               transition-colors duration-150 hover:bg-[var(--surface-strong)]"
-                  >
-                    📊 Admin Dashboard
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-[var(--burgundy)]
-                             transition-colors duration-150 hover:bg-[var(--surface-strong)]"
-                >
-                  🚪 Logout
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Username pill */}
-          {isAuthenticated && (
-            <span className="ml-1 max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap
-                             rounded-full border border-[var(--surface-border)]
-                             px-3 py-1 text-xs text-[var(--muted)]">
-              {user?.name?.split(" ")[0]}
-            </span>
-          )}
-
-        </div>
-      </div>
-
-      {/* ── Mobile bar ── */}
-      <div className="flex h-[64px] items-center justify-between px-4 lg:hidden">
-        <button
-          type="button"
-          onClick={handleLogoClick}
-          className="flex cursor-pointer items-center gap-2.5 border-0 bg-transparent p-0"
-        >
-          <img src={brandLogo} alt="Mithai World" className="h-12 w-auto shrink-0 object-contain" />
+    <nav className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg h-20' : 'bg-[var(--cream)] h-24'}`}>
+      <div className="max-w-7xl mx-auto h-full px-6 sm:px-8 flex items-center justify-between">
+        
+        {/* ── LOGO ── */}
+        <button onClick={() => navigate("/")} className="flex items-center gap-3">
+          <img src={brandLogo} alt="Logo" className={`transition-all duration-300 ${scrolled ? 'h-12' : 'h-14'}`} />
+          <span className="serif text-2xl font-medium text-[var(--charcoal)] hidden sm:block">Mithai World</span>
         </button>
 
-        <div className="flex items-center gap-0.5">
-          <IBtn label="Search" onClick={() => setSearchOpen((v) => !v)}>
-            <Search size={17} />
-          </IBtn>
-          <IBtn label="Cart" onClick={toggleCart} badge={qty}>
-            <ShoppingBag size={17} />
-          </IBtn>
-          <IBtn
-            label={isAuthenticated ? "Profile" : "Login"}
-            onClick={() => { if (isAuthenticated) setProfileOpen((v) => !v); else navigate("/login"); }}
-          >
-            <User size={17} />
-          </IBtn>
-          <IBtn label="Menu" onClick={() => setMobileOpen((v) => !v)}>
-            {mobileOpen ? <X size={17} /> : <Menu size={17} />}
-          </IBtn>
-        </div>
-      </div>
-
-      {/* Mobile profile dropdown */}
-      {isAuthenticated && profileOpen && (
-        <div className="lg:hidden border-t border-[var(--surface-border)] bg-[var(--surface)] px-4 py-3">
-          <div className="mb-2 border-b border-[var(--surface-border)] pb-2">
-            <div className="text-sm font-semibold text-[var(--charcoal)]">{user?.name || "User"}</div>
-            <div className="mt-0.5 text-xs text-[var(--muted)]">{user?.email}</div>
-          </div>
-          {user?.isAdmin === true && (
-            <button
-              type="button"
-              onClick={() => { setProfileOpen(false); closeAll(); navigate("/admin"); }}
-              className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-[var(--charcoal)]
-                         transition-colors duration-150 hover:bg-[var(--surface-strong)]"
-            >
-              📊 Admin Dashboard
-            </button>
-          )}
+        {/* ── DESKTOP NAV ── */}
+        <div className="hidden lg:flex items-center gap-10">
           <button
-            type="button"
-            onClick={() => { handleLogout(); closeAll(); }}
-            className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--burgundy)]
-                       transition-colors duration-150 hover:bg-[var(--surface-strong)]"
+            onClick={() => handleNav("/sweets")}
+            className={`text-[11px] font-medium uppercase tracking-[0.25em] transition-colors hover:text-[var(--burgundy)]
+              ${location.pathname === "/sweets" && !location.search ? 'text-[var(--burgundy)]' : 'text-[var(--muted)]'}`}
           >
-            🚪 Logout
+            All Products
           </button>
-        </div>
-      )}
 
-      {/* Mobile search bar */}
-      <div
-        className={`overflow-hidden transition-[max-height] duration-200 lg:hidden
-          ${searchOpen ? "max-h-[70px] border-t border-[var(--surface-border)]" : "max-h-0"}`}
-      >
-        <div className="px-4 py-2.5">
-          <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--surface-border)]
-                          bg-[var(--surface)] px-3">
-            <Search size={15} className="text-[var(--muted)] shrink-0" />
-            <input
-              className="w-full flex-1 border-none bg-transparent text-sm text-[var(--charcoal)]
-                         outline-none placeholder:text-[var(--muted)]"
-              placeholder="Search sweets, snacks…"
-              onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-              autoFocus={searchOpen}
-            />
-          </div>
-        </div>
-      </div>
+          <div 
+            className="relative group"
+            onMouseEnter={() => setDropOpen(true)}
+            onMouseLeave={() => setDropOpen(false)}
+          >
+            <button
+              className={`flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.25em] transition-colors hover:text-[var(--burgundy)]
+                ${location.pathname === "/sweets" && sweetsCategories.some(c => isCategoryActive(c.slug)) ? 'text-[var(--burgundy)]' : 'text-[var(--muted)]'}`}
+            >
+              Sweets <ChevronDown size={14} className={`transition-transform duration-300 ${dropOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-      {/* Mobile menu */}
-      <div
-        className={`overflow-hidden bg-[var(--cream)] transition-[max-height] duration-300 ease-in-out lg:hidden
-          ${mobileOpen ? "max-h-[720px] border-t border-[var(--surface-border)]" : "max-h-0"}`}
-      >
-        <div className="px-3 pb-6 pt-3">
-          {navItems.map((item) => {
-            const active = isCategoryActive(item.slug);
-
-            if (item.slug !== "sweets") {
-              return (
-                <button
-                  key={item.slug}
-                  type="button"
-                  onClick={() => go(item.slug)}
-                  className={`mb-0.5 flex w-full items-center rounded-xl border-l-[3px] px-3.5 py-3
-                              text-xs font-bold tracking-[0.14em] transition-all duration-150
-                              hover:bg-[var(--surface-strong)] hover:text-[var(--burgundy)]
-                              ${active
-                                ? "border-l-[var(--saffron)] bg-[var(--surface-strong)] text-[var(--saffron)]"
-                                : "border-l-transparent bg-transparent text-[var(--charcoal)]"
-                              }`}
-                >
-                  {item.name.toUpperCase()}
-                </button>
-              );
-            }
-
-            return (
-              <div key={item.slug} className="mb-0.5">
-                <button
-                  type="button"
-                  onClick={() => go("sweets")}
-                  className={`flex w-full items-center justify-between rounded-xl border-l-[3px] px-3.5 py-3
-                              text-xs font-bold tracking-[0.14em] transition-all duration-150
-                              hover:bg-[var(--surface-strong)] hover:text-[var(--burgundy)]
-                              ${isCategoryActive("sweets")
-                                ? "border-l-[var(--saffron)] bg-[var(--surface-strong)] text-[var(--saffron)]"
-                                : "border-l-transparent bg-transparent text-[var(--charcoal)]"
-                              }`}
-                >
-                  SWEETS
-                  <ChevronDown
-                    size={13}
-                    className={`transition-transform duration-200 ${dropOpen ? "rotate-180" : "rotate-0"}`}
-                  />
-                </button>
-
-                <div
-                  className={`overflow-hidden transition-[max-height] duration-300
-                    ${dropOpen && sweetsCategories.length ? "max-h-[200px]" : "max-h-0"}`}
-                >
-                  <div className="grid grid-cols-1 gap-1 px-2 pb-2 pt-1.5">
-                    {sweetsCategories.map((navCat) => (
-                      <button
-                        key={navCat.slug}
-                        type="button"
-                        onClick={() => cat(navCat.slug)}
-                        className="rounded-lg border-0 bg-[var(--surface-strong)] px-3 py-2.5
-                                   text-left text-xs font-medium text-[var(--charcoal)]
-                                   transition-all duration-150 hover:bg-[var(--surface-border)]
-                                   hover:text-[var(--burgundy)]"
-                      >
-                        {navCat.name}
-                      </button>
-                    ))}
-                  </div>
+            <div className={`absolute left-1/2 -translate-x-1/2 top-full pt-6 transition-all duration-300 ${dropOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
+              <div className="bg-white rounded-2xl border border-[var(--surface-border)] shadow-2xl p-8 min-w-[440px]">
+                <div className="grid grid-cols-2 gap-3">
+                  {sweetsCategories.map(cat => (
+                    <button
+                      key={cat._id}
+                      onClick={() => handleNav(`/sweets?category=${cat.slug}`)}
+                      className={`text-left px-5 py-3 rounded-xl text-xs font-medium transition-all
+                        ${isCategoryActive(cat.slug) ? 'bg-[var(--surface-strong)] text-[var(--burgundy)]' : 'text-[var(--charcoal)] hover:bg-[var(--cream)]'}`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          </div>
 
-          {/* Mobile auth section */}
-          <div className="mt-3">
-            {isAuthenticated ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between rounded-xl border border-[var(--surface-border)]
-                                bg-[var(--surface)] px-3.5 py-3">
-                  <span className="text-xs text-[var(--muted)]">
-                    Hi,{" "}
-                    <span className="font-semibold text-[var(--charcoal)]">
-                      {user?.name?.split(" ")[0]}
-                    </span>
-                  </span>
+          {navbarCategories.filter(c => c.type !== "sweets").map(cat => (
+            <button
+              key={cat._id}
+              onClick={() => handleNav(`/sweets?category=${cat.slug}`)}
+              className={`text-[11px] font-medium uppercase tracking-[0.25em] transition-colors hover:text-[var(--burgundy)]
+                ${isCategoryActive(cat.slug) ? 'text-[var(--burgundy)]' : 'text-[var(--muted)]'}`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* ── ACTIONS ── */}
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate("/sweets")} className="p-2.5 text-[var(--charcoal)] hover:bg-[var(--surface-strong)] rounded-full transition-colors">
+            <Search size={22} />
+          </button>
+          
+          <button onClick={toggleCart} className="relative p-2.5 text-[var(--charcoal)] hover:bg-[var(--surface-strong)] rounded-full transition-colors">
+            <ShoppingBag size={22} />
+            {cartCount > 0 && (
+              <span className="absolute top-0 right-0 h-5 w-5 bg-[var(--burgundy)] text-white text-[10px] font-medium rounded-full flex items-center justify-center border-2 border-white">
+                {cartCount}
+              </span>
+            )}
+          </button>
+
+          <div className="relative">
+            <button 
+              onClick={() => isAuthenticated ? setProfileOpen(!profileOpen) : navigate("/login")}
+              className="flex items-center gap-3 p-2 rounded-full bg-[var(--surface-strong)] hover:bg-[var(--gold)]/20 transition-all border border-[var(--surface-border)]"
+            >
+              <div className="h-8 w-8 rounded-full bg-[var(--burgundy)] text-white flex items-center justify-center shadow-md">
+                <User size={18} />
+              </div>
+              {isAuthenticated && <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--charcoal)] pr-3 hidden sm:block">{user.name?.split(' ')[0]}</span>}
+            </button>
+
+            {profileOpen && isAuthenticated && (
+              <div className="absolute right-0 mt-4 w-60 bg-white rounded-2xl border border-[var(--surface-border)] shadow-2xl py-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-5 py-4 border-b border-[var(--surface-border)] mb-2">
+                  <div className="text-sm font-medium text-[var(--charcoal)] truncate">{user.name}</div>
+                  <div className="text-[11px] text-[var(--muted)] truncate font-medium">{user.email}</div>
                 </div>
-                {user?.isAdmin === true && (
-                  <button
-                    type="button"
-                    onClick={() => { closeAll(); navigate("/admin"); }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl
-                               border border-[var(--surface-border)] bg-transparent
-                               px-3 py-3 text-xs font-bold tracking-[0.06em] text-[var(--saffron)]
-                               transition-colors duration-150 hover:bg-[var(--surface-strong)]"
-                  >
-                    📊 Admin Dashboard
+                
+                {user.isAdmin && (
+                  <button onClick={() => { handleNav("/admin"); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-5 py-3 text-xs font-medium text-[var(--charcoal)] hover:bg-[var(--cream)] transition-colors">
+                    <LayoutDashboard size={16} className="text-[var(--gold)]" /> Admin Dashboard
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => { handleLogout(); closeAll(); }}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl
-                             border-0 bg-[var(--burgundy)] px-3 py-3 text-xs font-bold
-                             tracking-[0.06em] text-white transition-colors duration-150
-                             hover:opacity-90"
+                
+                <button onClick={() => { handleNav("/my-orders"); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-5 py-3 text-xs font-medium text-[var(--charcoal)] hover:bg-[var(--cream)] transition-colors">
+                  <Package size={16} className="text-[var(--gold)]" /> My Orders
+                </button>
+                
+                <button 
+                  onClick={() => { logout(); setProfileOpen(false); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-xs font-medium text-[var(--burgundy)] hover:bg-red-50 transition-colors border-t border-[var(--surface-border)] mt-2"
                 >
-                  🚪 Logout
+                  <LogOut size={16} /> Sign Out
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl
-                           border-0 bg-[var(--saffron)] px-3 py-3 text-[13px] font-extrabold
-                           tracking-[0.06em] text-[var(--charcoal)] transition-colors duration-150
-                           hover:opacity-90"
-              >
-                <User size={15} />
-                Login / Sign Up
-              </button>
+            )}
+          </div>
+
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2.5 text-[var(--charcoal)]">
+            {mobileOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-[var(--surface-border)] shadow-2xl animate-in slide-in-from-top duration-300">
+          <div className="p-8 space-y-6 max-h-[75vh] overflow-y-auto">
+            <button onClick={() => handleNav("/sweets")} className="w-full text-left text-base font-medium uppercase tracking-widest text-[var(--charcoal)] border-b border-gray-100 pb-4">
+              All Products
+            </button>
+            
+            <div className="space-y-4">
+              <div className="text-[11px] font-medium text-[var(--gold)] uppercase tracking-widest">Sweets Collection</div>
+              <div className="grid grid-cols-2 gap-4">
+                {sweetsCategories.map(cat => (
+                  <button key={cat._id} onClick={() => handleNav(`/sweets?category=${cat.slug}`)} className="text-left text-xs font-medium text-[var(--muted)] py-1 hover:text-[var(--burgundy)]">
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {navbarCategories.filter(c => c.type !== "sweets").length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <div className="text-[11px] font-medium text-[var(--gold)] uppercase tracking-widest">Featured</div>
+                <div className="grid grid-cols-2 gap-4">
+                  {navbarCategories.filter(c => c.type !== "sweets").map(cat => (
+                    <button key={cat._id} onClick={() => handleNav(`/sweets?category=${cat.slug}`)} className="text-left text-xs font-medium text-[var(--muted)] py-1 hover:text-[var(--burgundy)]">
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
-      </div>
-
+      )}
     </nav>
   );
 }

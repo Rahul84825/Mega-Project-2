@@ -1,235 +1,260 @@
 import { useMemo, useState } from "react";
-import { MapPin, Phone, User, PackageCheck, Timer, Clock, ChevronDown } from "lucide-react";
-import { formatPrice } from "../../services/utils/priceCalculator";
-import {
-  PAYMENT_METHOD_META,
-  PAYMENT_STATUS_META,
-  STATUS_META,
-  resolvePaymentMethod,
+import { 
+  MapPin, Phone, Mail, Clock, 
+  ChevronDown, ChevronUp, Package, 
+  CreditCard, Wallet, Banknote, 
+  CheckCircle2, XCircle, Loader2, Truck
+} from "lucide-react";
+import { formatCurrency } from "../../utils/priceCalculator";
+import { 
+  resolveStatus, 
+  resolvePaymentMethod, 
   resolvePaymentStatus,
-  resolveStatus
+  STATUS_META,
+  PAYMENT_METHOD_META
 } from "./orderUtils";
-import OrderTimer from "./OrderTimer";
-import OrderDetailsExpanded from "./OrderDetailsExpanded";
 
-const getStatusMeta = (status) => STATUS_META[status] || { label: status, cls: "bg-gray-100 text-gray-900" };
-const getPaymentStatusMeta = (status) =>
-  PAYMENT_STATUS_META[status] || { label: status, cls: "bg-gray-100 text-gray-900" };
-const getPaymentMethodMeta = (method) =>
-  PAYMENT_METHOD_META[method] || { label: method, cls: "bg-gray-100 text-gray-900" };
-
-const OrderCard = ({
-  order,
-  isActive,
-  onSelect,
-  onAccept,
+const OrderCard = ({ 
+  order, 
+  isActive, 
+  onSelect, 
+  onAccept, 
   onReject,
-  onMarkReady,
-  onMarkDelivered,
-  isBusy
+  onVerifyPickup,
+  onMarkReady, 
+  onMarkDelivered, 
+  isBusy 
 }) => {
-  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
-  
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const status = resolveStatus(order);
-  const paymentStatus = resolvePaymentStatus(order);
-  const paymentMethod = resolvePaymentMethod(order);
-  const statusMeta = getStatusMeta(status);
-  const paymentStatusMeta = getPaymentStatusMeta(paymentStatus);
-  const paymentMethodMeta = getPaymentMethodMeta(paymentMethod);
-
+  const payMethod = resolvePaymentMethod(order);
+  const payStatus = resolvePaymentStatus(order);
+  
   const items = Array.isArray(order.items) ? order.items : [];
-  const totalItems = useMemo(() => items.reduce((sum, item) => sum + Number(item.quantity || 0), 0), [items]);
-  const customerName = order.customer?.name || "Guest";
-  const customerPhone = order.customer?.phone || "";
-  const addressLine = order.shippingAddress
-    ? `${order.shippingAddress.line1 || ""}, ${order.shippingAddress.city || ""}`
-    : "";
+  const itemCount = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
+  
+  const statusMeta = STATUS_META[status] || { label: status, cls: "bg-gray-100 text-gray-700" };
+  const methodMeta = PAYMENT_METHOD_META[payMethod] || { label: payMethod, icon: CreditCard };
 
-  // Build compact item display string
-  const itemsDisplay = items
-    .map((item) => `${item.quantity}x ${item.titleSnapshot}`)
-    .join(" • ");
+  const formattedTime = order.createdAt 
+    ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    : "--:--";
 
-  // Rejection reason if order is rejected
-  const rejectionReason = order.rejectionReason || order.metadata?.rejectionReason || "";
-
-  // Format order time
-  const orderTime = order.statusTimestamps?.placedAt || order.createdAt;
-  const formattedTime = orderTime ? new Date(orderTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
-
-  const actionButtons = [];
-  if (status === "PLACED") {
-    actionButtons.push(
-      <button
-        key="accept"
-        onClick={(event) => {
-          event.stopPropagation();
-          onAccept(order);
-        }}
-        className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={isBusy}
-      >
-        Accept
-      </button>
-    );
-    actionButtons.push(
-      <button
-        key="reject"
-        onClick={(event) => {
-          event.stopPropagation();
-          onReject(order);
-        }}
-        className="rounded-full bg-rose-500 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={isBusy}
-      >
-        Reject
-      </button>
-    );
-  }
-
-  if (status === "PREPARING") {
-    actionButtons.push(
-      <button
-        key="ready"
-        onClick={(event) => {
-          event.stopPropagation();
-          onMarkReady(order);
-        }}
-        className="rounded-full bg-yellow-500 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={isBusy}
-      >
-        Mark Ready
-      </button>
-    );
-  }
-
-  if (status === "READY") {
-    actionButtons.push(
-      <button
-        key="delivered"
-        onClick={(event) => {
-          event.stopPropagation();
-          onMarkDelivered(order);
-        }}
-        className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={isBusy}
-      >
-        Delivered
-      </button>
-    );
-  }
+  const toggleExpand = (e) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
 
   return (
-    <button
-      onClick={() => onSelect(order)}
-      className={`w-full text-left rounded-xl border p-4 transition-all duration-200 shadow-sm ${
-        isActive
-          ? "border-[#8b4513] bg-[#fff4e0] shadow-md"
-          : "border-[#e6d3b3] bg-[#fffaf3] hover:border-[#d4a373]"
-      }`}
+    <div 
+      onClick={() => onSelect?.(order)}
+      className={`relative overflow-hidden rounded-2xl border transition-all duration-300 bg-white
+        ${isActive ? 'border-[var(--burgundy)] shadow-lg' : 'border-[var(--surface-border)] shadow-sm hover:border-[var(--gold)]'}`}
     >
-      <div className="flex flex-col gap-3">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-[#b67b3a]">Order #{order.orderNumber || order.orderId}</div>
-            <div className="mt-0.5 flex items-center gap-2 text-xs text-[#7a5c3a]">
-              <Clock className="h-3.5 w-3.5" />
-              {formattedTime}
+      {/* ── HEADER ── */}
+      <div className="p-4 sm:p-5 border-b border-[var(--surface-border)] bg-[var(--cream)]/30">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-[var(--surface-strong)] flex items-center justify-center text-[var(--burgundy)]">
+              <Package size={20} />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Order ID</div>
+              <div className="text-sm font-medium text-[var(--charcoal)]">#{order.orderNumber || order._id?.slice(-6).toUpperCase()}</div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${statusMeta.cls}`}>
-              {statusMeta.label}
-            </span>
-            {status !== "REJECTED" && (
-              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${paymentStatusMeta.cls}`}>
-                {paymentStatusMeta.label}
+
+          <div className="flex items-center gap-4 text-right">
+            <div className="hidden sm:block">
+              <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Time</div>
+              <div className="flex items-center gap-1.5 text-sm font-medium text-[var(--charcoal)]">
+                <Clock size={14} className="text-[var(--gold)]" />
+                {formattedTime}
+              </div>
+            </div>
+            <div>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider ${statusMeta.cls}`}>
+                {statusMeta.label}
               </span>
-            )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── CUSTOMER & PAYMENT ROW ── */}
+      <div className="px-4 py-4 sm:px-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-full bg-[var(--surface-strong)] flex items-center justify-center">
+              <span className="text-[10px] font-medium text-[var(--burgundy)]">{order.customer?.name?.[0]?.toUpperCase() || 'G'}</span>
+            </div>
+            <span className="text-sm font-medium text-[var(--charcoal)]">{order.customer?.name || "Guest Customer"}</span>
+          </div>
+          <div className="flex flex-col gap-1 pl-8">
+            <a href={`tel:${order.customer?.phone}`} className="flex items-center gap-2 text-xs font-medium text-[var(--muted)] hover:text-[var(--burgundy)]">
+              <Phone size={12} /> {order.customer?.phone || "No Phone"}
+            </a>
+            <div className="flex items-center gap-2 text-xs font-medium text-[var(--muted)]">
+              <Mail size={12} /> {order.customer?.email || "No Email"}
+            </div>
           </div>
         </div>
 
-        {/* Customer Info */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-4 w-4 text-[#8b4513]" />
-            <span className="font-semibold text-[#2d1b0e]">{customerName}</span>
-            {customerPhone && <span className="text-xs text-[#7a5c3a]">{customerPhone}</span>}
+        <div className="space-y-2 md:text-right md:flex md:flex-col md:items-end">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Payment:</span>
+            <span className="text-xs font-medium text-[var(--charcoal)]">{payMethod}</span>
+            <span className={`h-2 w-2 rounded-full ${payStatus === 'PAID' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} title={payStatus} />
           </div>
-          {addressLine && (
-            <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#8b4513]" />
-              <span className="text-xs text-[#7a5c3a] line-clamp-2">{addressLine}</span>
+          <div className="flex items-start gap-2 pl-2 md:pl-0">
+            <MapPin size={12} className="text-[var(--gold)] shrink-0 mt-0.5" />
+            <span className="text-xs font-medium text-[var(--muted)] line-clamp-2">{order.shippingAddress?.line1}, {order.shippingAddress?.city}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIDER INFO (IF ASSIGNED) ── */}
+      {order.rider?.name && (
+        <div className="px-4 py-3 mx-4 mb-4 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+              <Truck size={16} />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-widest text-blue-600/70">Assigned Rider</div>
+              <div className="text-xs font-medium text-blue-900">{order.rider.name} • {order.rider.phone}</div>
+            </div>
+          </div>
+          {order.delivery?.pickupOtp && status === "READY" && (
+            <div className="text-right">
+              <div className="text-[10px] font-medium uppercase tracking-widest text-blue-600/70">Pickup OTP</div>
+              <div className="text-sm font-bold text-blue-900 tracking-widest">{order.delivery.pickupOtp}</div>
             </div>
           )}
         </div>
+      )}
 
-        {/* Quick Summary - Compact */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-[#7a5c3a]">Total</div>
-              <div className="text-base font-extrabold text-[#2d1b0e]">{formatPrice(order.total || 0)}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${paymentMethodMeta.cls}`}>
-                {paymentMethodMeta.label}
-              </span>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#7a5c3a] bg-[#f5e6d3] rounded-full px-2.5 py-1">
-                <PackageCheck className="h-3.5 w-3.5" />
-                {totalItems}
+      {/* ── ITEMS ACCORDION ── */}
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+        <button 
+          onClick={toggleExpand}
+          className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--surface-strong)]/50 border border-[var(--surface-border)] hover:bg-[var(--surface-strong)] transition-colors"
+        >
+          <div className="flex items-center gap-2 text-xs font-medium text-[var(--charcoal)]">
+            <Package size={14} className="text-[var(--gold)]" />
+            View Items ({itemCount})
+          </div>
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {isExpanded && (
+          <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-300">
+            {items.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-2 rounded-lg border border-dashed border-[var(--surface-border)]">
+                {item.image && (
+                  <img src={item.image} alt="" className="h-10 w-10 rounded-md object-cover border border-[var(--surface-border)]" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-[var(--charcoal)] truncate">{item.name || item.titleSnapshot}</div>
+                  <div className="text-[10px] font-medium text-[var(--muted)]">
+                    {item.variantLabel || item.selectedVariant?.label || 'Regular'} × {item.quantity}
+                  </div>
+                </div>
+                <div className="text-xs font-medium text-[var(--charcoal)]">
+                  {formatCurrency(item.subtotal || item.finalAmount || (item.sellingPriceAtPurchase ? item.sellingPriceAtPurchase * item.quantity : (item.price || 0) * item.quantity))}
+                </div>
+              </div>
+            ))}
+            
+            {/* ── BILL SUMMARY ── */}
+            <div className="mt-4 p-3 rounded-xl bg-white border border-[var(--surface-border)] space-y-2">
+              <div className="flex justify-between text-[11px] font-medium text-[var(--muted)]">
+                <span>Items Total</span>
+                <span>{formatCurrency(order.totals?.itemsSubtotal || order.subtotal || ((order.totals?.grandTotal || order.total) - (order.totals?.shippingFee || order.deliveryFee || 0)))}</span>
+              </div>
+              <div className="flex justify-between text-[11px] font-medium text-[var(--muted)]">
+                <span>Delivery Charge</span>
+                <span>{(order.totals?.shippingFee || order.deliveryFee) > 0 ? formatCurrency(order.totals?.shippingFee || order.deliveryFee) : "FREE"}</span>
+              </div>
+              <div className="h-px bg-[var(--surface-border)] my-1" />
+              <div className="flex justify-between text-sm font-medium text-[var(--charcoal)]">
+                <span>Grand Total</span>
+                <span className="text-[var(--burgundy)]">{formatCurrency(order.totals?.grandTotal || order.total || 0)}</span>
+              </div>
+              <div className="text-[9px] text-center text-[var(--muted)] italic">
+                Inclusive of all taxes
               </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Show rejection reason */}
-          {status === "REJECTED" && rejectionReason && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
-              <div className="text-xs font-semibold text-rose-900">Reason</div>
-              <div className="mt-0.5 text-xs text-rose-700">{rejectionReason}</div>
-            </div>
+      {/* ── ACTIONS ── */}
+      <div className="p-4 sm:p-5 border-t border-[var(--surface-border)] bg-[var(--cream)]/10">
+        <div className="flex flex-wrap items-center gap-2">
+          {status === "PLACED" && (
+            <>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onAccept(order); }}
+                disabled={isBusy}
+                className="flex-1 min-w-[100px] h-10 rounded-xl bg-green-600 text-white text-[11px] font-medium uppercase tracking-widest hover:bg-green-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+              >
+                {isBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                Accept
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onReject(order); }}
+                disabled={isBusy}
+                className="flex-1 min-w-[100px] h-10 rounded-xl bg-rose-600 text-white text-[11px] font-medium uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+              >
+                {isBusy ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                Reject
+              </button>
+            </>
           )}
 
-          {/* Show timer for PREPARING orders */}
           {status === "PREPARING" && (
-            <div className="flex items-center gap-2 rounded-lg bg-yellow-50 px-3 py-2">
-              <Timer className="h-3.5 w-3.5 text-yellow-700" />
-              <OrderTimer order={order} />
+            <button 
+              onClick={(e) => { e.stopPropagation(); onMarkReady(order); }}
+              disabled={isBusy}
+              className="w-full h-10 rounded-xl bg-[var(--gold)] text-white text-[11px] font-medium uppercase tracking-widest hover:bg-[var(--gold)]/90 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+            >
+              {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
+              Mark Ready
+            </button>
+          )}
+
+          {status === "READY" && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onVerifyPickup(order); }}
+              disabled={isBusy}
+              className="w-full h-10 rounded-xl bg-blue-600 text-white text-[11px] font-medium uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+            >
+              {isBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              Verify Pickup
+            </button>
+          )}
+
+          {status === "PICKED_UP" && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onMarkDelivered(order); }}
+              disabled={isBusy}
+              className="w-full h-10 rounded-xl bg-[var(--burgundy)] text-white text-[11px] font-medium uppercase tracking-widest hover:bg-[var(--charcoal)] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+            >
+              {isBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              Mark Delivered
+            </button>
+          )}
+
+          {(status === "DELIVERED" || status === "REJECTED") && (
+            <div className="w-full text-center py-2 text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
+              Order {status === "DELIVERED" ? "Completed" : "Closed"}
             </div>
           )}
         </div>
-
-        {/* View Details Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsDetailsExpanded(!isDetailsExpanded);
-          }}
-          className="flex items-center justify-between rounded-lg border border-[#e6d3b3] bg-[#f5e6d3] px-3 py-2 text-xs font-semibold text-[#8b4513] hover:bg-[#f0d8b8] transition-colors"
-        >
-          <span>{isDetailsExpanded ? "Hide Details" : "View Details"}</span>
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform ${isDetailsExpanded ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {/* Expanded Details Section */}
-        <OrderDetailsExpanded
-          order={order}
-          isExpanded={isDetailsExpanded}
-          onToggle={() => setIsDetailsExpanded(!isDetailsExpanded)}
-        />
-
-        {/* Action buttons */}
-        {actionButtons.length > 0 && (
-          <div className="flex gap-2 pt-1">
-            {actionButtons}
-          </div>
-        )}
       </div>
-    </button>
+    </div>
   );
 };
 

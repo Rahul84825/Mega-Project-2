@@ -12,13 +12,13 @@ const TermsConditions = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--cream)]">
+    <div className="min-h-[60vh] bg-[var(--cream)]">
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-        <h1 className="mb-8 text-4xl font-bold text-[var(--charcoal)]">Terms & Conditions</h1>
+        <h1 className="mb-8 text-4xl font-medium text-[var(--charcoal)]">Terms & Conditions</h1>
 
         <div className="prose max-w-none space-y-6 text-gray-700">
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Agreement to Terms</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Agreement to Terms</h2>
             <p>
               By accessing and using Mithai World, you accept and agree to be bound by the terms and
               provision of this agreement.
@@ -26,7 +26,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Use License</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Use License</h2>
             <p>
               Permission is granted to temporarily download one copy of the materials (information or software)
               on Mithai World for personal, non-commercial transitory viewing only. This is the grant of a license,
@@ -42,7 +42,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Disclaimer</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Disclaimer</h2>
             <p>
               The materials on Mithai World are provided on an "as is" basis. Mithai World makes no
               warranties, expressed or implied, and hereby disclaims and negates all other warranties
@@ -52,7 +52,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Limitations</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Limitations</h2>
             <p>
               In no event shall Mithai World or its suppliers be liable for any damages (including,
               without limitation, damages for loss of data or profit, or due to business interruption)
@@ -61,7 +61,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Accuracy of Materials</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Accuracy of Materials</h2>
             <p>
               The materials appearing on Mithai World could include technical, typographical, or
               photographic errors. Mithai World does not warrant that any of the materials on its
@@ -71,7 +71,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Links</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Links</h2>
             <p>
               Mithai World has not reviewed all of the sites linked to its website and is not responsible
               for the contents of any such linked site. The inclusion of any link does not imply endorsement
@@ -80,7 +80,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Modifications</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Modifications</h2>
             <p>
               Mithai World may revise these terms of service for its website at any time without notice.
               By using this website, you are agreeing to be bound by the then current version of these terms of service.
@@ -88,7 +88,7 @@ const TermsConditions = () => {
           </section>
 
           <section>
-            <h2 className="mb-3 text-2xl font-semibold text-[var(--charcoal)]">Governing Law</h2>
+            <h2 className="mb-3 text-2xl font-medium text-[var(--charcoal)]">Governing Law</h2>
             <p>
               These terms and conditions are governed by and construed in accordance with the laws of
               India, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.
@@ -98,7 +98,7 @@ const TermsConditions = () => {
 
         <Link
           to="/"
-          className="mt-12 inline-block rounded-lg bg-[var(--saffron)] px-6 py-3 font-semibold text-[var(--charcoal)] hover:opacity-90"
+          className="mt-12 inline-block rounded-lg bg-[var(--saffron)] px-6 py-3 font-medium text-[var(--charcoal)] hover:opacity-90"
         >
           Back to Store
         </Link>

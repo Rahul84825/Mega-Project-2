@@ -34,7 +34,7 @@ function CartItem({ item }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-[#3b2417]">{item.name}</h3>
+              <h3 className="truncate text-sm font-medium text-[#3b2417]">{item.name}</h3>
               <p className="mt-0.5 text-xs text-[#8c7358]">{item.category || "Mithai"}</p>
               {variantLabel && <p className="mt-0.5 text-[11px] text-[#a67f52]">{variantLabel}</p>}
             </div>
@@ -49,7 +49,7 @@ function CartItem({ item }) {
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-[#e8883a]">{formatPrice(itemPrice)}</div>
+            <div className="text-sm font-medium text-[#e8883a]">{formatPrice(itemPrice)}</div>
 
             <div className="flex items-center gap-2 bg-[#fff2e2] px-2 py-1 rounded-full">
               <button

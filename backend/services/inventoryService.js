@@ -1,8 +1,7 @@
 import Product from "../models/Product.js";
 import InventoryLog from "../models/InventoryLog.js";
 import { getIo } from "../socket.js";
-
-const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+import { calculateItemSnapshotPricing, calculateOrderTotals } from "../utils/priceCalculator.js";
 
 export class InventoryError extends Error {
   constructor(message, status = 400, code = "INVENTORY_ERROR") {
@@ -52,24 +51,6 @@ const resolveVariant = (product, item) => {
 
   // If no variant found by any method, reject
   return { variant: null, variantIndex: null, isSimpleProduct: false };
-};
-
-const calculateItemSnapshot = (product, variant, quantity) => {
-  const gstRate = Number(product?.gstPercent ?? 0);
-  const mrpAtPurchase = Number(variant?.mrp ?? 0);
-  const sellingPriceAtPurchase = Number(variant?.finalPrice ?? variant?.sellingPrice ?? 0);
-  const subtotal = roundMoney(sellingPriceAtPurchase * quantity);
-  const gstAmount = roundMoney((subtotal * gstRate) / 100);
-  const finalAmount = roundMoney(subtotal + gstAmount);
-
-  return {
-    gstRate,
-    gstAmount,
-    mrpAtPurchase,
-    sellingPriceAtPurchase,
-    subtotal,
-    finalAmount
-  };
 };
 
 export const reserveStock = async ({
@@ -170,7 +151,7 @@ export const reserveStock = async ({
       );
     }
 
-    const pricing = calculateItemSnapshot(product, variant, quantity);
+    const pricing = calculateItemSnapshotPricing(product, variant, quantity);
     itemSnapshots.push({
       productId,
       titleSnapshot: product.name,
@@ -229,23 +210,11 @@ export const reserveStock = async ({
     }
   }
 
-  const itemsSubtotal = roundMoney(itemSnapshots.reduce((sum, item) => sum + item.subtotal, 0));
-  const gstTotal = roundMoney(itemSnapshots.reduce((sum, item) => sum + item.gstAmount, 0));
-  const safeDiscount = roundMoney(Number(discountTotal || 0));
-  const safeShipping = roundMoney(Number(shippingFee || 0));
-  const safeRounding = roundMoney(Number(roundingAdjustment || 0));
-  const grandTotal = roundMoney(itemsSubtotal + gstTotal + safeShipping - safeDiscount + safeRounding);
+  const calculatedTotals = calculateOrderTotals(itemSnapshots, discountTotal, shippingFee, roundingAdjustment);
 
   return {
     itemSnapshots,
-    totals: {
-      itemsSubtotal,
-      gstTotal,
-      discountTotal: safeDiscount,
-      shippingFee: safeShipping,
-      roundingAdjustment: safeRounding,
-      grandTotal
-    }
+    totals: calculatedTotals
   };
 };
 
@@ -290,5 +259,210 @@ export const releaseStock = async ({ reservations, session, orderNumber, reason 
 
   if (logEntries.length > 0) {
     await InventoryLog.insertMany(logEntries, { session });
+  }
+};
+
+/**
+ * Get current stock for a product or variant
+ * @param {string} productId - Product ID
+ * @param {string|number} variantId - Variant ID or index (optional)
+ * @returns {Promise<{available: number, reserved: number, total: number}>}
+ */
+export const getProductStock = async (productId, variantId = null) => {
+  const product = await Product.findById(productId).select("stock variants");
+  
+  if (!product) {
+    throw new InventoryError(`Product not found: ${productId}`, 404, "PRODUCT_NOT_FOUND");
+  }
+
+  // Simple product (no variants)
+  if (!variantId && (!Array.isArray(product.variants) || product.variants.length === 0)) {
+    return {
+      productId,
+      type: "simple",
+      available: Number(product.stock || 0),
+      reserved: 0,
+      total: Number(product.stock || 0)
+    };
+  }
+
+  // Product with variants - find specific variant
+  if (variantId) {
+    const variantIndex = product.variants.findIndex(v => 
+      String(v._id || v.id) === String(variantId)
+    );
+
+    if (variantIndex < 0) {
+      throw new InventoryError(`Variant not found: ${variantId}`, 404, "VARIANT_NOT_FOUND");
+    }
+
+    const variant = product.variants[variantIndex];
+    return {
+      productId,
+      variantId: variant._id,
+      variantLabel: variant.label,
+      type: "variant",
+      available: Number(variant.stock || 0),
+      reserved: 0,
+      total: Number(variant.stock || 0)
+    };
+  }
+
+  // Return all variants if no specific variant requested
+  return {
+    productId,
+    type: "variants",
+    variants: (product.variants || []).map(v => ({
+      variantId: v._id,
+      label: v.label,
+      available: Number(v.stock || 0),
+      total: Number(v.stock || 0)
+    }))
+  };
+};
+
+/**
+ * Check if items are in stock before allowing purchase
+ * @param {Array} items - Cart items with productId, variantId, quantity
+ * @returns {Promise<{isValid: boolean, errors: Array}>}
+ */
+export const validateItemsStock = async (items) => {
+  const errors = [];
+
+  for (const item of items) {
+    const productId = item?.productId || item?._id;
+    const quantity = Number(item?.quantity ?? 0);
+
+    if (!productId || quantity <= 0) {
+      errors.push({
+        productId,
+        message: "Invalid item data"
+      });
+      continue;
+    }
+
+    try {
+      const stockInfo = await getProductStock(productId, item?.variantId);
+      
+      if (stockInfo.available < quantity) {
+        errors.push({
+          productId,
+          variantId: item?.variantId,
+          requested: quantity,
+          available: stockInfo.available,
+          message: `Insufficient stock for ${item?.name || "product"}. Requested: ${quantity}, Available: ${stockInfo.available}`
+        });
+      }
+    } catch (error) {
+      errors.push({
+        productId,
+        message: error.message
+      });
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+ /* Supports both variant and simple products
+ * @param {Object} options - Configuration object
+ * @param {Array} options.items - Order items with productId, variantId/variantIndex, quantity
+ * @param {Object} options.session - Mongoose session for transaction
+ * @param {string} options.orderNumber - Order number for logging
+ * @param {string} options.reason - Reason for stock restoration
+ * @returns {Promise<void>}
+ */
+export const restoreStock = async ({ items, session, orderNumber, reason = "Stock restoration" }) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return;
+  }
+
+  const logEntries = [];
+
+  for (const item of items) {
+    const productId = item?.productId || item?._id;
+    const quantity = Number(item?.quantity ?? 0);
+    
+    if (!productId || quantity <= 0) {
+      continue;
+    }
+
+    const product = await Product.findById(productId).session(session);
+    if (!product) {
+      continue;
+    }
+
+    const { variant, variantIndex, isSimpleProduct } = resolveVariant(product, item);
+    
+    if (!variant) {
+      continue; // Skip if variant not found
+    }
+
+    // Restore stock based on product type
+    if (isSimpleProduct) {
+      const currentStock = Number(product.stock ?? 0);
+      await Product.updateOne(
+        { _id: productId },
+        { $inc: { stock: quantity } },
+        { session }
+      );
+
+      logEntries.push({
+        productId,
+        variantId: null,
+        variantLabel: "Default",
+        action: "RESTORE",
+        quantity,
+        stockBefore: currentStock,
+        stockAfter: currentStock + quantity,
+        orderNumber,
+        reason,
+        metadata: { source: "restore" }
+      });
+    } else {
+      const variantPath = `variants.${variantIndex}.stock`;
+      const currentStock = Number(variant.stock ?? 0);
+      
+      await Product.updateOne(
+        { _id: productId },
+        { $inc: { [variantPath]: quantity } },
+        { session }
+      );
+
+      logEntries.push({
+        productId,
+        variantId: variant._id || null,
+        variantLabel: variant.label || "Default",
+        action: "RESTORE",
+        quantity,
+        stockBefore: currentStock,
+        stockAfter: currentStock + quantity,
+        orderNumber,
+        reason,
+        metadata: { source: "restore" }
+      });
+    }
+  }
+
+  if (logEntries.length > 0) {
+    await InventoryLog.insertMany(logEntries, { session });
+    
+    // Emit socket events for restored stock
+    const io = getIo();
+    if (io) {
+      const affectedProductIds = [...new Set(items.map(item => item.productId || item._id))];
+      for (const productId of affectedProductIds) {
+        const updatedProduct = await Product.findById(productId);
+        if (updatedProduct) {
+          io.emit("stock:updated", {
+            productId: updatedProduct._id,
+            stock: updatedProduct.stock,
+            variants: updatedProduct.variants
+          });
+        }
+      }
+    }
   }
 };

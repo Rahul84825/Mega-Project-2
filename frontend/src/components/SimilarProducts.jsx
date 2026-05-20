@@ -8,7 +8,7 @@ function SimilarProducts({ titleCategory, products }) {
   return (
     <section className="pdp-animate-3 py-6 md:py-10 lg:py-12">
       <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 mb-4 md:mb-6 lg:mb-8">
-        <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-[#3b2417] whitespace-nowrap">
+        <h2 className="text-lg md:text-xl lg:text-2xl font-medium text-[#3b2417] whitespace-nowrap">
           More from <span className="text-[#e8883a]">{titleCategory}</span>
         </h2>
         <div className="h-px flex-1 bg-gradient-to-r from-[#d4a017]/35 to-transparent hidden md:block" />

@@ -22,6 +22,7 @@ import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import MyOrders from "./pages/MyOrders";
 
 // Policy Pages (lazy loaded)
 const ShippingPolicy = lazy(() => import("./pages/policies/ShippingPolicy"));
@@ -59,7 +60,7 @@ const LazyFallback = () => (
 /**
  * StoreLayout Component
  * Wraps store pages with Navbar, Cart, and Footer
- * FIXED: Was previously undefined, now properly implemented
+ * Moved outside App to ensure stable identity
  */
 function StoreLayout({ children }) {
   return (
@@ -84,10 +85,10 @@ function App() {
 
           <Routes>
             {/* ═══════════════════════════════════════════ */}
-            {/* AUTH ROUTES (No layout) */}
+            {/* AUTH ROUTES */}
             {/* ═══════════════════════════════════════════ */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<StoreLayout><Login /></StoreLayout>} />
+            <Route path="/register" element={<StoreLayout><Register /></StoreLayout>} />
 
             {/* ═══════════════════════════════════════════ */}
             {/* STORE ROUTES (With StoreLayout) */}
@@ -102,13 +103,26 @@ function App() {
             />
 
             <Route
-              path="/products"
+              path="/my-orders"
+              element={
+                <ProtectedRoute>
+                  <StoreLayout>
+                    <MyOrders />
+                  </StoreLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/sweets"
               element={
                 <StoreLayout>
                   <ProductsPage />
                 </StoreLayout>
               }
             />
+
+            <Route path="/sweets" element={<Navigate to="/sweets" replace />} />
 
             <Route
               path="/product/:id"
@@ -137,14 +151,7 @@ function App() {
               }
             />
 
-            <Route
-              path="/order-success"
-              element={
-                <StoreLayout>
-                  <OrderSuccessPage />
-                </StoreLayout>
-              }
-            />
+            <Route path="/order-success" element={<Navigate to="/payment-success" replace />} />
 
             <Route
               path="/payment-success"
@@ -254,7 +261,7 @@ function App() {
               <Route path="categories" element={<AdminCategories />} />
               <Route path="offers" element={<AdminOffers />} />
               <Route path="hero-banners" element={<AdminHeroBannerManager />} />
-              <Route path="brands" element={<Navigate to="/admin/products" replace />} />
+              <Route path="brands" element={<Navigate to="/admin/sweets" replace />} />
             </Route>
 
             {/* ═══════════════════════════════════════════ */}

@@ -10,7 +10,7 @@ const HomeSection = ({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-4 md:mb-6 text-left">
-          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[var(--charcoal)] mb-2">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-medium tracking-tight text-[var(--charcoal)] mb-2">
             {title}
           </h2>
           {subtitle && (

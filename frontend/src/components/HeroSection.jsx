@@ -1,218 +1,92 @@
 import { useEffect, useMemo, useState } from "react";
-import { getHeroSlides } from "../services/api";
-
-const FALLBACK_SLIDES = [
-  {
-    _id: "fallback-1",
-    image: "/hero-slide-1.svg",
-    order: 1
-  },
-  {
-    _id: "fallback-2",
-    image: "/hero-slide-2.svg",
-    order: 2
-  },
-  {
-    _id: "fallback-3",
-    image: "/hero-slide-3.svg",
-    order: 3
-  }
-];
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 const HERO_CONTENT = {
-  title: "India's Finest Mithai",
-  subtitle: "Crafted with Love",
-  description: "Handcrafted traditional sweets made from premium ingredients, delivered to your doorstep.",
-  ctaPrimary: "Shop Now",
+  subtitle: "Estd. 1984 — Pure Tradition",
+  title: "The Art of Indian",
+  highlight: "Mithai",
+  description: "Experience the finest collection of authentic Indian sweets, handcrafted using premium ingredients and heritage recipes passed through generations.",
+  ctaPrimary: "Order Now",
   ctaSecondary: "Our Story"
 };
 
 function HeroSection() {
-  const [slides, setSlides] = useState(FALLBACK_SLIDES);
+  const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const normalizedSlides = useMemo(() => {
-    const sourceSlides = Array.isArray(slides) && slides.length > 0 ? slides : FALLBACK_SLIDES;
-
-    return sourceSlides
-      .filter((slide) => Boolean(slide?.image))
-      .map((slide, index) => ({
-        _id: slide._id || `slide-${index + 1}`,
-        image: slide.image,
-        order: Number.isFinite(Number(slide.order)) ? Number(slide.order) : index + 1
-      }));
-  }, [slides]);
+  const slides = [
+    { image: "/hero-slide-1.svg" },
+    { image: "/hero-slide-2.svg" }
+  ];
 
   useEffect(() => {
-    const loadSlides = async () => {
-      try {
-        const apiSlides = await getHeroSlides();
-        const validSlides = Array.isArray(apiSlides)
-          ? apiSlides.filter((slide) => Boolean(slide?.image))
-          : [];
-
-        if (validSlides.length > 0) {
-          setSlides(validSlides);
-          setActiveIndex(0);
-        }
-      } catch (_error) {
-        // Keep fallback slides if API fails.
-      }
-    };
-
-    loadSlides();
-  }, []);
-
-  useEffect(() => {
-    if (normalizedSlides.length <= 1) {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % normalizedSlides.length);
-    }, 4000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [normalizedSlides.length]);
-
-  useEffect(() => {
-    if (activeIndex < normalizedSlides.length) {
-      return;
-    }
-
-    setActiveIndex(0);
-  }, [activeIndex, normalizedSlides.length]);
-
-  const activeSlide = useMemo(() => {
-    return normalizedSlides[activeIndex] || FALLBACK_SLIDES[0];
-  }, [normalizedSlides, activeIndex]);
-
-  const titleWords = HERO_CONTENT.title.trim().split(/\s+/).filter(Boolean);
-  const firstTitlePart = titleWords.slice(0, -1).join(" ");
-  const highlightedTitleWord = titleWords.slice(-1)[0] || "Mithai";
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % slides.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
   return (
-    <div
-      style={{
-        padding: "48px 32px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-        minHeight: "480px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }}
-    >
-      {normalizedSlides.map((slide, index) => (
-        <div
-          key={slide._id || slide.image || index}
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url(${slide.image})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: index === activeIndex ? 1 : 0,
-            transition: "opacity 0.8s ease"
-          }}
-        />
+    <section className="relative h-[480px] md:h-[600px] w-full overflow-hidden flex items-center justify-center bg-[var(--charcoal)]">
+      {/* ── BACKGROUND SLIDES ── */}
+      {slides.map((slide, i) => (
+        <div 
+          key={i}
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === activeIndex ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div 
+            className="absolute inset-0 bg-cover bg-center scale-105 transition-transform duration-[6000ms]"
+            style={{ backgroundImage: `url(${slide.image})`, transform: i === activeIndex ? 'scale(1)' : 'scale(1.1)' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--charcoal)]/90 via-[var(--charcoal)]/40 to-transparent" />
+        </div>
       ))}
 
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(135deg, rgba(26,12,9,0.74) 0%, rgba(74,16,16,0.60) 60%, rgba(113,20,20,0.62) 100%)"
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "radial-gradient(circle at 20% 50%, rgba(244,160,36,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(244,160,36,0.08) 0%, transparent 40%)"
-        }}
-      />
-
-      <div style={{ maxWidth: 700, margin: "0 auto", position: "relative" }}>
-        <div
-          style={{
-            fontSize: 13,
-            letterSpacing: 5,
-            color: "var(--saffron)",
-            textTransform: "uppercase",
-            marginBottom: 16
-          }}
-        >
-          ✦ {HERO_CONTENT.subtitle} ✦
-        </div>
-        <h1
-          className="serif"
-          style={{
-            fontSize: "clamp(40px, 6vw, 68px)",
-            fontWeight: 700,
-            color: "white",
-            lineHeight: 1.1,
-            marginBottom: 20
-          }}
-        >
-          {firstTitlePart || HERO_CONTENT.title}
-          <br />
-          <span style={{ color: "var(--saffron)" }}>
-            {highlightedTitleWord}
-          </span>
-        </h1>
-        <p
-          style={{
-            fontSize: 15,
-            color: "rgba(255,255,255,0.75)",
-            maxWidth: 470,
-            margin: "0 auto 32px",
-            lineHeight: 1.8
-          }}
-        >
-          {HERO_CONTENT.description}
-        </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button className="btn-primary" style={{ padding: "14px 36px", fontSize: 12 }}>
-            {HERO_CONTENT.ctaPrimary}
-          </button>
-          <button
-            className="btn-outline"
-            style={{ borderColor: "rgba(244,160,36,0.5)", color: "var(--saffron)", padding: "14px 36px", fontSize: 12 }}
-          >
-            {HERO_CONTENT.ctaSecondary}
-          </button>
-        </div>
-
-        {normalizedSlides.length > 1 && (
-          <div style={{ marginTop: 24, display: "flex", gap: 8, justifyContent: "center" }}>
-            {normalizedSlides.map((slide, index) => (
-              <button
-                key={(slide._id || slide.image || index) + "-dot"}
-                type="button"
-                onClick={() => setActiveIndex(index)}
-                aria-label={`Go to slide ${index + 1}`}
-                style={{
-                  width: index === activeIndex ? 22 : 8,
-                  height: 8,
-                  borderRadius: 8,
-                  border: "none",
-                  background: index === activeIndex ? "var(--saffron)" : "rgba(255,255,255,0.45)",
-                  cursor: "pointer",
-                  transition: "all .2s"
-                }}
-              />
-            ))}
+      {/* ── CONTENT ── */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 text-center md:text-left">
+        <div className="max-w-2xl animate-in slide-in-from-left duration-700">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[var(--saffron)] text-[10px] font-medium uppercase tracking-[0.3em] mb-6">
+            <Sparkles size={14} /> {HERO_CONTENT.subtitle}
           </div>
-        )}
+          
+          <h1 className="serif text-4xl md:text-6xl lg:text-7xl font-medium text-white leading-[1.1] mb-6 tracking-tight">
+            {HERO_CONTENT.title} <br />
+            <span className="text-[var(--saffron)]">{HERO_CONTENT.highlight}</span>
+          </h1>
+          
+          <p className="text-white/80 text-sm md:text-lg font-medium leading-relaxed mb-10 max-w-lg mx-auto md:mx-0">
+            {HERO_CONTENT.description}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <button 
+              onClick={() => navigate("/sweets")}
+              className="btn-primary h-14 px-10 text-sm w-full sm:w-auto shadow-2xl"
+            >
+              {HERO_CONTENT.ctaPrimary} <ArrowRight size={18} />
+            </button>
+            <button 
+              onClick={() => navigate("/about")}
+              className="h-14 px-10 rounded-xl border border-white/30 text-white text-sm font-medium uppercase tracking-widest hover:bg-white hover:text-[var(--charcoal)] transition-all w-full sm:w-auto backdrop-blur-sm"
+            >
+              {HERO_CONTENT.ctaSecondary}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* ── DOTS ── */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:left-12 md:translate-x-0 flex gap-2">
+        {slides.map((_, i) => (
+          <button 
+            key={i} 
+            onClick={() => setActiveIndex(i)}
+            className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-10 bg-[var(--saffron)]' : 'w-2 bg-white/30 hover:bg-white/50'}`}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 

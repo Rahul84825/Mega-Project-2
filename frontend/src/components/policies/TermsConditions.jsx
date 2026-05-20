@@ -24,7 +24,7 @@ const SECTIONS = [
     icon: Globe,
     title: "Website Usage",
     content: [
-      "All content on this website, including text, images, logos, and graphics, is the property of Mahalaxmi Steels and Home Appliance and is protected under applicable copyright laws.",
+      "All content on this website, including text, images, logos, and graphics, is the property of Mithai World and is protected under applicable copyright laws.",
       "You may not reproduce, distribute, or use any content from this website for commercial purposes without our written consent.",
       "You agree to use this website only for lawful purposes and in a manner that does not infringe upon the rights of others.",
     ],
@@ -42,7 +42,7 @@ const SECTIONS = [
     icon: AlertTriangle,
     title: "Limitation of Liability",
     content: [
-      "Mahalaxmi Steels and Home Appliance shall not be liable for any indirect, incidental, or consequential damages arising from the use of our website or products.",
+      "Mithai World shall not be liable for any indirect, incidental, or consequential damages arising from the use of our website or products.",
       "Our liability is limited to the purchase price of the product in question. We are not responsible for delays caused by events beyond our control.",
       "These terms are governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in Pune, Maharashtra.",
     ],
@@ -58,7 +58,7 @@ const TermsConditions = () => (
                       rounded-full bg-[rgba(232,136,58,0.06)] blur-[70px]" />
       <div className="relative mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <NavLink to="/"
-                 className="mb-4 inline-flex items-center gap-2 text-sm font-bold
+                 className="mb-4 inline-flex items-center gap-2 text-sm font-medium
                             text-[rgba(83,44,22,0.50)] transition-colors hover:text-[#7a2828]">
           <ArrowLeft className="h-4 w-4" /> Back to Home
         </NavLink>
@@ -67,7 +67,7 @@ const TermsConditions = () => (
                           bg-[rgba(212,160,23,0.12)] ring-1 ring-[rgba(212,160,23,0.22)]">
             <FileText className="h-5 w-5 text-[#b76a1f]" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#24140f] sm:text-4xl">
+          <h1 className="text-3xl font-medium tracking-tight text-[#24140f] sm:text-4xl">
             Terms & Conditions
           </h1>
         </div>
@@ -86,14 +86,14 @@ const TermsConditions = () => (
         <div className="space-y-3">
           <p className="text-[13px] leading-relaxed text-[#6e5443]">
             Welcome to{" "}
-            <strong className="text-[#24140f]">Mahalaxmi Steels and Home Appliance</strong>.
+            <strong className="text-[#24140f]">Mithai World</strong>.
             These Terms & Conditions govern your use of our website and the purchase of products
             from our store. By accessing or using our website, you agree to be bound by these terms.
           </p>
           <p className="text-[13px] leading-relaxed text-[#6e5443]">
             Our store is located at{" "}
             <strong className="text-[#24140f]">
-              Ekta Nagar, Akurdi Gaothan, Dattawadi, Akurdi, Pune, Maharashtra 411035
+              Ekta Nagar, Akurdi Gaothan, Dattawadi, Viman Nagar, Pune, Maharashtra 411035
             </strong>{" "}
             and is owned and operated by{" "}
             <strong className="text-[#24140f]">Sakharam Choudhary</strong>.
@@ -103,7 +103,7 @@ const TermsConditions = () => (
         {/* Sections */}
         {SECTIONS.map(({ icon: Icon, title, content }) => (
           <div key={title}>
-            <h2 className="mb-4 flex items-center gap-2 text-[15px] font-bold text-[#24140f]">
+            <h2 className="mb-4 flex items-center gap-2 text-[15px] font-medium text-[#24140f]">
               <Icon className="h-4 w-4 text-[#b76a1f]" /> {title}
             </h2>
             <ul className="space-y-2">
@@ -120,27 +120,27 @@ const TermsConditions = () => (
         {/* Contact box */}
         <div className="rounded-xl border border-[rgba(212,160,23,0.25)]
                         bg-[rgba(212,160,23,0.07)] p-5">
-          <h3 className="mb-2 text-sm font-bold text-[#24140f]">Questions about these terms?</h3>
+          <h3 className="mb-2 text-sm font-medium text-[#24140f]">Questions about these terms?</h3>
           <p className="mb-3 text-[13px] leading-relaxed text-[#6e5443]">
             If you have any questions or concerns, please reach out:
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <a href="tel:+919561878293"
-               className="inline-flex items-center gap-2 text-sm font-bold
+               className="inline-flex items-center gap-2 text-sm font-medium
                           text-[#7a2828] hover:underline">
               <Phone className="h-4 w-4" /> +91 95618 78293
             </a>
-            <a href="mailto:mahalaxmisteels08@gmail.com"
-               className="inline-flex items-center gap-2 text-sm font-bold
+            <a href="mailto:mithaiworld08@gmail.com"
+               className="inline-flex items-center gap-2 text-sm font-medium
                           text-[#7a2828] hover:underline">
-              <Mail className="h-4 w-4" /> mahalaxmisteels08@gmail.com
+              <Mail className="h-4 w-4" /> mithaiworld08@gmail.com
             </a>
           </div>
         </div>
 
         <p className="border-t border-[rgba(83,44,22,0.08)] pt-4 text-center
                       text-xs text-[rgba(83,44,22,0.35)]">
-          Last updated: March 2026 · Mahalaxmi Steels and Home Appliance
+          Last updated: March 2026 · Mithai World
         </p>
       </div>
     </div>

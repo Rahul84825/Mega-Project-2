@@ -1,0 +1,163 @@
+import { useState, useEffect } from "react";
+import { useProducts } from "../context/ProductContext";
+import { formatCurrency } from "../utils/priceCalculator";
+import api from "../services/api";
+import { 
+  Package, Clock, CheckCircle2, XCircle, 
+  ChevronRight, MapPin, Search, ShoppingBag
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+const STATUS_META = {
+  PLACED: { label: "Order Placed", cls: "bg-blue-100 text-blue-700", icon: Clock },
+  PREPARING: { label: "Preparing", cls: "bg-amber-100 text-amber-700", icon: Clock },
+  READY: { label: "Ready", cls: "bg-indigo-100 text-indigo-700", icon: Package },
+  PICKED_UP: { label: "Picked Up", cls: "bg-purple-100 text-purple-700", icon: Package },
+  DELIVERED: { label: "Delivered", cls: "bg-green-100 text-green-700", icon: CheckCircle2 },
+  REJECTED: { label: "Rejected", cls: "bg-rose-100 text-rose-700", icon: XCircle },
+};
+
+const MyOrders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchMyOrders = async () => {
+      try {
+        const { data } = await api.get("/api/orders/my-orders");
+        if (data.success) {
+          setOrders(data.orders);
+        }
+      } catch (err) {
+        console.error("Failed to fetch orders:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMyOrders();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--burgundy)] border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 md:py-20">
+      <div className="mb-10">
+        <h1 className="serif text-3xl md:text-4xl text-[var(--charcoal)] mb-2">My Orders</h1>
+        <p className="text-[var(--muted)]">Track and manage your sweet deliveries.</p>
+      </div>
+
+      {orders.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-3xl border border-[var(--surface-border)] shadow-sm">
+          <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)]">
+            <ShoppingBag size={40} />
+          </div>
+          <h2 className="serif text-2xl mb-4">No orders found</h2>
+          <p className="text-[var(--muted)] mb-8">Looks like you haven't ordered any sweets yet.</p>
+          <button 
+            onClick={() => navigate("/sweets")}
+            className="btn-primary px-8 py-3 rounded-xl"
+          >
+            Start Shopping
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {orders.map((order) => {
+            const status = STATUS_META[order.status] || { label: order.status, cls: "bg-gray-100 text-gray-700", icon: Clock };
+            const date = new Date(order.createdAt).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            });
+
+            return (
+              <div 
+                key={order._id}
+                className="bg-white rounded-2xl border border-[var(--surface-border)] shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <div className="p-4 md:p-6 border-b border-[var(--surface-border)] bg-[var(--cream)]/30">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-[var(--burgundy)] shadow-sm">
+                        <Package size={20} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Order ID</div>
+                        <div className="text-sm font-medium text-[var(--charcoal)]">#{order.orderNumber}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="hidden sm:block text-right">
+                        <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Date</div>
+                        <div className="text-sm font-medium text-[var(--charcoal)]">{date}</div>
+                      </div>
+                      <div>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider ${status.cls}`}>
+                          <status.icon size={12} />
+                          {status.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Items</div>
+                    <div className="space-y-3">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-4">
+                          <img src={item.imageSnapshot} alt="" className="h-12 w-12 rounded-lg object-cover bg-[var(--surface-strong)]" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[var(--charcoal)] truncate">{item.titleSnapshot}</div>
+                            <div className="text-[10px] text-[var(--muted)]">
+                              {item.selectedVariant?.label || "Regular"} × {item.quantity}
+                            </div>
+                          </div>
+                          <div className="text-xs font-medium text-[var(--charcoal)]">
+                            {formatCurrency(item.finalAmount)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-3">Delivery Address</div>
+                      <div className="flex items-start gap-2 text-xs text-[var(--muted)] leading-relaxed">
+                        <MapPin size={14} className="text-[var(--gold)] shrink-0 mt-0.5" />
+                        <span>
+                          {order.shippingAddress.line1}, {order.shippingAddress.city} - {order.shippingAddress.postalCode}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-[var(--surface-border)]">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium text-[var(--charcoal)]">Total Amount</span>
+                        <span className="text-lg font-medium text-[var(--burgundy)]">
+                          {formatCurrency(order.totals?.grandTotal || order.total)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MyOrders;

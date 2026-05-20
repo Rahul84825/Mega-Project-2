@@ -1,191 +1,171 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Package, Tag, AlertTriangle, TrendingUp,
-  PlusCircle, Eye, ShoppingBag, LayoutDashboard,
-  IndianRupee, ChevronRight, Users
+import { 
+  Package, Tag, AlertTriangle, TrendingUp, 
+  PlusCircle, ShoppingBag, LayoutDashboard, 
+  IndianRupee, ChevronRight, Users, Sparkles, Clock, CheckCircle2
 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
-import { formatPrice } from "../services/utils/priceCalculator";
+import { formatCurrency } from "../utils/priceCalculator";
 import api from "../services/api";
 
-const StatCard = ({ label, value, sub, icon: Icon, color, bg, onClick }) => (
-  <div
-    onClick={onClick}
-    className={`bg-[#fffaf3] rounded-[1.25rem] border border-[#e6d3b3] shadow-sm p-6 flex flex-col justify-between group transition-all duration-300
-                ${onClick ? "cursor-pointer hover:shadow-lg hover:shadow-black/30 hover:border-[#8b4513] hover:-translate-y-0.5" : ""}`}
-  >
-    <div className="flex items-start justify-between mb-4">
-      <div className={`w-12 h-12 ${bg} rounded-[14px] flex items-center justify-center shrink-0 ring-1 ring-black/5 transition-transform duration-300 ${onClick ? 'group-hover:scale-110' : ''}`}>
-        <Icon className={`w-5 h-5 ${color}`} />
-      </div>
-      {onClick && (
-        <div className="p-1 text-[#7a5c3a] opacity-0 group-hover:opacity-100 transition-opacity">
-          <ChevronRight className="w-4 h-4" />
-        </div>
-      )}
-    </div>
-    
-    <div>
-      <p className="text-[11px] font-bold text-[#7a5c3a] uppercase tracking-widest mb-1.5">{label}</p>
-      <p className="text-3xl font-extrabold text-[#2d1b0e] mb-1 tracking-tight leading-none">{value}</p>
-      {sub && <p className="text-xs font-medium text-[#7a5c3a] mt-2">{sub}</p>}
-    </div>
-  </div>
-);
-
 const AdminDashboard = () => {
-  const { products, offers, orders, categories, fetchOrders } = useProducts();
   const navigate = useNavigate();
-
-  const [adminStats, setAdminStats] = useState({ totalUsers: null });
+  const { products, orders, fetchOrders } = useProducts();
+  const [adminStats, setAdminStats] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalCategories: 0,
+    recentOrders: []
+  });
 
   useEffect(() => {
     fetchOrders();
-    api.get("/admin/stats")
-      .then((response) => response.data || response)
-      .then((data) => setAdminStats(data))
+    api.get("/api/admin/stats")
+      .then(res => setAdminStats(res.data || res))
       .catch(() => {});
-  }, []);
+  }, [fetchOrders]);
 
-  const hasAvailableStock = (product) => {
-    const variants = Array.isArray(product?.variants) ? product.variants : [];
-    if (variants.length) {
-      return variants.some((variant) => Number(variant?.stock || 0) > 0);
-    }
+  const statsCards = [
+    { 
+      label: "Total Revenue", 
+      value: formatCurrency(orders.filter(o => !['REJECTED'].includes(o.status)).reduce((sum, o) => sum + Number(o.totals?.grandTotal || o.total || 0), 0)), 
+      icon: IndianRupee, color: "text-green-600", bg: "bg-green-50" 
+    },
+    { 
+      label: "Active Orders", 
+      value: orders.filter(o => !['DELIVERED', 'REJECTED'].includes(o.status)).length, 
+      icon: ShoppingBag, color: "text-[var(--burgundy)]", bg: "bg-red-50" 
+    },
+    { 
+      label: "Store Items", 
+      value: products.length, 
+      icon: Package, color: "text-[var(--gold)]", bg: "bg-amber-50" 
+    },
+    { 
+      label: "Customers", 
+      value: adminStats.totalUsers || adminStats.stats?.totalUsers || 0, 
+      icon: Users, color: "text-blue-600", bg: "bg-blue-50" 
+    },
+  ];
 
-    return Number(product?.stock || 0) > 0;
-  };
-
-  const totalProducts = products.length;
-  const inStock       = products.filter((p) => hasAvailableStock(p)).length;
-  const outOfStock    = products.filter((p) => !hasAvailableStock(p)).length;
-  const recentThreshold = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const recentlyAdded = products.filter((p) => {
-    const created = new Date(p.createdAt || p.created_at || 0).getTime();
-    return Number.isFinite(created) && created >= recentThreshold;
-  }).length;
-  const activeOffers  = offers.filter((o) => o.isActive ?? o.active).length;
-  const totalOrders   = orders.length;
-  const totalRevenue  = orders.reduce((s, o) => s + (o.total || 0), 0);
-
-  // Resolve category name from _id using context categories
-  const getCatName = (cat) => {
-    if (!cat) return "Unknown";
-    if (typeof cat === "object") return cat.name || cat.label || "Unknown";
-    const found = categories.find((c) => c._id === cat || c.id === cat || c.slug === cat);
-    if (found) return found.name || found.label || "Unknown";
-    return String(cat);
-  };
-
-  // Group products by resolved category name
-  const categoryCounts = products.reduce((acc, p) => {
-    const name = getCatName(p.category);
-    acc[name] = (acc[name] || 0) + 1;
-    return acc;
-  }, {});
+  const lowStockProducts = useMemo(() => {
+    return products.filter(p => p.stock < 10).slice(0, 5);
+  }, [products]);
 
   return (
-    <div className="animate-in fade-in duration-500">
-      
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fffaf3] border border-[#e6d3b3] text-[10px] font-bold text-[#7a5c3a] uppercase tracking-widest mb-3">
-            <LayoutDashboard className="w-3.5 h-3.5" /> Overview
+    <div className="space-y-10 page-enter">
+      <div className="section-title">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
+          <Sparkles size={12} /> Live Dashboard
+        </div>
+        <h2 className="serif font-medium">Welcome back, Admin</h2>
+        <p className="font-medium">Here's what's happening at Mithai World today.</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statsCards.map((s, i) => (
+          <div key={i} className="bg-white p-6 rounded-3xl border border-[var(--surface-border)] shadow-sm hover:shadow-xl transition-all duration-300">
+            <div className={`h-12 w-12 rounded-2xl ${s.bg} ${s.color} flex items-center justify-center mb-4 shadow-inner`}>
+              <s.icon size={24} />
+            </div>
+            <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-1">{s.label}</div>
+            <div className="text-2xl font-medium text-[var(--charcoal)]">{s.value}</div>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2d1b0e] tracking-tight">Admin Dashboard</h2>
-          <p className="text-sm font-medium text-[#7a5c3a] mt-1">Here's what's happening in your store today.</p>
-        </div>
-        
-        {/* Quick Actions (Desktop Top-Right) */}
-        <div className="hidden sm:flex items-center gap-3">
-          <button onClick={() => navigate("/admin/add-product", { state: null })}
-            className="flex items-center gap-2 bg-[#8b4513] text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-[#a0522d] transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5">
-            <PlusCircle className="w-4 h-4" /> Add Product
-          </button>
-          <button onClick={() => navigate("/")}
-            className="flex items-center gap-2 bg-[#fffaf3] border border-[#e6d3b3] text-[#7a5c3a] px-5 py-2.5 rounded-full text-sm font-bold hover:bg-[#f5e6d3] hover:text-[#2d1b0e] transition-colors shadow-sm">
-            <Eye className="w-4 h-4" /> View Store
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* ── Metric Cards Grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-        <StatCard label="Total Revenue" value={formatPrice(totalRevenue)} sub="From all confirmed orders"
-          icon={IndianRupee} color="text-emerald-600" bg="bg-emerald-50" />
-        <StatCard label="Total Orders" value={totalOrders} sub="Awaiting processing or completed"
-          icon={ShoppingBag} color="text-blue-600" bg="bg-blue-50"
-          onClick={() => navigate("/admin/orders")} />
-        <StatCard label="Total Products" value={totalProducts} sub={`${recentlyAdded} added in last 30 days`}
-          icon={Package} color="text-indigo-600" bg="bg-indigo-50"
-          onClick={() => navigate("/admin/products")} />
-          
-        <StatCard label="In Stock" value={inStock} sub="Items ready to sell"
-          icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" />
-        <StatCard label="Out of Stock" value={outOfStock}
-          sub={outOfStock > 0 ? "Needs immediate restocking" : "Inventory is fully stocked"}
-          icon={AlertTriangle} color={outOfStock > 0 ? "text-rose-400" : "text-[#6d4c41]"} bg={outOfStock > 0 ? "bg-rose-950/30" : "bg-[#fff8ec]"}
-          onClick={() => navigate("/admin/products")} />
-        <StatCard label="Active Offers" value={activeOffers} sub={`${offers.length} total campaigns running`}
-          icon={Tag} color="text-amber-600" bg="bg-amber-50"
-          onClick={() => navigate("/admin/offers")} />
-        <StatCard label="Registered Users" value={adminStats.totalUsers ?? "—"} sub="Total customer accounts"
-          icon={Users} color="text-violet-600" bg="bg-violet-50" />
-        <StatCard label="Recently Added" value={recentlyAdded} sub="Products added in last 30 days"
-          icon={Package} color="text-amber-600" bg="bg-amber-50"
-          onClick={() => navigate("/admin/products")} />
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="serif text-xl font-medium text-[var(--charcoal)] flex items-center gap-2">
+              <Clock size={20} className="text-[var(--gold)]" /> Recent Activity
+            </h3>
+            <button onClick={() => navigate("/admin/orders")} className="text-[10px] font-medium uppercase tracking-widest text-[var(--burgundy)] hover:underline flex items-center gap-1">
+              View All <ChevronRight size={12} />
+            </button>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-        
-        {/* ── Category Breakdown ── */}
-        <div className="bg-[#fffaf3] rounded-3xl border border-[#e6d3b3] shadow-sm p-6 sm:p-8">
-          <h3 className="text-base font-extrabold text-[#2d1b0e] mb-6 flex items-center gap-2">
-            Products by Category
+          <div className="bg-white rounded-3xl border border-[var(--surface-border)] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-[var(--cream)]/50 border-b border-[var(--surface-border)]">
+                    <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Order</th>
+                    <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Customer</th>
+                    <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--surface-border)]">
+                  {orders.slice(0, 6).map((o) => (
+                    <tr key={o._id} className="hover:bg-[var(--cream)]/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="text-xs font-medium text-[var(--charcoal)]">#{o.orderNumber || o._id?.slice(-6).toUpperCase()}</div>
+                        <div className="text-[10px] text-[var(--muted)] mt-0.5 font-medium">{new Date(o.createdAt).toLocaleDateString()}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs font-medium text-[var(--charcoal)]">{o.customer?.name}</div>
+                        <div className="text-[10px] text-[var(--muted)] font-medium">{o.customer?.phone}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-medium uppercase bg-[var(--surface-strong)] text-[var(--muted)]">
+                          {o.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="text-xs font-medium text-[var(--charcoal)]">{formatCurrency(o.total)}</div>
+                      </td>
+                    </tr>
+                  ))}
+                  {orders.length === 0 && (
+                    <tr><td colSpan="4" className="px-6 py-10 text-center text-xs text-[var(--muted)] font-medium">No recent orders yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="serif text-xl font-medium text-[var(--charcoal)] flex items-center gap-2">
+            <AlertTriangle size={20} className="text-amber-500" /> Inventory Alerts
           </h3>
-          <div className="space-y-4">
-            {Object.entries(categoryCounts).map(([name, count]) => (
-              <div key={name} className="flex items-center gap-4 group">
-                <span className="text-xs font-bold text-[#7a5c3a] w-36 truncate group-hover:text-[#2d1b0e] transition-colors">{name}</span>
-                <div className="flex-1 bg-[#f5e6d3] rounded-full h-2.5 overflow-hidden border border-[#e6d3b3]">
-                  <div className="bg-linear-to-r from-[#d4a373] to-[#8b4513] h-full rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.max((count / totalProducts) * 100, 2)}%` }} />
+          <div className="bg-white rounded-3xl border border-[var(--surface-border)] p-6 space-y-4 shadow-sm">
+            {lowStockProducts.length > 0 ? (
+              lowStockProducts.map(p => (
+                <div key={p._id} className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                  <div className="h-8 w-8 rounded-lg overflow-hidden bg-white shrink-0">
+                    <img src={p.images?.[0]} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-medium text-[var(--charcoal)] truncate">{p.name}</div>
+                    <div className="text-[10px] text-amber-700 font-medium font-medium">Only {p.stock} units left</div>
+                  </div>
+                  <button onClick={() => navigate(`/admin/edit-product/${p._id}`)} className="h-7 w-7 rounded-full bg-white flex items-center justify-center text-amber-600 shadow-sm">
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
-                <span className="text-xs font-black text-[#2d1b0e] w-8 text-right bg-[#f5e6d3] py-1 rounded-md border border-[#e6d3b3]">{count}</span>
+              ))
+            ) : (
+              <div className="text-center py-10">
+                <CheckCircle2 size={32} className="text-green-500 mx-auto mb-2 opacity-50" />
+                <p className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">All items stocked</p>
               </div>
-            ))}
-            {Object.keys(categoryCounts).length === 0 && (
-              <p className="text-sm text-[#7a5c3a] italic py-4">No products found in the catalog.</p>
             )}
           </div>
-        </div>
 
-        {/* ── Mobile Quick Actions (Hidden on Desktop) ── */}
-        <div className="sm:hidden bg-[#fffaf3] rounded-3xl border border-[#e6d3b3] shadow-sm p-6">
-          <h3 className="text-base font-extrabold text-[#2d1b0e] mb-4">Quick Actions</h3>
-          <div className="flex flex-col gap-3">
-            <button onClick={() => navigate("/admin/add-product", { state: null })}
-              className="w-full flex items-center justify-center gap-2 bg-[#8b4513] text-white px-5 py-3.5 rounded-xl text-sm font-bold hover:bg-[#a0522d] transition-colors shadow-md">
-              <PlusCircle className="w-4 h-4" /> Add New Product
-            </button>
-            <button onClick={() => navigate("/admin/offers")}
-              className="w-full flex items-center justify-center gap-2 bg-yellow-50 text-yellow-700 border border-yellow-200 px-5 py-3.5 rounded-xl text-sm font-bold hover:bg-yellow-100 transition-colors">
-              <Tag className="w-4 h-4" /> Manage Offers
-            </button>
-            <button onClick={() => navigate("/")}
-              className="w-full flex items-center justify-center gap-2 bg-[#fffaf3] border border-[#e6d3b3] text-[#7a5c3a] px-5 py-3.5 rounded-xl text-sm font-bold hover:bg-[#f5e6d3] transition-colors">
-              <Eye className="w-4 h-4" /> View Store Live
-            </button>
+          <div className="bg-[var(--charcoal)] p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 h-32 w-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-150" />
+            <h4 className="serif text-xl mb-2 font-medium">Need Help?</h4>
+            <p className="text-white/60 text-xs mb-6 font-medium">Access the Mithai World knowledge base or contact tech support.</p>
+            <button className="w-full h-10 rounded-xl bg-white text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest shadow-lg">Documentation</button>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
 export default AdminDashboard;
-
-

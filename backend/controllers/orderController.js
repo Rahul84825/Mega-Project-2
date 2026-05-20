@@ -3,8 +3,19 @@ import mongoose from "mongoose";
 import Order, { ORDER_STATUSES } from "../models/Order.js";
 import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
-import { InventoryError, reserveStock } from "../services/inventoryService.js";
+import { InventoryError, reserveStock, restoreStock } from "../services/inventoryService.js";
 import generateOrderId from "../utils/orderIdGenerator.js";
+import { assignDeliveryPartner, scheduleOrderReady } from "../services/deliveryService.js";
+import {
+  sendOrderPlacedEmail,
+  sendAdminNewOrderAlert,
+  sendOrderAcceptedEmail,
+  sendOrderPreparingEmail,
+  sendOrderOutForDeliveryEmail,
+  sendOrderDeliveredEmail,
+  sendOrderRejectedEmail
+  } from "../services/emailService.js";
+
 
 const isValidOrderPayload = (orderData) => {
   return Boolean(orderData && typeof orderData === "object" && !Array.isArray(orderData));
@@ -130,6 +141,10 @@ export const placeOrder = async (req, res) => {
     emitOrderEvent("orderPlaced", sanitizeOrder(createdOrder));
     logger.info("Order placed", { orderId: String(createdOrder._id) });
 
+    // Send emails asynchronously
+    sendOrderPlacedEmail(createdOrder).catch(err => logger.error("Failed to send order placed email", err));
+    sendAdminNewOrderAlert(createdOrder).catch(err => logger.error("Failed to send admin alert email", err));
+
     return res.status(201).json({
       success: true,
       message: "Order placed successfully",
@@ -165,14 +180,32 @@ export const placeOrder = async (req, res) => {
   }
 };
 
+export const getMyOrders = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const orders = await Order.find({ "customer.userId": userId }).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, orders: sanitizeOrders(orders) });
+  } catch (error) {
+    logger.error("Failed to fetch my orders", { error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch orders"
+    });
+  }
+};
+
 export const acceptOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const etaMinutes = Number(req.body?.etaMinutes ?? 15);
 
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.status === "PREPARING") {
+      return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
     order.status = "PREPARING";
@@ -184,8 +217,19 @@ export const acceptOrder = async (req, res) => {
     }
 
     await order.save();
+
+    // Assign delivery partner
+    order = await assignDeliveryPartner(order._id);
+
+    // Schedule automated transition to READY
+    if (Number.isFinite(etaMinutes)) {
+      scheduleOrderReady(order._id, etaMinutes);
+    }
+
     emitOrderEvent("orderAccepted", sanitizeOrder(order));
     logger.info("Order accepted", { orderId: String(order._id) });
+
+    sendOrderAcceptedEmail(order).catch(err => logger.error("Failed to send accepted email", err));
 
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
@@ -197,7 +241,44 @@ export const acceptOrder = async (req, res) => {
   }
 };
 
+export const verifyPickupOtp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { otp } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.status !== "READY") {
+      return res.status(400).json({ success: false, message: "Order is not ready for pickup" });
+    }
+
+    if (!order.delivery?.pickupOtp || order.delivery.pickupOtp !== String(otp).trim()) {
+      return res.status(400).json({ success: false, message: "Invalid pickup OTP" });
+    }
+
+    order.status = "PICKED_UP";
+    order.statusTimestamps.pickedUpAt = new Date();
+    
+    // Update delivery status
+    order.delivery.status = "PICKED_UP";
+    
+    await order.save();
+
+    emitOrderEvent("orderPickedUp", sanitizeOrder(order));
+    sendOrderOutForDeliveryEmail(order).catch(err => logger.error("Failed to send out for delivery email", err));
+    
+    return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+  } catch (error) {
+    logger.error("Failed to verify pickup OTP:", error);
+    return res.status(500).json({ success: false, message: error.message || "Server Error" });
+  }
+};
+
 export const rejectOrder = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
     const { id } = req.params;
     const rejectionReason = String(req.body?.reason || "").trim();
@@ -207,14 +288,33 @@ export const rejectOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    order.status = "REJECTED";
-    order.statusTimestamps.rejectedAt = new Date();
-    order.rejectionReason = rejectionReason;
+    if (order.status === "REJECTED") {
+      return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    }
 
-    await order.save();
+    await session.withTransaction(async () => {
+      order.status = "REJECTED";
+      order.statusTimestamps.rejectedAt = new Date();
+      order.rejectionReason = rejectionReason;
+      await order.save({ session });
+
+      // Restore stock for all items in the order
+      await restoreStock({
+        items: order.items.map(item => ({
+          productId: item.productId,
+          variantId: item.selectedVariant?.variantId,
+          quantity: item.quantity
+        })),
+        session,
+        orderNumber: order.orderNumber,
+        reason: `Order Rejected: ${rejectionReason || "No reason provided"}`
+      });
+    });
 
     emitOrderEvent("orderRejected", sanitizeOrder(order));
     logger.warn("Order rejected", { orderId: String(order._id), rejectionReason });
+
+    sendOrderRejectedEmail(order).catch(err => logger.error("Failed to send rejected email", err));
 
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
@@ -223,6 +323,8 @@ export const rejectOrder = async (req, res) => {
       success: false,
       message: error.message || "Failed to reject order"
     });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -235,11 +337,16 @@ export const markPreparing = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
+    if (order.status === "PREPARING") {
+      return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    }
+
     order.status = "PREPARING";
     order.statusTimestamps.preparingAt = new Date();
     await order.save();
 
     emitOrderEvent("orderPreparing", sanitizeOrder(order));
+    sendOrderPreparingEmail(order).catch(err => logger.error("Failed to send preparing email", err));
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     return res.status(500).json({
@@ -281,11 +388,16 @@ export const markPickedUp = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
+    if (order.status === "PICKED_UP") {
+      return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    }
+
     order.status = "PICKED_UP";
     order.statusTimestamps.pickedUpAt = new Date();
     await order.save();
 
     emitOrderEvent("orderPickedUp", sanitizeOrder(order));
+    sendOrderOutForDeliveryEmail(order).catch(err => logger.error("Failed to send out for delivery email", err));
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     return res.status(500).json({
@@ -304,6 +416,10 @@ export const markDelivered = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
+    if (order.status === "DELIVERED") {
+      return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    }
+
     order.status = "DELIVERED";
     order.statusTimestamps.deliveredAt = new Date();
     if (order.payment?.method === "COD" && order.payment?.status !== "PAID") {
@@ -314,6 +430,7 @@ export const markDelivered = async (req, res) => {
     await order.save();
 
     emitOrderEvent("orderDelivered", sanitizeOrder(order));
+    sendOrderDeliveredEmail(order).catch(err => logger.error("Failed to send delivered email", err));
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     return res.status(500).json({

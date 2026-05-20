@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ImagePlus, Trash2, UploadCloud, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { ImagePlus, Trash2, UploadCloud, AlertCircle, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import api, { getHeroSlidesAdmin, deleteHeroSlide } from "../services/api";
 
 const MAX_PREVIEW_COUNT = 10;
@@ -68,12 +68,8 @@ const AdminHeroBannerManager = () => {
       return;
     }
 
-    const formData = new FormData();
-    selectedFiles.forEach((file) => formData.append("images", file));
-
     try {
       setUploading(true);
-      // Upload each image via axios instance
       for (const file of selectedFiles) {
         const imageFormData = new FormData();
         imageFormData.append("image", file);
@@ -81,16 +77,7 @@ const AdminHeroBannerManager = () => {
           headers: { "Content-Type": "multipart/form-data" }
         });
       }
-      // Fetch updated list
-      const slides = await getHeroSlidesAdmin();
-      const images = (Array.isArray(slides) ? slides : []).map((slide) => ({
-        _id: slide._id,
-        id: slide._id,
-        url: slide.image,
-        title: slide.title || "",
-        order: Number(slide.order || 0)
-      }));
-      setImages(images);
+      await fetchHeroImages();
       setSelectedFiles([]);
       setStatus({ type: "success", message: "Hero images uploaded successfully." });
     } catch (error) {
@@ -104,16 +91,7 @@ const AdminHeroBannerManager = () => {
     try {
       setDeletingId(imageId);
       await deleteHeroSlide(imageId);
-      // Fetch updated list
-      const slides = await getHeroSlidesAdmin();
-      const images = (Array.isArray(slides) ? slides : []).map((slide) => ({
-        _id: slide._id,
-        id: slide._id,
-        url: slide.image,
-        title: slide.title || "",
-        order: Number(slide.order || 0)
-      }));
-      setImages(images);
+      await fetchHeroImages();
       setStatus({ type: "success", message: "Hero image deleted." });
     } catch (error) {
       setStatus({ type: "error", message: error.message || "Failed to delete image" });
@@ -123,127 +101,122 @@ const AdminHeroBannerManager = () => {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 space-y-6">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2d1b14] tracking-tight">Hero Banner Manager</h2>
-        <p className="text-sm font-medium text-[#6d4c41] mt-1">
-          Upload and manage homepage slider images.
-        </p>
+    <div className="animate-in fade-in duration-500 space-y-10 page-enter">
+      {/* ── HEADER ── */}
+      <div className="section-title">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
+          <Sparkles size={12} /> Visual Experience
+        </div>
+        <h2 className="serif">Hero Banner Manager</h2>
+        <p>Upload and manage homepage slider images to showcase Mithai World.</p>
       </div>
 
-      <div className="bg-[#fff8ec] rounded-3xl border border-[#e0c3a3] shadow-sm p-5 sm:p-6">
-        <label className="w-full cursor-pointer border-2 border-dashed border-[#e0c3a3] hover:border-[#e8883a] rounded-2xl p-7 flex flex-col items-center justify-center gap-2 bg-[#fff8ec] transition-colors">
-          <ImagePlus className="w-6 h-6 text-[#6d4c41]" />
-          <p className="text-sm font-bold text-[#2d1b14]">Select Hero Banner Images</p>
-          <p className="text-xs font-medium text-[#6d4c41]">You can upload multiple files at once (max 10).</p>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileSelect}
-            disabled={uploading}
-          />
-        </label>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* ── UPLOAD BOX ── */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white rounded-3xl border border-[var(--surface-border)] p-6 shadow-sm">
+            <label className="w-full cursor-pointer border-2 border-dashed border-[var(--surface-border)] hover:border-[var(--gold)] rounded-2xl p-8 flex flex-col items-center justify-center gap-3 bg-[var(--cream)]/30 transition-all group">
+              <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm border border-[var(--surface-border)] group-hover:scale-110 transition-transform">
+                <ImagePlus size={24} className="text-[var(--muted)]" />
+              </div>
+              <p className="text-sm font-medium text-[var(--charcoal)]">Select Banner Images</p>
+              <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-wider">Multi-upload (max 10)</p>
+              <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileSelect} disabled={uploading} />
+            </label>
 
-        {previewItems.length > 0 && (
-          <div className="mt-5">
-            <p className="text-sm font-bold text-[#2d1b14] mb-3">Preview ({previewItems.length})</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {previewItems.map((item) => (
-                <div key={`${item.name}-${item.url}`} className="rounded-xl overflow-hidden border border-[#e0c3a3] bg-[#fff8ec]">
-                  <img src={item.url} alt={item.name} className="w-full h-28 object-cover" />
+            {previewItems.length > 0 && (
+              <div className="mt-6 space-y-3">
+                <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">Selected ({previewItems.length})</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {previewItems.map((item, idx) => (
+                    <div key={idx} className="aspect-video rounded-lg overflow-hidden border border-[var(--surface-border)] bg-gray-50">
+                      <img src={item.url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleUpload}
-            disabled={uploading || selectedFiles.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#e8883a] text-white hover:bg-[#d97706] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-          >
-            <UploadCloud className="w-4 h-4" />
-            {uploading ? "Uploading..." : "Upload Selected Images"}
-          </button>
-
-          {selectedFiles.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setSelectedFiles([])}
-              disabled={uploading}
-              className="px-4 py-2.5 rounded-xl text-sm font-bold border border-[#e0c3a3] text-[#6d4c41] hover:bg-[#fff8ec] transition-colors"
-            >
-              Clear Selection
-            </button>
-          )}
-        </div>
-
-        {status.message && (
-          <div
-            className={`mt-4 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
-              status.type === "success"
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-rose-50 text-rose-700 border border-rose-200"
-            }`}
-          >
-            {status.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4" />
-            ) : (
-              <AlertCircle className="w-4 h-4" />
+              </div>
             )}
-            <span>{status.message}</span>
-          </div>
-        )}
-      </div>
 
-      <div className="bg-[#fff8ec] rounded-3xl border border-[#e0c3a3] shadow-sm p-5 sm:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-extrabold text-[#2d1b14]">Uploaded Hero Images</h3>
-          <span className="text-xs font-bold text-[#6d4c41] bg-[#fff8ec] px-2.5 py-1 rounded-full border border-[#e0c3a3]">
-            {images.length} total
-          </span>
+            <div className="mt-8 space-y-3">
+              <button
+                type="button"
+                onClick={handleUpload}
+                disabled={uploading || selectedFiles.length === 0}
+                className="w-full btn-primary h-12"
+              >
+                {uploading ? <><div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Uploading...</> : <><UploadCloud size={16} /> Upload Now</>}
+              </button>
+
+              {selectedFiles.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedFiles([])}
+                  disabled={uploading}
+                  className="w-full btn-outline h-12"
+                >
+                  Clear Selection
+                </button>
+              )}
+            </div>
+
+            {status.message && (
+              <div className={`mt-4 p-3 rounded-xl text-xs font-medium flex items-center gap-2 ${status.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}>
+                {status.type === "success" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                <span>{status.message}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {loading ? (
-          <p className="text-sm text-[#6d4c41]">Loading hero images...</p>
-        ) : images.length === 0 ? (
-          <div className="text-sm text-[#6d4c41] border border-dashed border-[#e0c3a3] rounded-xl p-5 flex items-center gap-2 bg-[#fff8ec]">
-            <XCircle className="w-4 h-4" />
-            No hero images uploaded yet. Slider fallback will be used on homepage.
+        {/* ── LIVE PREVIEW GRID ── */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="serif text-xl font-medium text-[var(--charcoal)]">Current Slideshow</h3>
+            <span className="text-[10px] font-medium text-[var(--muted)] bg-[var(--surface-strong)] px-3 py-1 rounded-full uppercase tracking-widest border border-[var(--surface-border)]">
+              {images.length} Active Slides
+            </span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {images.map((image) => {
-              const imageId = image._id || image.id;
-              return (
-                <div key={imageId} className="rounded-2xl border border-[#e0c3a3] overflow-hidden bg-[#fff8ec]">
-                  <img src={image.url} alt="Hero banner" className="w-full h-44 object-cover" />
-                  <div className="p-3 flex items-center justify-end">
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+              {[1, 2].map(i => <div key={i} className="aspect-video bg-white rounded-3xl border border-[var(--surface-border)]" />)}
+            </div>
+          ) : images.length === 0 ? (
+            <div className="py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
+              <XCircle size={32} className="text-[var(--muted)] mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium text-[var(--muted)] uppercase tracking-widest">No custom slides yet</p>
+              <p className="text-xs text-[var(--muted)]/60 mt-1">Fallback system slides will be used on storefront.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {images.map((image) => {
+                const imageId = image._id || image.id;
+                return (
+                  <div key={imageId} className="group relative aspect-video rounded-3xl border border-[var(--surface-border)] overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-500">
+                    <img src={image.url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
                     <button
                       type="button"
                       onClick={() => handleDelete(imageId)}
                       disabled={deletingId === imageId}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60 transition-colors"
+                      className="absolute bottom-4 right-4 h-10 w-10 rounded-xl bg-white/90 backdrop-blur-md text-rose-600 flex items-center justify-center shadow-lg transform translate-y-12 group-hover:translate-y-0 transition-all duration-300 hover:bg-rose-600 hover:text-white"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      {deletingId === imageId ? "Deleting..." : "Delete"}
+                      {deletingId === imageId ? <div className="h-4 w-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" /> : <Trash2 size={18} />}
                     </button>
+                    
+                    <div className="absolute top-4 left-4 h-6 px-3 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-[9px] font-medium uppercase tracking-widest flex items-center">
+                      Slide Order: {image.order}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default AdminHeroBannerManager;
-
-
-

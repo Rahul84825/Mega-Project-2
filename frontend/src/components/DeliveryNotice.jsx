@@ -7,11 +7,11 @@ export const DeliveryNotice = ({ className = "" }) => (
   <div className={`flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 ${className}`}>
     <Truck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
     <div>
-      <p className="text-sm font-semibold text-blue-800">
+      <p className="text-sm font-medium text-blue-800">
         Delivery within {MAX_DELIVERY_RADIUS_KM} KM only
       </p>
       <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">
-        We currently deliver within a {MAX_DELIVERY_RADIUS_KM} KM radius of our store in Akurdi, Pune.
+        We currently deliver within a {MAX_DELIVERY_RADIUS_KM} KM radius of our store in Viman Nagar, Pune.
         Orders outside this range cannot be processed.
       </p>
     </div>
@@ -37,7 +37,7 @@ export const DeliveryBanner = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium">
         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
         <span>
-          🚚 Delivery Available Only Within {MAX_DELIVERY_RADIUS_KM} KM Radius of Our Store (Akurdi, Pune)
+          🚚 Delivery Available Only Within {MAX_DELIVERY_RADIUS_KM} KM Radius of Our Store (Viman Nagar, Pune)
         </span>
         <button
           onClick={dismiss}

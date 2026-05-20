@@ -4,7 +4,8 @@ import {
   deleteProduct,
   getProductById,
   getProducts,
-  updateProduct
+  updateProduct,
+  getStockInfo
 } from "../controllers/productsController.js";
 import { adminOnly, protect } from "../middleware/authMiddleware.js";
 import { uploadImage } from "../middleware/uploadMiddleware.js";
@@ -14,6 +15,7 @@ import { productIdValidation, productValidation, updateProductValidation } from 
 const router = Router();
 
 router.get("/", getProducts);
+router.get("/stock/info", getStockInfo); // Get stock info before /products/:id
 router.get("/:id", productIdValidation, validateRequest, getProductById);
 router.post("/", protect, adminOnly, uploadImage.single("image"), productValidation, validateRequest, createProduct);
 router.put("/:id", protect, adminOnly, productIdValidation, validateRequest, updateProductValidation, validateRequest, updateProduct);

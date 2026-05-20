@@ -1,4 +1,11 @@
-import { calculateFinalPriceWithGST, calculateSellingPriceFromDiscount } from "../utils/priceCalculator";
+// Removed calculateFinalPriceWithGST and calculateSellingPriceFromDiscount imports
+
+export const calculateSellingPriceFromDiscount = (mrp, discountPercent) => {
+  if (!Number.isFinite(mrp) || mrp <= 0) return 0;
+  if (!Number.isFinite(discountPercent) || discountPercent <= 0) return mrp;
+  const discountAmount = mrp * (discountPercent / 100);
+  return Math.max(0, Math.round(mrp - discountAmount));
+};
 
 /**
  * Normalize incoming variants from product into form structure
@@ -78,9 +85,8 @@ export const validateVariants = (variants) => {
 /**
  * Calculate final price for a variant
  */
-export const calculateVariantFinalPrice = (mrp, discountPercent, gstPercent = 0) => {
-  const sellingPrice = calculateSellingPriceFromDiscount(Number(mrp) || 0, Number(discountPercent) || 0);
-  return calculateFinalPriceWithGST(sellingPrice, Number(gstPercent) || 0);
+export const calculateVariantFinalPrice = (mrp, discountPercent) => {
+  return calculateSellingPriceFromDiscount(Number(mrp) || 0, Number(discountPercent) || 0);
 };
 
 /**
@@ -91,7 +97,7 @@ export const buildProductPayload = (form, variants) => {
     const mrp = Math.max(0, Math.floor(Number(variant.mrp || 0)));
     const discountPercent = Math.round(Number(variant.discountPercent || 0) * 100) / 100;
     const sellingPrice = calculateSellingPriceFromDiscount(mrp, discountPercent);
-    const finalPrice = calculateFinalPriceWithGST(sellingPrice, Number(form.gstPercent || 0));
+    const finalPrice = sellingPrice;
     return {
       id: String(variant.id),
       label: String(variant.label || "").trim(),

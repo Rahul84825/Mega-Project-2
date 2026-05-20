@@ -45,7 +45,7 @@ const OrderTimer = ({ order }) => {
   const isOverdue = remaining <= 0;
 
   return (
-    <div className={`text-xs font-semibold ${isOverdue ? "text-rose-600" : "text-[#6d4c41]"}`}>
+    <div className={`text-xs font-medium ${isOverdue ? "text-rose-600" : "text-[#6d4c41]"}`}>
       {isOverdue ? "Overdue" : "Ready in"} {formatDuration(Math.abs(remaining))}
     </div>
   );

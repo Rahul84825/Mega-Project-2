@@ -1,11 +1,11 @@
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
-import { calculateCartTotals, amountForFreeDelivery } from "../utils/pricingUtils";
+import { calculateTotals, amountForFreeDelivery, formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
 
 function CartPage() {
   const { cart, dispatch } = useCart();
   const navigate = useNavigate();
-  const { subtotal, deliveryFee, gst, total } = calculateCartTotals(cart);
+  const { subtotal, deliveryFee, total } = calculateTotals(cart);
   const amountNeeded = amountForFreeDelivery(subtotal);
 
   if (cart.length === 0) {
@@ -25,9 +25,9 @@ function CartPage() {
   }
 
   return (
-    <div className="page-enter bg-white min-h-screen px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-14">
+    <div className="page-enter bg-white min-h-[60vh] px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-14">
       <div className="max-w-7xl mx-auto">
-        <h1 className="serif text-2xl md:text-3xl lg:text-4xl font-bold text-[var(--charcoal)] mb-8 md:mb-12">
+        <h1 className="serif text-2xl md:text-3xl lg:text-4xl font-medium text-[var(--charcoal)] mb-8 md:mb-12">
           Your Cart <span className="ornament">✦</span>
         </h1>
 
@@ -50,7 +50,7 @@ function CartPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="serif text-lg md:text-xl font-bold text-[var(--charcoal)] mb-1">
+                  <h3 className="serif text-lg md:text-xl font-medium text-[var(--charcoal)] mb-1">
                     {item.name}
                   </h3>
                   <p className="text-xs md:text-sm text-[var(--muted)]">
@@ -71,11 +71,11 @@ function CartPage() {
                           quantity: item.quantity - 1
                         })
                       }
-                      className="w-12 h-12 flex items-center justify-center hover:bg-[#f5e6d3] font-bold text-[var(--burgundy)] transition-colors"
+                      className="w-12 h-12 flex items-center justify-center hover:bg-[#f5e6d3] font-medium text-[var(--burgundy)] transition-colors"
                     >
                       −
                     </button>
-                    <span className="w-14 text-center font-bold text-[var(--charcoal)]">
+                    <span className="w-14 text-center font-medium text-[var(--charcoal)]">
                       {item.quantity}
                     </span>
                     <button
@@ -87,15 +87,15 @@ function CartPage() {
                           quantity: item.quantity + 1
                         })
                       }
-                      className="w-12 h-12 flex items-center justify-center hover:bg-[#f5e6d3] font-bold text-[var(--burgundy)] transition-colors"
+                      className="w-12 h-12 flex items-center justify-center hover:bg-[#f5e6d3] font-medium text-[var(--burgundy)] transition-colors"
                     >
                       +
                     </button>
                   </div>
 
                   {/* Price */}
-                  <div className="font-bold text-lg md:text-xl text-[var(--burgundy)] text-right sm:text-center min-w-[80px]">
-                    ₹{(Number(item?.price) || 0) * item.quantity}
+                  <div className="font-medium text-lg md:text-xl text-[var(--burgundy)] text-right sm:text-center min-w-[80px]">
+                    {formatCurrency((Number(item?.price) || 0) * item.quantity)}
                   </div>
 
                   {/* Remove button */}
@@ -119,7 +119,7 @@ function CartPage() {
           {/* Order summary - sticky on desktop, fixed position on mobile */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl border border-[#e8d4b4] p-6 md:p-8 shadow-sm lg:sticky lg:top-24">
-              <h2 className="serif text-2xl md:text-3xl font-bold text-[var(--charcoal)] mb-6 pb-4 border-b border-[#e8d4b4]">
+              <h2 className="serif text-2xl md:text-3xl font-medium text-[var(--charcoal)] mb-6 pb-4 border-b border-[#e8d4b4]">
                 Summary
               </h2>
 
@@ -127,50 +127,48 @@ function CartPage() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
                   <span>Subtotal</span>
-                  <span className="font-medium text-[var(--charcoal)]">₹{subtotal.toFixed(2)}</span>
+                  <span className="font-medium text-[var(--charcoal)]">{formatCurrency(subtotal)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
                   <span>Delivery</span>
                   {deliveryFee === 0 ? (
-                    <span className="font-bold text-green-600">FREE</span>
+                    <span className="font-medium text-green-600">FREE</span>
                   ) : (
-                    <span className="font-medium text-[var(--charcoal)]">₹{deliveryFee}</span>
+                    <span className="font-medium text-[var(--charcoal)]">{formatCurrency(deliveryFee)}</span>
                   )}
-                </div>
-
-                <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
-                  <span>GST (5%)</span>
-                  <span className="font-medium text-[var(--charcoal)]">₹{gst.toFixed(2)}</span>
                 </div>
 
                 {deliveryFee > 0 && amountNeeded > 0 && (
                   <p className="text-xs text-[var(--saffron)] bg-[var(--saffron)]/10 p-3 rounded-lg">
-                    Add ₹{amountNeeded.toFixed(2)} more for free delivery
+                    Add {formatCurrency(amountNeeded)} more for free delivery
                   </p>
                 )}
               </div>
 
               {/* Total */}
-              <div className="flex justify-between items-center pt-4 border-t border-[#e8d4b4] mb-6">
-                <span className="serif text-xl md:text-2xl font-bold text-[var(--charcoal)]">
+              <div className="flex justify-between items-center pt-4 border-t border-[#e8d4b4] mb-2">
+                <span className="serif text-xl md:text-2xl font-medium text-[var(--charcoal)]">
                   Total
                 </span>
-                <span className="serif text-2xl md:text-3xl font-black text-[var(--burgundy)]">
-                  ₹{total.toFixed(2)}
+                <span className="serif text-2xl md:text-3xl font-medium text-[var(--burgundy)]">
+                  {formatCurrency(total)}
                 </span>
+              </div>
+              <div className="text-[11px] text-[var(--muted)] text-right mb-6">
+                {TAX_MESSAGE}
               </div>
 
               {/* CTA Buttons */}
               <div className="space-y-3">
                 <button
-                  className="btn-primary w-full py-3 md:py-4 rounded-lg font-bold text-sm md:text-base"
+                  className="btn-primary w-full py-3 md:py-4 rounded-lg font-medium text-sm md:text-base"
                   onClick={() => navigate("/checkout")}
                 >
                   Proceed to Checkout
                 </button>
                 <button
-                  className="btn-outline w-full py-3 md:py-4 rounded-lg font-bold text-sm md:text-base"
+                  className="btn-outline w-full py-3 md:py-4 rounded-lg font-medium text-sm md:text-base"
                   onClick={() => navigate("/")}
                 >
                   Continue Shopping

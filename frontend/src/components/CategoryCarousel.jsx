@@ -2,73 +2,59 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
 import SectionContainer from "./home/SectionContainer";
+import { ArrowRight } from "lucide-react";
 
 function CategoryCarousel() {
   const { categories } = useProducts();
   const navigate = useNavigate();
 
-  const homepageCategories = useMemo(
-    () =>
-      (categories || [])
-        .filter((cat) => cat.showInHomepage === true && cat.is_active)
-        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-        .slice(0, 6),
-    [categories]
-  );
-
-  if (!homepageCategories.length) {
-    return null;
-  }
-
-  const handleCategoryClick = (categorySlug) => {
-    navigate(`/products?category=${encodeURIComponent(categorySlug)}`);
+  const handleCategoryClick = (slug) => {
+    navigate(`/sweets?category=${slug}`);
   };
 
+  const homepageCategories = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+    return categories
+      .filter((c) => c.is_active !== false)
+      .slice(0, 6);
+  }, [categories]);
+
+  if (homepageCategories.length === 0) return null;
+
   return (
-    <section className="py-6 md:py-10 bg-[#fff3e0]">
+    <section className="py-12 md:py-16 bg-[var(--cream)] pattern-bg">
       <SectionContainer>
-        <div className="mb-4 md:mb-6 text-left">
-          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#2d1b14] tracking-tight">
-            Explore by Category
-          </h2>
-          <p className="mt-2 max-w-xl text-left text-[#6d4c41] text-sm md:text-base font-medium">
-            Discover our collection organized by category
-          </p>
+        <div className="section-title mb-10">
+          <div className="inline-block px-3 py-1 mb-4 rounded-full bg-[var(--surface-strong)] text-[var(--gold)] text-[10px] font-medium tracking-widest uppercase">
+            Browse Our World
+          </div>
+          <h2 className="serif">Explore by Category</h2>
+          <p>Discover our wide range of premium Indian delights, sorted by tradition.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 justify-items-center">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {homepageCategories.map((category) => (
             <button
-              key={category._id || category.id}
+              key={category._id}
               onClick={() => handleCategoryClick(category.slug)}
-              className="group relative w-full max-w-[300px] h-[250px] aspect-[4/5] overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8883a] focus:ring-offset-2"
+              className="group relative w-full h-48 sm:h-56 overflow-hidden rounded-2xl border border-[var(--surface-border)] shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1"
             >
-              {/* Background Image */}
-              {category.image ? (
-                <div className="relative w-full h-full overflow-hidden bg-[#f5e1c8]">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-300 pointer-events-none" />
-                </div>
-              ) : (
-                <div className="relative w-full h-full bg-gradient-to-br from-[#e8883a] to-[#c9a84c] group-hover:from-[#d97706] group-hover:to-[#e8883a] transition-all duration-300 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all pointer-events-none" />
-                </div>
-              )}
+              <div className="absolute inset-0 bg-[var(--charcoal)] transition-transform duration-700 group-hover:scale-110">
+                {category.image ? (
+                  <img src={category.image} alt={category.name} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--gold)]/20 to-[var(--burgundy)]/20" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              </div>
 
-              {/* Text Content */}
-              <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="text-center px-4">
-                  <h3 className="text-white font-bold text-lg md:text-xl lg:text-2xl drop-shadow-lg line-clamp-2">
-                    {category.name}
-                  </h3>
-                  <p className="text-white/90 text-xs md:text-sm mt-2 drop-shadow font-medium">
-                    Explore →
-                  </p>
+              <div className="absolute inset-0 flex flex-col justify-end p-5 z-10 text-left">
+                <h3 className="text-white font-medium text-sm sm:text-base md:text-lg drop-shadow-md leading-tight">
+                  {category.name}
+                </h3>
+                <div className="w-8 h-0.5 bg-[var(--saffron)] mt-2 transition-all duration-500 group-hover:w-16" />
+                <div className="flex items-center gap-2 text-[10px] font-medium text-white/80 mt-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
+                  Shop Now <ArrowRight size={12} />
                 </div>
               </div>
             </button>

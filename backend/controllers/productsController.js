@@ -486,4 +486,104 @@ export const updateProduct = async (req, res, next) => {
   }
 };
 
+/**
+ * Get stock information for products and variants
+ * GET /api/products/stock/info
+ */
+export const getStockInfo = async (req, res, next) => {
+  try {
+    const { productIds, variantIds } = req.query;
 
+    if (!productIds && !variantIds) {
+      return res.status(400).json({
+        success: false,
+        message: "Either productIds or variantIds query parameter is required"
+      });
+    }
+
+    const stockInfo = [];
+
+    // Handle product IDs
+    if (productIds) {
+      const ids = String(productIds).split(",").map(id => id.trim()).filter(Boolean);
+      
+      for (const id of ids) {
+        const product = await Product.findById(id).select("name stock variants");
+        
+        if (!product) {
+          stockInfo.push({
+            productId: id,
+            error: "Product not found"
+          });
+          continue;
+        }
+
+        // Check if product has variants
+        if (Array.isArray(product.variants) && product.variants.length > 0) {
+          // Variant product
+          stockInfo.push({
+            productId: id,
+            name: product.name,
+            type: "variants",
+            variants: product.variants.map(v => ({
+              variantId: v._id,
+              label: v.label,
+              stock: Number(v.stock || 0),
+              isAvailable: (Number(v.stock || 0) > 0)
+            }))
+          });
+        } else {
+          // Simple product
+          stockInfo.push({
+            productId: id,
+            name: product.name,
+            type: "simple",
+            stock: Number(product.stock || 0),
+            isAvailable: (Number(product.stock || 0) > 0)
+          });
+        }
+      }
+    }
+
+    // Handle variant IDs
+    if (variantIds) {
+      const ids = String(variantIds).split(",").map(id => id.trim()).filter(Boolean);
+      
+      const products = await Product.find({ "variants._id": { $in: ids } }).select("_id name variants");
+      
+      for (const variantId of ids) {
+        let found = false;
+        
+        for (const product of products) {
+          const variant = product.variants.find(v => String(v._id) === String(variantId));
+          
+          if (variant) {
+            stockInfo.push({
+              productId: product._id,
+              variantId: variant._id,
+              label: variant.label,
+              stock: Number(variant.stock || 0),
+              isAvailable: (Number(variant.stock || 0) > 0)
+            });
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          stockInfo.push({
+            variantId,
+            error: "Variant not found"
+          });
+        }
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      stock: stockInfo
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
