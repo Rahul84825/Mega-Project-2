@@ -306,11 +306,12 @@ export const verifyPickupOtp = async (req, res) => {
 };
 
 export const rejectOrder = async (req, res) => {
-  const session = await mongoose.startSession();
-  try {
-    const { id } = req.params;
-    const rejectionReason = String(req.body?.reason || "").trim();
+  const { id } = req.params;
+  const rejectionReason = String(req.body?.reason || "").trim();
 
+  logger.info(`🚨 REJECT_INIT [${id}]`, { reason: rejectionReason });
+
+  try {
     const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
@@ -320,76 +321,68 @@ export const rejectOrder = async (req, res) => {
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
-    await session.withTransaction(async () => {
-      // ── REFUND LOGIC ──
-      // If payment was already made via Razorpay, trigger an automatic refund
-      if (order.payment?.method === "RAZORPAY" && order.payment?.status === "PAID" && order.payment?.razorpayPaymentId) {
-        const razorpay = getRazorpayClient();
-        if (razorpay) {
-          try {
-            const totalAmount = order.totals?.grandTotal || order.total || 0;
-            if (totalAmount <= 0) {
-              logger.warn(`⚠️ REFUND_SKIPPED - Zero amount`, { orderNumber: order.orderNumber });
-            } else {
-              const refund = await razorpay.payments.refund(order.payment.razorpayPaymentId, {
-                amount: Math.round(totalAmount * 100), // Paise
-                notes: {
-                  reason: rejectionReason || "Order rejected by admin",
-                  orderNumber: order.orderNumber
-                }
-              });
-              
-              logger.info(`💰 REFUND_INITIATED`, { 
-                orderNumber: order.orderNumber, 
-                paymentId: order.payment.razorpayPaymentId,
-                refundId: refund.id 
-              });
+    // ── REFUND ──
+    const payMethod = order.payment?.method;
+    const payStatus = order.payment?.status;
+    const rzpPaymentId = order.payment?.razorpayPaymentId;
 
-              order.payment.status = "REFUNDED";
-              order.payment.refundId = refund.id;
-            }
-          } catch (refundError) {
-            logger.error(`❌ REFUND_FAILED`, { 
-              orderNumber: order.orderNumber, 
-              error: refundError.message 
+    if (payMethod === "RAZORPAY" && payStatus === "PAID" && rzpPaymentId) {
+      const razorpay = getRazorpayClient();
+      if (razorpay) {
+        try {
+          const total = Number(order.totals?.grandTotal || order.total || 0);
+          if (total > 0) {
+            const refund = await razorpay.payments.refund(rzpPaymentId, {
+              amount: Math.round(total * 100),
+              notes: { reason: rejectionReason, orderNumber: order.orderNumber }
             });
-            // We still proceed with rejection, but log the failure for manual intervention
+            order.payment.status = "REFUNDED";
+            order.payment.refundId = refund.id;
+            logger.info(`✅ Refund success: ${refund.id}`);
           }
+        } catch (rzpErr) {
+          logger.error(`❌ Refund failed: ${rzpErr.message}`);
         }
       }
+    }
 
-      order.status = "REJECTED";
-      order.statusTimestamps.rejectedAt = new Date();
-      order.rejectionReason = rejectionReason;
-      await order.save({ session });
+    // ── STOCK RESTORATION ──
+    try {
+      const restoreItems = (order.items || []).map(i => ({
+        productId: i.productId,
+        variantId: i.selectedVariant?.variantId || null,
+        quantity: i.quantity || 0
+      }));
 
-      // Restore stock for all items in the order
-      await restoreStock({
-        items: order.items.map(item => ({
-          productId: item.productId,
-          variantId: item.selectedVariant?.variantId,
-          quantity: item.quantity
-        })),
-        session,
-        orderNumber: order.orderNumber,
-        reason: `Order Rejected: ${rejectionReason || "No reason provided"}`
-      });
-    });
+      if (restoreItems.length > 0) {
+        await restoreStock({
+          items: restoreItems,
+          orderNumber: order.orderNumber,
+          reason: `Admin Reject: ${rejectionReason}`
+        });
+      }
+    } catch (stErr) {
+      logger.error(`❌ Stock restoration failed: ${stErr.message}`);
+    }
 
-    emitOrderEvent("orderRejected", sanitizeOrder(order));
-    logger.warn("Order rejected", { orderId: String(order._id), rejectionReason });
+    // ── UPDATE ORDER ──
+    order.status = "REJECTED";
+    order.statusTimestamps.rejectedAt = new Date();
+    order.rejectionReason = rejectionReason;
+    await order.save();
 
-    sendOrderRejectedEmail(order).catch(err => logger.error("Failed to send rejected email", err));
+    const sanitized = sanitizeOrder(order);
+    emitOrderEvent("order:updated", sanitized);
+    sendOrderRejectedEmail(order).catch(err => logger.error("Email failed", err));
 
-    return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    return res.status(200).json({ success: true, order: sanitized });
+
   } catch (error) {
-    logger.error("Order rejection failed", { error: error.message });
+    logger.error(`❌ REJECT_CRASH [${id}]`, { msg: error.message });
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to reject order"
     });
-  } finally {
-    session.endSession();
   }
 };
 
