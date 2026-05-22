@@ -220,11 +220,11 @@ export const reserveStock = async ({
     }
   }
 
-  const calculatedTotals = calculateOrderTotals(itemSnapshots, discountTotal, shippingFee, roundingAdjustment);
+  const totals = calculateTotals(itemSnapshots, discountTotal, shippingFee);
 
   return {
     itemSnapshots,
-    totals: calculatedTotals
+    totals
   };
 };
 

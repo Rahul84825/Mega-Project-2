@@ -7,6 +7,17 @@ const getFrontendOrigin = () => {
   return url.replace(/\/$/, "");
 };
 
+const allowedOrigins = [
+  getFrontendOrigin(),
+  "https://mithaiworld.vercel.app",
+  "https://mega-project-2.vercel.app"
+];
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  return allowedOrigins.includes(origin.replace(/\/$/, ""));
+};
+
 export const initializeSocket = (httpServer) => {
   if (io) {
     return io;
@@ -14,14 +25,19 @@ export const initializeSocket = (httpServer) => {
 
   io = new Server(httpServer, {
     cors: {
-      origin: getFrontendOrigin(),
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"), false);
+        }
+      },
       credentials: true
     },
     allowRequest: (req, callback) => {
       const requestOrigin = req.headers.origin;
-      const allowedOrigin = getFrontendOrigin();
 
-      if (!requestOrigin || requestOrigin !== allowedOrigin) {
+      if (!isOriginAllowed(requestOrigin)) {
         return callback("Origin not allowed by Socket.IO CORS policy", false);
       }
 
@@ -31,9 +47,8 @@ export const initializeSocket = (httpServer) => {
 
   io.use((socket, next) => {
     const requestOrigin = socket.handshake.headers.origin;
-    const allowedOrigin = getFrontendOrigin();
 
-    if (requestOrigin !== allowedOrigin) {
+    if (!isOriginAllowed(requestOrigin)) {
       return next(new Error("Unauthorized socket origin"));
     }
 

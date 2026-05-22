@@ -27,6 +27,32 @@ const getFrontendOrigin = () => {
   const url = process.env.FRONTEND_URL || "http://localhost:5173";
   return url.replace(/\/$/, "");
 };
+
+// --- CORS Configuration ---
+const allowedOrigins = [
+  getFrontendOrigin(),
+  "https://mithaiworld.vercel.app",
+  "https://mega-project-2.vercel.app"
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  optionsSuccessStatus: 200
+};
+
 const getAllowedScriptOrigins = () => [
   "'self'",
   "https://accounts.google.com",
@@ -57,13 +83,7 @@ app.use(helmet({
  * SECURITY: CORS with strict configuration
  * Prevents requests from unauthorized origins
  */
-app.use(cors({
-  origin: getFrontendOrigin(),
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 200
-}));
+app.use(cors(corsOptions));
 
 app.set("trust proxy", 1);
 
