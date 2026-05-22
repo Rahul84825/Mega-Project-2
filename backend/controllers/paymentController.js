@@ -292,7 +292,7 @@ export const verifyPayment = async (req, res) => {
             line1: orderData?.shippingAddress?.line1 || orderData?.customer?.address || "",
             city: orderData?.shippingAddress?.city || orderData?.customer?.city || "",
             state: orderData?.shippingAddress?.state || orderData?.customer?.state || "Maharashtra",
-            postalCode: orderData?.shippingAddress?.pincode || orderData?.customer?.pincode || "",
+            postalCode: orderData?.shippingAddress?.postalCode || orderData?.shippingAddress?.pincode || orderData?.customer?.pincode || orderData?.customer?.postalCode || "",
             country: "IN"
           },
           items: itemSnapshots,
@@ -311,6 +311,7 @@ export const verifyPayment = async (req, res) => {
           },
           totals: {
             ...totals,
+            gstTotal: totals.gstTotal || 0,
             currency: razorpayOrder.currency || "INR"
           },
           metadata: {

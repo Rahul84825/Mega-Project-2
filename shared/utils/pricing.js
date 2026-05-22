@@ -82,6 +82,7 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
     itemsSubtotal: Math.round(itemsSubtotal),
     shippingFee: Math.round(shippingFee),
     discountTotal: Math.round(discountTotal),
+    gstTotal: 0, // GST is inclusive in itemsSubtotal
     grandTotal: Math.round(grandTotal),
     
     // Frontend aliases (for compatibility with existing components)
