@@ -230,12 +230,13 @@ export const createProduct = async (req, res, next) => {
       image,
       images,
       description,
-      brand,
       tags,
       variants,
       gstPercent,
       isHero,
-      isSignature
+      isSignature,
+      isSnack,
+      isMalaiBarfi
     } = req.body || {};
 
     if (!name || !category) {
@@ -245,7 +246,7 @@ export const createProduct = async (req, res, next) => {
       });
     }
 
-    // Validate variant mrp and discountPercent fields
+    // ... (validation code same as before)
     if (Array.isArray(variants)) {
       const hasDecimalVariantPrice = variants.some((variant) => {
         const mrp = variant?.mrp;
@@ -308,11 +309,12 @@ export const createProduct = async (req, res, next) => {
       image: resolvedImages[0] || uploadedImageUrl,
       images: resolvedImages,
       description: description || "Freshly prepared mithai",
-      brand: brand || "",
       tags: Array.isArray(tags) ? tags.filter(Boolean) : [],
       variants: normalizedVariants,
       isHero: Boolean(isHero),
-      isSignature: Boolean(isSignature)
+      isSignature: Boolean(isSignature),
+      isSnack: Boolean(isSnack),
+      isMalaiBarfi: Boolean(isMalaiBarfi)
     });
 
     if (product.isHero) {
@@ -479,6 +481,14 @@ export const updateProduct = async (req, res, next) => {
 
     if (payload.isSignature !== undefined) {
       payload.isSignature = Boolean(payload.isSignature);
+    }
+
+    if (payload.isSnack !== undefined) {
+      payload.isSnack = Boolean(payload.isSnack);
+    }
+
+    if (payload.isMalaiBarfi !== undefined) {
+      payload.isMalaiBarfi = Boolean(payload.isMalaiBarfi);
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, payload, {

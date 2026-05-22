@@ -12,10 +12,11 @@ const EMPTY_FORM_BASE = {
   description: "",
   image: "",
   images: [],
-  brand: "",
   tags: "",
   gstPercent: "0",
   isSignature: false,
+  isSnack: false,
+  isMalaiBarfi: false,
   isActive: true,
   variants: []
 };
@@ -65,10 +66,11 @@ const AdminProductForm = () => {
         description: productFromState.description || "",
         image: productFromState.images?.[0] || productFromState.image || "",
         images: productFromState.images || (productFromState.image ? [productFromState.image] : []),
-        brand: productFromState.brand || "",
         tags: (productFromState.tags || []).join(", "),
         gstPercent: String(productFromState.gstPercent || "0"),
         isSignature: Boolean(productFromState.isSignature),
+        isSnack: Boolean(productFromState.isSnack),
+        isMalaiBarfi: Boolean(productFromState.isMalaiBarfi),
         isActive: productFromState.isActive !== undefined ? Boolean(productFromState.isActive) : true,
         variants: (productFromState.variants || []).map(v => ({
           id: v._id || v.id,
@@ -87,6 +89,15 @@ const AdminProductForm = () => {
   const set = (key, val) => {
     setForm(prev => ({ ...prev, [key]: val }));
     setErrors(prev => ({ ...prev, [key]: "" }));
+  };
+
+  const setCollection = (type) => {
+    setForm(prev => ({
+      ...prev,
+      isSignature: type === "signature",
+      isSnack: type === "snack",
+      isMalaiBarfi: type === "malai-barfi"
+    }));
   };
 
   const updateVariant = (id, field, value) => {
@@ -198,9 +209,10 @@ const AdminProductForm = () => {
         name: form.name.trim(),
         category: form.category,
         description: form.description.trim(),
-        brand: form.brand.trim(),
         gstPercent: Number(form.gstPercent || 0),
         isSignature: Boolean(form.isSignature),
+        isSnack: Boolean(form.isSnack),
+        isMalaiBarfi: Boolean(form.isMalaiBarfi),
         isActive: Boolean(form.isActive),
         tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
         images: form.images,
@@ -249,6 +261,13 @@ const AdminProductForm = () => {
     }
   };
 
+  const getCollectionValue = () => {
+    if (form.isSignature) return "signature";
+    if (form.isSnack) return "snack";
+    if (form.isMalaiBarfi) return "malai-barfi";
+    return "regular";
+  };
+
   return (
     <div className="max-w-4xl mx-auto page-enter pb-20">
       <div className="flex items-center gap-4 mb-8">
@@ -280,12 +299,14 @@ const AdminProductForm = () => {
               <div>
                 <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Collection Type</label>
                 <select 
-                  value={form.isSignature ? "signature" : "regular"} 
-                  onChange={e => set("isSignature", e.target.value === "signature")} 
+                  value={getCollectionValue()} 
+                  onChange={e => setCollection(e.target.value)} 
                   className="input-field cursor-pointer"
                 >
                   <option value="regular">Regular Collection</option>
                   <option value="signature">Signature Collection</option>
+                  <option value="snack">Snacks Collection</option>
+                  <option value="malai-barfi">Malai Barfi Collection</option>
                 </select>
               </div>
             </div>
@@ -296,8 +317,8 @@ const AdminProductForm = () => {
                 <input type="number" value={form.gstPercent} onChange={e => set("gstPercent", e.target.value)} className="input-field" />
               </div>
               <div>
-                <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Brand</label>
-                <input value={form.brand} onChange={e => set("brand", e.target.value)} className="input-field" placeholder="e.g. Mithai World" />
+                <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Tags (Optional)</label>
+                <input value={form.tags} onChange={e => set("tags", e.target.value)} className="input-field" placeholder="e.g. sugarfree, healthy" />
               </div>
             </div>
 

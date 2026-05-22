@@ -42,9 +42,6 @@ const AdminLayout = lazy(() => import("./admin/AdminLayout"));
 const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
 const AdminCategories = lazy(() => import("./admin/AdminCategories"));
 const AdminProducts = lazy(() => import("./admin/AdminProducts"));
-const AdminSnacksProducts = lazy(() => import("./admin/AdminSnacksProducts"));
-const AdminMalaiBarfiProducts = lazy(() => import("./admin/AdminMalaiBarfiProducts"));
-const AdminSignatureProducts = lazy(() => import("./admin/AdminSignatureProducts"));
 const AdminProductForm = lazy(() => import("./admin/AdminProductForm"));
 const AdminOffers = lazy(() => import("./admin/AdminOffers"));
 const AdminOrders = lazy(() => import("./admin/AdminOrders"));
@@ -262,9 +259,6 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="products" element={<AdminProducts />} />
-              <Route path="snacks" element={<AdminSnacksProducts />} />
-              <Route path="malai-barfi" element={<AdminMalaiBarfiProducts />} />
-              <Route path="signature" element={<AdminSignatureProducts />} />
               <Route path="add-product" element={<AdminProductForm />} />
               <Route path="products/edit/:id" element={<Navigate to="/admin/add-product" replace />} />
               <Route path="categories" element={<AdminCategories />} />

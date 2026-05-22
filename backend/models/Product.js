@@ -96,9 +96,13 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    isActive: {
+    isSnack: {
       type: Boolean,
-      default: true
+      default: false
+    },
+    isMalaiBarfi: {
+      type: Boolean,
+      default: false
     },
     brand: {
       type: String,
