@@ -5,6 +5,7 @@ import {
   Heart, Star, Users, Award,
   ArrowRight, CheckCircle,
 } from "lucide-react";
+import StoreMap from "./common/StoreMap";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const STATS = [
@@ -201,7 +202,7 @@ const About = () => {
                                 transition-transform duration-500 group-hover:scale-105">
                   <span className="text-3xl">👨‍💼</span>
                 </div>
-                <p className="text-sm font-medium text-[#24140f]">Sakharam Choudhary</p>
+                <p className="text-sm font-medium text-[#24140f]">Narayan Varpa</p>
                 <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#9c6a18]">
                   Founder & Owner
                 </p>
@@ -312,10 +313,10 @@ const About = () => {
             {/* Contact cards */}
             <div className="flex flex-col gap-3">
               {[
-                { icon: MapPin, label: "Address", value: "Shop no. 04, Roshma Residency, Konark Nagar, Viman Nagar, Pune 411014", href: "https://maps.app.goo.gl/i7VqYRV4YFvNRdTc8" },
-                { icon: Phone, label: "Phone",   value: "+91 95112 89914", href: "tel:+919511289914" },
-                { icon: Mail,  label: "Email",   value: "mithaiworld08@gmail.com", href: "mailto:mithaiworld08@gmail.com" },
-                { icon: Clock, label: "Hours",   value: "Mon – Sun: 9:00 AM – 10:00 PM", href: null },
+                { icon: MapPin, label: "Address", value: "Mithai World, Shop no. 04, Roshma Residency, Central Line, near HDFC Bank, Konark Nagar, Clover Park, Viman Nagar, Pune, Maharashtra 411014", href: "https://maps.app.goo.gl/i7VqYRV4YFvNRdTc8" },
+                { icon: Phone, label: "Phone",   value: "+91 98819 88751", href: "tel:+919881988751" },
+                { icon: Mail,  label: "Email",   value: "mithaiworld@gmail.com", href: "mailto:mithaiworld@gmail.com" },
+                { icon: Clock, label: "Hours",   value: "Mon – Sun: 9:00 AM – 10:30 PM", href: null },
               ].map(({ icon: Icon, label, value, href }) => (
                 <div key={label}
                      className="flex items-start gap-3 rounded-xl border border-[rgba(83,44,22,0.10)]
@@ -345,22 +346,7 @@ const About = () => {
               ))}
             </div>
             {/* Map */}
-            <div className="group relative flex min-h-[320px] items-center justify-center
-                            overflow-hidden rounded-2xl border border-[rgba(83,44,22,0.12)]
-                            bg-[rgba(212,160,23,0.06)] shadow-sm">
-              <p className="absolute z-0 flex items-center gap-2 text-sm text-[rgba(83,44,22,0.35)]">
-                <MapPin className="h-4 w-4" /> Map Embed Area
-              </p>
-              <iframe
-                title="Mithai World Location"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3782.3686866164283!2d73.9114251!3d18.5574347!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2c147b8b2135d%3A0xbb16399ba14a7e9e!2sViman%20Nagar%2C%20Pune%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1716130000000!5m2!1sen!2sin"
-                width="100%" height="100%"
-                className="absolute inset-0 z-10 h-full w-full opacity-60
-                           transition-opacity duration-500 group-hover:opacity-100"
-                style={{ border: 0 }} allowFullScreen="" loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
+            <StoreMap size="large" showTitle={false} />
           </div>
         </div>
       </section>

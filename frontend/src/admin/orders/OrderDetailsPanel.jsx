@@ -1,5 +1,5 @@
 import { Mail, MapPin, Phone, Truck, ShieldCheck, Timer, User } from "lucide-react";
-import { formatPrice } from "../../services/utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 import {
   PAYMENT_METHOD_META,
   PAYMENT_STATUS_META,
@@ -170,7 +170,7 @@ const OrderDetailsPanel = ({ order, onClose, onVerifyOtp, onResendOtp }) => {
                     {item.selectedVariant?.label || "Standard"} · Qty {item.quantity}
                   </div>
                 </div>
-                <div className="font-medium text-[#2d1b0e]">{formatPrice(item.finalAmount || item.price || 0)}</div>
+                <div className="font-medium text-[#2d1b0e]">{formatCurrency(item.finalAmount || item.price || 0)}</div>
               </div>
             ))}
           </div>
@@ -181,25 +181,25 @@ const OrderDetailsPanel = ({ order, onClose, onVerifyOtp, onResendOtp }) => {
           <div className="mt-3 space-y-2 text-sm text-[#6d4c41]">
             <div className="flex justify-between">
               <span>Items Subtotal</span>
-              <span>{formatPrice(order?.totals?.itemsSubtotal || 0)}</span>
+              <span>{formatCurrency(order?.totals?.itemsSubtotal || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span>GST</span>
-              <span>{formatPrice(order?.totals?.gstTotal || 0)}</span>
+              <span>{formatCurrency(order?.totals?.gstTotal || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping</span>
-              <span>{formatPrice(order?.totals?.shippingFee || 0)}</span>
+              <span>{formatCurrency(order?.totals?.shippingFee || 0)}</span>
             </div>
             {Number(order?.totals?.discountTotal || 0) > 0 && (
               <div className="flex justify-between">
                 <span>Discount</span>
-                <span>-{formatPrice(order?.totals?.discountTotal || 0)}</span>
+                <span>-{formatCurrency(order?.totals?.discountTotal || 0)}</span>
               </div>
             )}
             <div className="flex justify-between font-medium text-[#2d1b0e]">
               <span>Grand Total</span>
-              <span>{formatPrice(order?.totals?.grandTotal || order.total || 0)}</span>
+              <span>{formatCurrency(order?.totals?.grandTotal || order.total || 0)}</span>
             </div>
           </div>
         </div>

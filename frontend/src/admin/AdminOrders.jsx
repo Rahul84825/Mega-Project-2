@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Sparkles, Filter } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
-import { formatCurrency } from "../utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
+import toast from "../services/utils/toast";
 import OrderCard from "./orders/OrderCard";
 import OrderTabs from "./orders/OrderTabs";
 import RejectReasonModal from "./orders/RejectReasonModal";
@@ -74,6 +75,8 @@ const AdminOrders = () => {
       await action();
     } catch (error) {
       console.error("Action failed:", error);
+      const message = error.response?.data?.message || error.message || "Action failed";
+      toast.error(message);
     } finally {
       setBusyOrderId(null);
     }

@@ -3,12 +3,16 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import User from "../models/User.js";
 
+import dns from "dns";
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
 dotenv.config();
 
 const DATABASE_URI = process.env.MONGODB_URI || process.env.MONGODB_URI_FALLBACK || process.env.MONGO_URI;
-const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "activegamer789@gmail.com").toLowerCase().trim();
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "mithaiworld@gmail.com").toLowerCase().trim();
 const ADMIN_NAME = process.env.ADMIN_NAME || "Admin User";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Rahulbhai@12";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@123";
 
 const seedAdmin = async () => {
   try {
@@ -26,7 +30,6 @@ const seedAdmin = async () => {
         name: ADMIN_NAME,
         email: ADMIN_EMAIL,
         password: hashedPassword,
-        googleId: null,
         isAdmin: true
       },
       {

@@ -10,7 +10,10 @@ import brandLogo from "../assets/image.png";
 const NAV_ITEMS = [
   { to: "/admin",            label: "Dashboard",   icon: LayoutDashboard, end: true },
   { to: "/admin/orders",     label: "Orders",      icon: ShoppingBag },
-  { to: "/admin/products",    label: "Products",    icon: Package,     end: true },
+  { to: "/admin/products",    label: "All Products",    icon: Package,     end: true },
+  { to: "/admin/snacks",      label: "Snacks",          icon: Package },
+  { to: "/admin/malai-barfi", label: "Malai Barfi",     icon: Package },
+  { to: "/admin/signature",   label: "Signature Sweets", icon: Sparkles },
   { to: "/admin/add-product", label: "Add Product", icon: PlusCircle },
   { to: "/admin/categories", label: "Categories",  icon: Tag },
   { to: "/admin/offers",     label: "Offers & Deals", icon: Percent },

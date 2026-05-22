@@ -11,6 +11,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import offerRoutes from "./routes/offerRoutes.js";
 import heroSlideRoutes from "./routes/heroSlideRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 import debugRoutes from "./routes/debugRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
@@ -230,29 +231,8 @@ app.use("/api/upload", rateLimit({
 // Debug routes (development/debugging only)
 app.use("/api/debug", debugRoutes);
 
-/**
- * ADMIN STATISTICS ENDPOINT
- * SECURITY: Protected with auth and admin-only middleware
- * Returns aggregated, non-sensitive stats only
- */
-app.get("/api/admin/stats", protect, adminOnly, async (_req, res, next) => {
-  try {
-    const totalUsers = await User.countDocuments({ isAdmin: false });
-    const adminUsers = await User.countDocuments({ isAdmin: true });
-
-    return res.status(200).json({
-      success: true,
-      stats: {
-        totalUsers,
-        adminUsers,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    logger.error("Failed to fetch admin stats", { error: error.message });
-    return next(error);
-  }
-});
+// Admin reporting routes
+app.use("/api/reports", reportRoutes);
 
 /**
  * ERROR HANDLING

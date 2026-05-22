@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { getHeroSlides } from "../services/api";
 
 const HERO_CONTENT = {
-  subtitle: "Estd. 1984 — Pure Tradition",
+  subtitle: "Estd. 2019 — Pure Tradition",
   title: "The Art of Indian",
   highlight: "Mithai",
   description: "Experience the finest collection of authentic Indian sweets, handcrafted using premium ingredients and heritage recipes passed through generations.",
@@ -11,16 +12,39 @@ const HERO_CONTENT = {
   ctaSecondary: "Our Story"
 };
 
+const DEFAULT_SLIDES = [
+  { image: "/hero-slide-1.svg" },
+  { image: "/hero-slide-2.svg" }
+];
+
 function HeroSection() {
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
-
-  const slides = [
-    { image: "/hero-slide-1.svg" },
-    { image: "/hero-slide-2.svg" }
-  ];
+  const [slides, setSlides] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        setLoading(true);
+        const data = await getHeroSlides();
+        if (Array.isArray(data) && data.length > 0) {
+          setSlides(data);
+        } else {
+          setSlides(DEFAULT_SLIDES);
+        }
+      } catch (err) {
+        console.error("Failed to fetch hero slides:", err);
+        setSlides(DEFAULT_SLIDES);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSlides();
+  }, []);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % slides.length);
     }, 6000);
@@ -32,7 +56,7 @@ function HeroSection() {
       {/* ── BACKGROUND SLIDES ── */}
       {slides.map((slide, i) => (
         <div 
-          key={i}
+          key={slide._id || i}
           className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === activeIndex ? 'opacity-100' : 'opacity-0'}`}
         >
           <div 

@@ -3,39 +3,54 @@ import { useNavigate } from "react-router-dom";
 import { 
   Package, Tag, AlertTriangle, TrendingUp, 
   PlusCircle, ShoppingBag, LayoutDashboard, 
-  IndianRupee, ChevronRight, Users, Sparkles, Clock, CheckCircle2
+  IndianRupee, ChevronRight, Users, Sparkles, Clock, CheckCircle2,
+  Download, FileText, BarChart3
 } from "lucide-react";
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, BarChart, Bar 
+} from 'recharts';
 import { useProducts } from "../context/ProductContext";
-import { formatCurrency } from "../utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 import api from "../services/api";
+import toast from "../services/utils/toast";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { products, orders, fetchOrders } = useProducts();
-  const [adminStats, setAdminStats] = useState({
-    totalSales: 0,
+  const [loading, setLoading] = useState(true);
+  const [reportStats, setReportStats] = useState({
+    totalUsers: 0,
+    totalRevenue: 0,
     totalOrders: 0,
-    totalProducts: 0,
-    totalCategories: 0,
-    recentOrders: []
+    dailyStats: []
   });
 
   useEffect(() => {
-    fetchOrders();
-    api.get("/api/admin/stats")
-      .then(res => setAdminStats(res.data || res))
-      .catch(() => {});
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await fetchOrders();
+        const { data } = await api.get("/api/reports/stats");
+        setReportStats(data.stats || data);
+      } catch (err) {
+        console.error("Dashboard load failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, [fetchOrders]);
 
   const statsCards = [
     { 
       label: "Total Revenue", 
-      value: formatCurrency(orders.filter(o => !['REJECTED'].includes(o.status)).reduce((sum, o) => sum + Number(o.totals?.grandTotal || o.total || 0), 0)), 
+      value: formatCurrency(reportStats.totalRevenue || 0), 
       icon: IndianRupee, color: "text-green-600", bg: "bg-green-50" 
     },
     { 
-      label: "Active Orders", 
-      value: orders.filter(o => !['DELIVERED', 'REJECTED'].includes(o.status)).length, 
+      label: "Total Orders", 
+      value: reportStats.totalOrders || 0, 
       icon: ShoppingBag, color: "text-[var(--burgundy)]", bg: "bg-red-50" 
     },
     { 
@@ -45,10 +60,35 @@ const AdminDashboard = () => {
     },
     { 
       label: "Customers", 
-      value: adminStats.totalUsers || adminStats.stats?.totalUsers || 0, 
+      value: reportStats.totalUsers || 0, 
       icon: Users, color: "text-blue-600", bg: "bg-blue-50" 
     },
   ];
+
+  const chartData = useMemo(() => {
+    return (reportStats.dailyStats || []).map(d => ({
+      date: new Date(d._id).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+      revenue: d.revenue,
+      orders: d.count
+    }));
+  }, [reportStats.dailyStats]);
+
+  const downloadReport = async (type) => {
+    try {
+      toast.info(`Preparing ${type} report...`);
+      const response = await api.get(`/api/reports/${type}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type}_report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success(`${type} report downloaded!`);
+    } catch (err) {
+      toast.error("Failed to download report");
+    }
+  };
 
   const lowStockProducts = useMemo(() => {
     return products.filter(p => p.stock < 10).slice(0, 5);
@@ -56,14 +96,32 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-10 page-enter">
-      <div className="section-title">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
-          <Sparkles size={12} /> Live Dashboard
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="section-title mb-0">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
+            <Sparkles size={12} /> Live Dashboard
+          </div>
+          <h2 className="serif font-medium">Welcome back, Admin</h2>
+          <p className="font-medium">Here's what's happening at Mithai World today.</p>
         </div>
-        <h2 className="serif font-medium">Welcome back, Admin</h2>
-        <p className="font-medium">Here's what's happening at Mithai World today.</p>
+
+        <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={() => downloadReport('sales')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-[var(--surface-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm"
+          >
+            <FileText size={14} className="text-emerald-600" /> Sales CSV
+          </button>
+          <button 
+            onClick={() => downloadReport('customers')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-[var(--surface-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm"
+          >
+            <Users size={14} className="text-blue-600" /> Customers CSV
+          </button>
+        </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((s, i) => (
           <div key={i} className="bg-white p-6 rounded-3xl border border-[var(--surface-border)] shadow-sm hover:shadow-xl transition-all duration-300">
@@ -74,6 +132,63 @@ const AdminDashboard = () => {
             <div className="text-2xl font-medium text-[var(--charcoal)]">{s.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white p-8 rounded-[32px] border border-[var(--surface-border)] shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="serif text-xl font-medium text-[var(--charcoal)]">Revenue Trend</h3>
+              <p className="text-[10px] text-[var(--muted)] font-medium uppercase tracking-widest mt-1">Last 7 Days Earnings</p>
+            </div>
+            <TrendingUp size={20} className="text-emerald-500" />
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b4513" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#8b4513" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#999'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#999'}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)' }}
+                  labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                />
+                <Area type="monotone" dataKey="revenue" stroke="#8b4513" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[32px] border border-[var(--surface-border)] shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="serif text-xl font-medium text-[var(--charcoal)]">Order Volume</h3>
+              <p className="text-[10px] text-[var(--muted)] font-medium uppercase tracking-widest mt-1">Daily Order Count</p>
+            </div>
+            <BarChart3 size={20} className="text-[var(--burgundy)]" />
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#999'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#999'}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)' }}
+                  cursor={{fill: '#f5e6d3', opacity: 0.4}}
+                />
+                <Bar dataKey="orders" fill="#b67b3a" radius={[6, 6, 0, 0]} barSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -169,3 +284,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

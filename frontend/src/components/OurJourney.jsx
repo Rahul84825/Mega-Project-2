@@ -4,12 +4,12 @@ import Mithai from "../assets/Mithai world.jpeg";
 
 const DEFAULT_MILESTONES = [
   {
-    year: "2022",
+    year: "2019",
     title: "A Sweet Start",
     description: "We started as a small family-run shop with one goal: bring authentic traditional sweets to Pune.",
   },
   {
-    year: "2023",
+    year: "2021",
     title: "Growing With Trust",
     description: "Customer love and word-of-mouth helped us expand our variety while keeping our handmade quality intact.",
   },

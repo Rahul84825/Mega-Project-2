@@ -4,7 +4,7 @@ import {
   CreditCard, Truck, ShieldCheck, Timer, 
   ChevronRight, Receipt, Calendar, Clock
 } from "lucide-react";
-import { formatCurrency } from "../../utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 import { 
   resolveStatus, 
   resolvePaymentMethod, 

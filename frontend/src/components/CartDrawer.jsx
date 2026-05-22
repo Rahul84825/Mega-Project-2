@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { X, ShoppingBag, ArrowRight, Trash2, Minus, Plus, ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
-import { calculateTotals, formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
+import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 
 function CartDrawer() {
   const { cart, isCartOpen, closeCart, dispatch } = useCart();

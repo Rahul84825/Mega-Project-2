@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "../../utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 import { ArrowRight } from "lucide-react";
 
 const OfferCard = ({ offer }) => {

@@ -1,5 +1,5 @@
 import { ChevronUp } from "lucide-react";
-import { formatPrice } from "../../services/utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 
 const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
   const items = Array.isArray(order.items) ? order.items : [];
@@ -71,7 +71,7 @@ const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
                       {item.quantity}x
                     </div>
                     <div className="font-medium text-sm text-[#2d1b0e] min-w-[60px] text-right">
-                      {formatPrice(item.finalAmount || item.price || 0)}
+                      {formatCurrency(item.finalAmount || item.price || 0)}
                     </div>
                   </div>
                 </div>
@@ -89,14 +89,14 @@ const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
             <div className="flex items-center justify-between text-xs">
               <span className="text-[#7a5c3a]">Items Subtotal</span>
               <span className="font-medium text-[#2d1b0e]">
-                {formatPrice(totals.itemsSubtotal || 0)}
+                {formatCurrency(totals.itemsSubtotal || 0)}
               </span>
             </div>
             {Number(totals.gstTotal || 0) > 0 && (
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#7a5c3a]">GST</span>
                 <span className="font-medium text-[#2d1b0e]">
-                  {formatPrice(totals.gstTotal || 0)}
+                  {formatCurrency(totals.gstTotal || 0)}
                 </span>
               </div>
             )}
@@ -104,7 +104,7 @@ const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#7a5c3a]">Delivery</span>
                 <span className="font-medium text-[#2d1b0e]">
-                  {formatPrice(totals.shippingFee || 0)}
+                  {formatCurrency(totals.shippingFee || 0)}
                 </span>
               </div>
             )}
@@ -112,7 +112,7 @@ const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-emerald-700">Discount</span>
                 <span className="font-medium text-emerald-700">
-                  -{formatPrice(totals.discountTotal || 0)}
+                  -{formatCurrency(totals.discountTotal || 0)}
                 </span>
               </div>
             )}
@@ -120,7 +120,7 @@ const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
             <div className="flex items-center justify-between">
               <span className="font-medium text-[#2d1b0e] text-sm">Total</span>
               <span className="font-medium text-[#2d1b0e] text-lg">
-                {formatPrice(totals.grandTotal || order.total || 0)}
+                {formatCurrency(totals.grandTotal || order.total || 0)}
               </span>
             </div>
           </div>

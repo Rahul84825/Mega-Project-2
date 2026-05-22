@@ -11,6 +11,12 @@ const toSlug = (name) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
+const parseBool = (val) => {
+  if (val === "true" || val === true) return true;
+  if (val === "false" || val === false) return false;
+  return Boolean(val);
+};
+
 export const getCategories = async (_req, res, next) => {
   try {
     const categories = await Category.find().sort({ order: 1, name: 1 });
@@ -69,9 +75,9 @@ export const createCategory = async (req, res, next) => {
       name: String(name || "").trim(),
       slug,
       image: imageUrl,
-      is_active: Boolean(is_active),
-      showInNavbar: Boolean(showInNavbar),
-      showInHomepage: Boolean(showInHomepage),
+      is_active: parseBool(is_active),
+      showInNavbar: parseBool(showInNavbar),
+      showInHomepage: parseBool(showInHomepage),
       type: ["sweets", "other"].includes(String(type || "").toLowerCase()) ? String(type).toLowerCase() : "other",
       order: Number(order || 0)
     });
@@ -128,13 +134,13 @@ export const updateCategory = async (req, res, next) => {
     }
 
     if (is_active !== undefined) {
-      updates.is_active = Boolean(is_active);
+      updates.is_active = parseBool(is_active);
     }
     if (showInNavbar !== undefined) {
-      updates.showInNavbar = Boolean(showInNavbar);
+      updates.showInNavbar = parseBool(showInNavbar);
     }
     if (showInHomepage !== undefined) {
-      updates.showInHomepage = Boolean(showInHomepage);
+      updates.showInHomepage = parseBool(showInHomepage);
     }
     if (type !== undefined) {
       updates.type = ["sweets", "other"].includes(String(type || "").toLowerCase()) ? String(type).toLowerCase() : "other";

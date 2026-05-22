@@ -12,7 +12,7 @@ const SignatureSweets = () => {
   const products = Array.isArray(contextProducts) ? contextProducts : [];
 
   const sweets = useMemo(() => {
-    return products.filter(p => p.isSignature).slice(0, 4);
+    return products.filter(p => p.isSignature && p.isActive !== false).slice(0, 4);
   }, [products]);
 
   if (!loading && sweets.length === 0) return null;

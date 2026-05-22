@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { PlusCircle, Pencil, Trash2, X, Save, AlertCircle, ToggleLeft, ToggleRight, Upload, Sparkles, Package } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, X, Save, AlertCircle, ToggleLeft, ToggleRight, Upload, Sparkles, Package, Search, Image as ImageIcon } from "lucide-react";
+import { toast } from "react-toastify";
 import { useProducts } from "../context/ProductContext";
-import toast from "../services/utils/toast";
+import api from "../services/api";
 
 const EMPTY_FORM = { name: "", is_active: true, showInNavbar: false, showInHomepage: false, type: "other", image: null, order: 0 };
 
@@ -31,6 +32,12 @@ const CategoryModal = ({ category, onSave, onClose }) => {
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       set("image", file);
@@ -57,9 +64,11 @@ const CategoryModal = ({ category, onSave, onClose }) => {
       if (form.image) payload.append("image", form.image);
 
       await onSave(payload);
-      toast.success(category ? "Category updated!" : "Category created!");
+      toast.success(category ? "Category updated successfully!" : "Category created successfully!");
     } catch (error) {
-      toast.error("Failed to save category");
+      console.error("Category save error:", error);
+      const msg = error.response?.data?.message || error.message || "Failed to save category";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -83,19 +92,23 @@ const CategoryModal = ({ category, onSave, onClose }) => {
           <div>
             <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-2 block">Cover Image</label>
             <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="aspect-video rounded-2xl border-2 border-dashed border-[var(--surface-border)] bg-[var(--cream)]/30 overflow-hidden flex flex-col items-center justify-center cursor-pointer relative group"
+              onClick={() => !loading && fileInputRef.current?.click()}
+              className="aspect-video rounded-2xl border-2 border-dashed border-[var(--surface-border)] bg-[var(--cream)]/30 overflow-hidden flex flex-col items-center justify-center cursor-pointer relative group transition-all hover:bg-[var(--cream)]/50"
             >
               {form.imagePreview ? (
-                <img src={form.imagePreview} className="w-full h-full object-cover" alt="" />
+                <img src={form.imagePreview} className="w-full h-full object-cover" alt="Category Preview" />
               ) : (
                 <div className="text-center p-4">
-                  <Upload size={24} className="mx-auto text-[var(--muted)] mb-2 opacity-50" />
+                  <ImageIcon size={24} className="mx-auto text-[var(--muted)] mb-2 opacity-50" />
                   <p className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">Upload Image</p>
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-              {loading && <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[var(--burgundy)] border-t-transparent rounded-full animate-spin" /></div>}
+              {loading && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
+                  <div className="w-8 h-8 border-4 border-[var(--burgundy)] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -152,6 +165,7 @@ function AdminCategories() {
   const { categories, products, addCategory, updateCategory, deleteCategory, toggleCategory, toggleCategoryFeatured } = useProducts();
   const [modal, setModal] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [search, setSearch] = useState("");
 
   const linkedProductCount = (catSlug) => {
     return (products || []).filter((p) => {
@@ -160,10 +174,16 @@ function AdminCategories() {
     }).length;
   };
 
-  const sortedCategories = useMemo(
-    () => [...(categories || [])].sort((a, b) => (a.order || 0) - (b.order || 0)),
-    [categories]
-  );
+  const filteredCategories = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    const list = [...(categories || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+    if (!q) return list;
+    return list.filter(c => 
+      c.name?.toLowerCase().includes(q) || 
+      c.slug?.toLowerCase().includes(q) ||
+      c.type?.toLowerCase().includes(q)
+    );
+  }, [categories, search]);
 
   const handleSave = async (payload) => {
     if (modal === "add") await addCategory(payload);
@@ -173,54 +193,77 @@ function AdminCategories() {
 
   return (
     <div className="animate-in fade-in duration-500 max-w-7xl mx-auto page-enter space-y-10">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="section-title mb-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
             <Sparkles size={12} /> Structure
           </div>
           <h2 className="serif">Categories</h2>
-          <p>Organize your মিঠাই catalog and control navigation visibility.</p>
+          <p>Organize your catalog and control navigation visibility.</p>
         </div>
-        <button onClick={() => setModal("add")} className="btn-primary">
-          <PlusCircle size={16} /> Add Category
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {sortedCategories.map((cat) => (
-          <div key={cat._id} className="bg-white rounded-3xl border border-[var(--surface-border)] overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full shadow-sm">
-            <div className="relative aspect-video overflow-hidden bg-[var(--cream)]">
-              {cat.image ? (
-                <img src={cat.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-[var(--surface-strong)]/30"><Package size={32} className="text-[var(--muted)] opacity-20" /></div>
-              )}
-              <div className="absolute top-3 left-3 flex gap-2">
-                {cat.is_active === false && <span className="bg-rose-500 text-white text-[8px] font-medium px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg">Inactive</span>}
-                {cat.showInNavbar && <span className="bg-[var(--gold)] text-white text-[8px] font-medium px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg">Navbar</span>}
-              </div>
-            </div>
-
-            <div className="p-5 flex flex-col flex-1">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-base font-medium text-[var(--charcoal)] mb-1">{cat.name}</h3>
-                  <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">{cat.type}</p>
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setModal(cat)} className="p-2 hover:bg-[var(--cream)] rounded-lg transition-colors"><Pencil size={14} /></button>
-                  <button onClick={() => setDeleteConfirm(cat)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
-                </div>
-              </div>
-
-              <div className="mt-auto pt-4 border-t border-[var(--surface-border)] flex justify-between items-center text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">
-                <span>{linkedProductCount(cat.slug)} Products</span>
-                <span>Order: {cat.order}</span>
-              </div>
-            </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)] group-focus-within:text-[var(--gold)] transition-colors" size={16} />
+            <input 
+              type="text" 
+              placeholder="Search categories..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="input-field pl-10 w-full sm:w-64 h-12" 
+            />
           </div>
-        ))}
+          <button onClick={() => setModal("add")} className="btn-primary h-12">
+            <PlusCircle size={16} /> Add Category
+          </button>
+        </div>
       </div>
+
+      {filteredCategories.length === 0 ? (
+        <div className="py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
+          <div className="h-12 w-12 rounded-full bg-[var(--cream)] flex items-center justify-center mx-auto mb-4 text-[var(--muted)]">
+            <Package size={24} />
+          </div>
+          <h3 className="text-sm font-medium text-[var(--charcoal)]">No categories found</h3>
+          <p className="text-xs text-[var(--muted)] mt-1">Try a different search term or add a new category.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredCategories.map((cat) => (
+            <div key={cat._id} className="bg-white rounded-3xl border border-[var(--surface-border)] overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full shadow-sm">
+              <div className="relative aspect-video overflow-hidden bg-[var(--cream)]">
+                {cat.image ? (
+                  <img src={cat.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[var(--surface-strong)]/30"><Package size={32} className="text-[var(--muted)] opacity-20" /></div>
+                )}
+                <div className="absolute top-3 left-3 flex gap-2">
+                  {cat.is_active === false && <span className="bg-rose-500 text-white text-[8px] font-medium px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg">Inactive</span>}
+                  {cat.showInNavbar && <span className="bg-[var(--gold)] text-white text-[8px] font-medium px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg">Navbar</span>}
+                </div>
+              </div>
+
+              <div className="p-5 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-base font-medium text-[var(--charcoal)] mb-1">{cat.name}</h3>
+                    <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">{cat.type}</p>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setModal(cat)} className="p-2 hover:bg-[var(--cream)] rounded-lg transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => setDeleteConfirm(cat)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-4 border-t border-[var(--surface-border)] flex justify-between items-center text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">
+                  <span>{linkedProductCount(cat.slug)} Products</span>
+                  <span>Order: {cat.order}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {modal && <CategoryModal category={modal === "add" ? null : modal} onSave={handleSave} onClose={() => setModal(null)} />}
 

@@ -58,15 +58,25 @@ const normalizeVariants = (variants, gstPercent = 0) => {
       const sellingPrice = calculateSellingPrice(mrp, discountPercent);
       const finalPrice = calculateFinalPrice(sellingPrice, gstPercent);
       const stock = Math.max(0, Math.floor(normalizeNumber(variant?.stock, 0)));
+      const isAvailable = variant?.isAvailable !== undefined ? Boolean(variant.isAvailable) : true;
 
-      return {
+      const normalized = {
         label: String(variant?.label || "Default").trim(),
         mrp,
         discountPercent,
         sellingPrice,
         finalPrice,
-        stock
+        stock,
+        isAvailable
       };
+
+      // Preserve ID if it exists and looks like a valid MongoDB ID
+      const existingId = variant?._id || variant?.id;
+      if (existingId && String(existingId).length === 24) {
+        normalized._id = existingId;
+      }
+
+      return normalized;
     })
     .filter((variant) => variant.mrp > 0 && variant.sellingPrice > 0);
 };
@@ -77,11 +87,16 @@ const normalizeProductForResponse = (product) => {
   }
 
   const plain = typeof product.toObject === "function" ? product.toObject() : { ...product };
+  
+  // Ensure IDs are strings to prevent numeric mangling in frontend
+  if (plain._id) plain._id = String(plain._id);
+  
   const gstPercent = clampGstPercent(plain.gstPercent);
   const variants = Array.isArray(plain.variants) ? plain.variants : [];
 
   return {
     ...plain,
+    _id: String(plain._id),
     gstPercent,
     variants: variants.map((variant, index) => {
       const mrp = Math.max(0, Math.round(normalizeNumber(variant?.mrp, 0)));
@@ -92,13 +107,15 @@ const normalizeProductForResponse = (product) => {
       const stock = Math.max(0, Math.floor(normalizeNumber(variant?.stock, 0)));
 
       return {
-        _id: variant?._id || variant?.id || `${plain._id || "product"}_variant_${index + 1}`,
+        ...variant,
+        _id: variant?._id ? String(variant._id) : `${plain._id}_variant_${index + 1}`,
         label: String(variant?.label || `Variant ${index + 1}`).trim(),
         mrp,
         discountPercent,
         sellingPrice,
         finalPrice,
-        stock
+        stock,
+        isAvailable: variant?.isAvailable !== undefined ? Boolean(variant.isAvailable) : true
       };
     })
   };
@@ -496,6 +513,82 @@ export const updateProduct = async (req, res, next) => {
 };
 
 /**
+ * Toggle active status for a product (Storefront Visibility)
+ * PATCH /api/products/:id/toggle-status
+ */
+export const toggleProductStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    product.isActive = !!isActive;
+    await product.save();
+
+    logger.info(`Product status toggled: ${product.name} -> ${product.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+
+    const io = getIo();
+    if (io) {
+      io.emit("product:updated", normalizeProductForResponse(product));
+    }
+
+    return res.status(200).json({
+      success: true,
+      product: normalizeProductForResponse(product)
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Toggle active status for a specific variant
+ * PATCH /api/products/:id/variants/:variantId/toggle-status
+ */
+export const toggleVariantStatus = async (req, res, next) => {
+  try {
+    const { id, variantId } = req.params;
+    const { isAvailable } = req.body;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    const variantIndex = product.variants.findIndex(v => String(v._id) === String(variantId));
+    if (variantIndex === -1) {
+      return res.status(404).json({ success: false, message: "Variant not found" });
+    }
+
+    product.variants[variantIndex].isAvailable = !!isAvailable;
+
+    // Auto-toggle product visibility based on variants
+    const hasAvailableVariant = product.variants.some(v => v.isAvailable !== false);
+    product.isActive = hasAvailableVariant;
+
+    await product.save();
+
+    logger.info(`Variant status toggled: ${product.name} [${product.variants[variantIndex].label}] -> ${isAvailable ? 'AVAILABLE' : 'UNAVAILABLE'}. Product is now ${product.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+
+    const io = getIo();
+    if (io) {
+      io.emit("product:updated", normalizeProductForResponse(product));
+    }
+
+    return res.status(200).json({
+      success: true,
+      product: normalizeProductForResponse(product)
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * Get stock information for products and variants
  * GET /api/products/stock/info
  */
@@ -517,7 +610,7 @@ export const getStockInfo = async (req, res, next) => {
       const ids = String(productIds).split(",").map(id => id.trim()).filter(Boolean);
       
       for (const id of ids) {
-        const product = await Product.findById(id).select("name stock variants");
+        const product = await Product.findById(id).select("name stock variants isActive");
         
         if (!product) {
           stockInfo.push({
@@ -538,7 +631,7 @@ export const getStockInfo = async (req, res, next) => {
               variantId: v._id,
               label: v.label,
               stock: Number(v.stock || 0),
-              isAvailable: (Number(v.stock || 0) > 0)
+              isAvailable: v.isAvailable !== false
             }))
           });
         } else {
@@ -548,7 +641,7 @@ export const getStockInfo = async (req, res, next) => {
             name: product.name,
             type: "simple",
             stock: Number(product.stock || 0),
-            isAvailable: (Number(product.stock || 0) > 0)
+            isAvailable: product.isActive !== false
           });
         }
       }
@@ -572,7 +665,7 @@ export const getStockInfo = async (req, res, next) => {
               variantId: variant._id,
               label: variant.label,
               stock: Number(variant.stock || 0),
-              isAvailable: (Number(variant.stock || 0) > 0)
+              isAvailable: variant.isAvailable !== false
             });
             found = true;
             break;

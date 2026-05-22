@@ -43,6 +43,10 @@ const variantSchema = new mongoose.Schema({
       validator: Number.isInteger,
       message: "Variant stock must be an integer"
     }
+  },
+  isAvailable: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -91,6 +95,10 @@ const productSchema = new mongoose.Schema(
     isSignature: {
       type: Boolean,
       default: false
+    },
+    isActive: {
+      type: Boolean,
+      default: true
     },
     brand: {
       type: String,

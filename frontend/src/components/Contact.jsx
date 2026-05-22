@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import StoreMap from "./common/StoreMap";
+import LocationCard from "./common/LocationCard";
 
 // ── Field wrapper ──────────────────────────────────────────────────────────────
 const Field = ({ icon: Icon, label, required, error, children }) => (
@@ -160,34 +162,7 @@ const Contact = () => {
             </div>
 
             {/* Store info cards */}
-            <div className="rounded-2xl border border-[rgba(83,44,22,0.10)] bg-white p-6 shadow-sm">
-              {[
-                { icon: MapPin, label: "Store Location", title: "Mithai World", sub: "Viman Nagar, Pune" },
-                { icon: Truck,  label: "Delivery Area",  title: "Across Pune", sub: "We deliver within Pune limits." },
-                { icon: Clock,  label: "Working Hours",  title: "Mon – Sun: 9:00 AM – 10:00 PM", sub: "Open every day to serve your sweet cravings." },
-              ].map(({ icon: Icon, label, title, sub }, i, arr) => (
-                <div key={label}>
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center
-                                    rounded-full border border-[rgba(212,160,23,0.20)]
-                                    bg-[rgba(212,160,23,0.08)]">
-                      <Icon className="h-4 w-4 text-[#b76a1f]" />
-                    </div>
-                    <div>
-                      <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.18em]
-                                    text-[rgba(83,44,22,0.40)]">
-                        {label}
-                      </p>
-                      <p className="text-sm font-medium text-[#24140f] leading-snug">{title}</p>
-                      <p className="mt-0.5 text-[13px] text-[#6e5443]">{sub}</p>
-                    </div>
-                  </div>
-                  {i < arr.length - 1 && (
-                    <div className="my-4 h-px w-full bg-[rgba(83,44,22,0.07)]" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <LocationCard compact={false} />
           </div>
 
           {/* ── Right: form ── */}
@@ -266,27 +241,12 @@ const Contact = () => {
 
         </div>
 
-        {/* Map */}
+        {/* Map Section */}
         <div className="mt-16">
           <h2 className="mb-6 text-xl font-medium tracking-tight text-[#24140f]">
             Find Us on the Map
           </h2>
-          <div className="group relative flex h-[350px] items-center justify-center
-                          overflow-hidden rounded-2xl border border-[rgba(83,44,22,0.12)]
-                          bg-[rgba(212,160,23,0.05)] shadow-sm">
-            <p className="absolute z-0 flex items-center gap-2 text-sm text-[rgba(83,44,22,0.35)]">
-              <MapPin className="h-4 w-4" /> Map Embed Area
-            </p>
-            <iframe
-              title="Mithai World Location"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3782.3686866164283!2d73.9114251!3d18.5574347!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2c147b8b2135d%3A0xbb16399ba14a7e9e!2sViman%20Nagar%2C%20Pune%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1716130000000!5m2!1sen!2sin"
-              width="100%" height="100%"
-              style={{ border: 0 }} allowFullScreen="" loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="absolute inset-0 z-10 h-full w-full opacity-70
-                         transition-opacity duration-500 group-hover:opacity-100"
-            />
-          </div>
+          <StoreMap size="large" showTitle={false} />
         </div>
 
       </div>

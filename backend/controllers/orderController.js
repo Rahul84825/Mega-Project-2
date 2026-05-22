@@ -274,7 +274,7 @@ export const verifyPickupOtp = async (req, res) => {
     const { id } = req.params;
     const { otp } = req.body;
 
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -283,8 +283,17 @@ export const verifyPickupOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: "Order is not ready for pickup" });
     }
 
+    // If no OTP exists, auto-assign a partner now (handles edge cases where assignment failed earlier)
+    if (!order.delivery?.pickupOtp) {
+      logger.info(`🔄 Auto-assigning partner for order ${id} during verification`);
+      order = await assignDeliveryPartner(order._id);
+    }
+
     if (!order.delivery?.pickupOtp || order.delivery.pickupOtp !== String(otp).trim()) {
-      return res.status(400).json({ success: false, message: "Invalid pickup OTP" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid pickup OTP. Please check the assigned rider's details." 
+      });
     }
 
     order.status = "PICKED_UP";
@@ -389,7 +398,7 @@ export const rejectOrder = async (req, res) => {
 export const markPreparing = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
@@ -402,6 +411,11 @@ export const markPreparing = async (req, res) => {
     order.status = "PREPARING";
     order.statusTimestamps.preparingAt = new Date();
     await order.save();
+
+    // Ensure delivery partner is assigned
+    if (!order.rider?.name) {
+      order = await assignDeliveryPartner(order._id);
+    }
 
     emitOrderEvent("orderPreparing", sanitizeOrder(order));
     sendOrderPreparingEmail(order).catch(err => logger.error("Failed to send preparing email", err));
@@ -417,7 +431,7 @@ export const markPreparing = async (req, res) => {
 export const markReadyForPickup = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
@@ -425,7 +439,15 @@ export const markReadyForPickup = async (req, res) => {
 
     order.status = "READY";
     order.preparation.readyBy = new Date();
-    await order.save();
+    order.statusTimestamps.readyForPickupAt = new Date();
+    
+    // Ensure delivery partner is assigned if not already
+    if (!order.rider?.name) {
+      logger.info(`🚚 Auto-assigning partner for order ${id} during markReady`);
+      order = await assignDeliveryPartner(order._id);
+    } else {
+      await order.save();
+    }
 
     emitOrderEvent("orderReady", sanitizeOrder(order));
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });

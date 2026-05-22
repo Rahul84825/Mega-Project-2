@@ -65,8 +65,8 @@ const VerifyPickupModal = ({ open, onClose, onSubmit, order }) => {
             </p>
           </div>
 
-          {/* Rider Info */}
-          {order?.rider?.name && (
+          {/* Rider Info / OTP Info */}
+          {(order?.rider?.name || order.delivery?.pickupOtp) ? (
             <div className="mb-8 p-6 rounded-[24px] border border-[#e6d3b3] bg-white shadow-sm flex items-center justify-between group hover:border-[#d4a373] transition-colors">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-[#f5e6d3] flex items-center justify-center text-[#8b4513] group-hover:scale-110 transition-transform">
@@ -74,10 +74,12 @@ const VerifyPickupModal = ({ open, onClose, onSubmit, order }) => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] mb-0.5">Assigned Rider</p>
-                  <p className="text-sm font-bold text-[#2d1b0e]">{order.rider.name}</p>
-                  <p className="text-[11px] font-medium text-[#7a5c3a] flex items-center gap-1 mt-0.5">
-                    <Phone size={10} className="text-[#d4a373]" /> {order.rider.phone}
-                  </p>
+                  <p className="text-sm font-bold text-[#2d1b0e]">{order.rider?.name || "Auto-Assigning..."}</p>
+                  {order.rider?.phone && (
+                    <p className="text-[11px] font-medium text-[#7a5c3a] flex items-center gap-1 mt-0.5">
+                      <Phone size={10} className="text-[#d4a373]" /> {order.rider.phone}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="h-10 w-px bg-[#e6d3b3]/50 mx-2" />
@@ -85,6 +87,15 @@ const VerifyPickupModal = ({ open, onClose, onSubmit, order }) => {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-0.5">Expected OTP</p>
                 <p className="text-lg font-black text-[#2d1b0e] tracking-[0.2em]">{order.delivery?.pickupOtp || "----"}</p>
               </div>
+            </div>
+          ) : (
+            <div className="mb-8 p-5 rounded-[24px] border border-amber-100 bg-amber-50/50 flex items-center gap-4">
+               <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                  <Truck className="h-5 w-5 animate-pulse" />
+               </div>
+               <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                  No rider assigned yet. Verification will automatically assign a partner and generate an OTP.
+               </p>
             </div>
           )}
 

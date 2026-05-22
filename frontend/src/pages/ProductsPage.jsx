@@ -13,20 +13,37 @@ function ProductsPage() {
     category: "",
     price: "",
     sort: "default",
-    inStock: false
+    inStock: false,
+    search: ""
   });
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const category = params.get("category");
-    if (category) {
-      setFilters(prev => ({ ...prev, category: category.toLowerCase() }));
-    }
+    const search = params.get("search");
+    
+    setFilters(prev => ({ 
+      ...prev, 
+      category: category ? category.toLowerCase() : "",
+      search: search ? search.toLowerCase() : ""
+    }));
   }, [location.search]);
 
   const filteredProducts = useMemo(() => {
-    let list = Array.isArray(products) ? [...products] : [];
+    let list = Array.isArray(products) ? products.filter(p => p.isActive !== false) : [];
     
+    // Search Filter
+    if (filters.search) {
+      const q = filters.search.toLowerCase().trim();
+      list = list.filter(p => {
+        const name = (p.name || "").toLowerCase();
+        const desc = (p.description || "").toLowerCase();
+        const cat = typeof p.category === 'object' ? (p.category?.name || p.category?.slug) : p.category;
+        const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
+        return name.includes(q) || desc.includes(q) || (cat && String(cat).toLowerCase().includes(q)) || tags.includes(q);
+      });
+    }
+
     // Category Filter
     if (filters.category) {
       list = list.filter(p => {

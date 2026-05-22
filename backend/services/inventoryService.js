@@ -1,7 +1,7 @@
 import Product from "../models/Product.js";
 import InventoryLog from "../models/InventoryLog.js";
 import { getIo } from "../socket.js";
-import { calculateItemSnapshotPricing, calculateOrderTotals } from "../utils/priceCalculator.js";
+import { getVariantPricingSnapshot, calculateTotals } from "../../shared/utils/pricing.js";
 
 export class InventoryError extends Error {
   constructor(message, status = 400, code = "INVENTORY_ERROR") {
@@ -118,6 +118,16 @@ export const reserveStock = async ({
 
     // Check stock for both simple and variant products
     const stockAvailable = isSimpleProduct ? (product.stock || 0) : (variant.stock || 0);
+    const isAvailable = isSimpleProduct ? (product.isActive !== false) : (variant.isAvailable !== false);
+
+    if (!isAvailable) {
+      throw new InventoryError(
+        `${product.name} (${variant.label || 'Default'}) is currently unavailable for purchase.`,
+        409,
+        "ITEM_UNAVAILABLE"
+      );
+    }
+
     if (Number(stockAvailable) < quantity) {
       throw new InventoryError(
         `${product.name} is out of stock or has insufficient quantity (requested: ${quantity}, available: ${stockAvailable})`,
@@ -151,7 +161,8 @@ export const reserveStock = async ({
       );
     }
 
-    const pricing = calculateItemSnapshotPricing(product, variant, quantity);
+    const pricing = getVariantPricingSnapshot(product, variant);
+    const subtotal = pricing.sellingPrice * quantity;
     itemSnapshots.push({
       productId,
       titleSnapshot: product.name,
@@ -159,17 +170,16 @@ export const reserveStock = async ({
       selectedVariant: {
         variantId: isSimpleProduct ? null : (variant?._id || null),
         label: variant?.label || "Default",
-        sku: item?.sku || "",
         weight: item?.weight || "",
         size: item?.size || ""
       },
-      gstRate: pricing.gstRate,
-      gstAmount: pricing.gstAmount,
-      mrpAtPurchase: pricing.mrpAtPurchase,
-      sellingPriceAtPurchase: pricing.sellingPriceAtPurchase,
+      gstRate: product.gstPercent || 0,
+      gstAmount: 0, // GST is inclusive, tracking amount is not strictly necessary for grand total
+      mrpAtPurchase: pricing.mrp,
+      sellingPriceAtPurchase: pricing.sellingPrice,
       quantity,
-      subtotal: pricing.subtotal,
-      finalAmount: pricing.finalAmount,
+      subtotal: subtotal,
+      finalAmount: subtotal, // sellingPrice is already inclusive of tax
       stockSnapshot: {
         stockAtPurchase: isSimpleProduct ? product.stock : variant.stock,
         warehouseId: item?.warehouseId || ""
@@ -269,20 +279,23 @@ export const releaseStock = async ({ reservations, session, orderNumber, reason 
  * @returns {Promise<{available: number, reserved: number, total: number}>}
  */
 export const getProductStock = async (productId, variantId = null) => {
-  const product = await Product.findById(productId).select("stock variants");
+  const product = await Product.findById(productId).select("stock variants isActive");
   
   if (!product) {
     throw new InventoryError(`Product not found: ${productId}`, 404, "PRODUCT_NOT_FOUND");
   }
+
+  const isProductActive = product.isActive !== false;
 
   // Simple product (no variants)
   if (!variantId && (!Array.isArray(product.variants) || product.variants.length === 0)) {
     return {
       productId,
       type: "simple",
-      available: Number(product.stock || 0),
+      available: isProductActive ? Number(product.stock || 0) : 0,
       reserved: 0,
-      total: Number(product.stock || 0)
+      total: Number(product.stock || 0),
+      isAvailable: isProductActive
     };
   }
 
@@ -297,14 +310,17 @@ export const getProductStock = async (productId, variantId = null) => {
     }
 
     const variant = product.variants[variantIndex];
+    const isVariantAvailable = isProductActive && variant.isAvailable !== false;
+    
     return {
       productId,
       variantId: variant._id,
       variantLabel: variant.label,
       type: "variant",
-      available: Number(variant.stock || 0),
+      available: isVariantAvailable ? Number(variant.stock || 0) : 0,
       reserved: 0,
-      total: Number(variant.stock || 0)
+      total: Number(variant.stock || 0),
+      isAvailable: isVariantAvailable
     };
   }
 
@@ -312,12 +328,16 @@ export const getProductStock = async (productId, variantId = null) => {
   return {
     productId,
     type: "variants",
-    variants: (product.variants || []).map(v => ({
-      variantId: v._id,
-      label: v.label,
-      available: Number(v.stock || 0),
-      total: Number(v.stock || 0)
-    }))
+    variants: (product.variants || []).map(v => {
+      const isVariantAvailable = isProductActive && v.isAvailable !== false;
+      return {
+        variantId: v._id,
+        label: v.label,
+        available: isVariantAvailable ? Number(v.stock || 0) : 0,
+        total: Number(v.stock || 0),
+        isAvailable: isVariantAvailable
+      };
+    })
   };
 };
 

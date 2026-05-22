@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2, Package, Truck, MapPin, Phone, Home, ArrowRight, AlertCircle } from "lucide-react";
-import { formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
+import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 import { socket } from "../services/socket";
 
 function PaymentSuccessPage() {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ShoppingBag, ChevronLeft, ShieldCheck, Truck, RefreshCw, Star, Minus, Plus } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useProducts } from "../context/ProductContext";
-import { formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
+import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 import SimilarProducts from "../components/SimilarProducts";
 import SectionContainer from "../components/home/SectionContainer";
 
@@ -19,13 +19,19 @@ function ProductDetailPage() {
 
   const product = useMemo(() => products.find(p => p._id === id), [products, id]);
 
+  // Filter variants to only those that are explicitly available
+  const availableVariants = useMemo(() => {
+    return (product?.variants || []).filter(v => v.isAvailable !== false);
+  }, [product?.variants]);
+
   useEffect(() => {
     if (product) {
-      setSelectedVariant(product.variants?.[0] || null);
+      // Default to first AVAILABLE variant instead of just variants[0]
+      setSelectedVariant(availableVariants[0] || null);
       setActiveImage(0);
       setQuantity(1);
 
-      // Add to Recently Viewed (Store ID only for fresh data fetching)
+      // Add to Recently Viewed
       try {
         const viewed = JSON.parse(localStorage.getItem("recentlyViewed")) || [];
         const viewedIds = viewed.map(item => typeof item === 'object' ? (item._id || item.id) : item).filter(Boolean);
@@ -33,14 +39,25 @@ function ProductDetailPage() {
         const newViewed = [
           product._id,
           ...viewedIds.filter(id => id !== product._id)
-        ].slice(0, 10); // Keep last 10 items
+        ].slice(0, 10);
         
         localStorage.setItem("recentlyViewed", JSON.stringify(newViewed));
       } catch (err) {
         console.error("Error updating recently viewed:", err);
       }
     }
-  }, [product]);
+  }, [product, availableVariants]);
+
+  const similarProducts = useMemo(() => {
+    if (!product || !products) return [];
+    const catId = typeof product.category === 'object' ? product.category._id : product.category;
+    return products
+      .filter(p => {
+        const pCatId = typeof p.category === 'object' ? p.category._id : p.category;
+        return pCatId === catId && p._id !== product._id;
+      })
+      .slice(0, 3);
+  }, [product, products]);
 
   if (loading) return <div className="min-h-[60vh] flex items-center justify-center bg-[var(--cream)] animate-pulse serif text-2xl font-medium">Loading Mithai...</div>;
   if (!product) return <div className="min-h-[60vh] flex items-center justify-center bg-[var(--cream)] serif text-2xl font-medium">Sweet not found.</div>;
@@ -48,6 +65,7 @@ function ProductDetailPage() {
   const currentPrice = selectedVariant?.sellingPrice || product.basePrice || 0;
   const currentStock = selectedVariant?.stock || product.stock || 0;
   const isOutOfStock = currentStock <= 0;
+  const isLowStock = currentStock > 0 && currentStock <= 5;
 
   const handleAddToCart = () => {
     dispatch({
@@ -78,9 +96,9 @@ function ProductDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
           {/* ── IMAGES ── */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-6 space-y-6">
             <div className="aspect-[4/5] md:aspect-video lg:aspect-square rounded-3xl overflow-hidden bg-white border border-[var(--surface-border)] shadow-xl group">
-              <img src={product.images[activeImage]} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <img src={product.images[activeImage]} alt="" className={`w-full h-full object-cover transition-transform duration-700 ${isOutOfStock ? 'opacity-60' : 'group-hover:scale-105'}`} />
             </div>
             {product.images.length > 1 && (
               <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
@@ -99,14 +117,21 @@ function ProductDetailPage() {
           </div>
 
           {/* ── CONTENT ── */}
-          <div className="lg:col-span-5 flex flex-col">
+          <div className="lg:col-span-6 flex flex-col">
             <div className="section-title mb-6">
               <div className="flex items-center gap-2 text-[10px] font-medium text-[var(--gold)] uppercase tracking-[0.2em] mb-4">
                 <Star size={12} fill="currentColor" /> {categoryName}
               </div>
-              <h1 className="serif text-4xl md:text-5xl lg:text-6xl mb-4 leading-tight font-medium">{product.name}</h1>
+              <h1 className={`serif text-4xl md:text-5xl lg:text-6xl mb-4 leading-tight font-medium ${isOutOfStock ? 'text-[var(--muted)]' : ''}`}>{product.name}</h1>
               <div className="flex items-baseline gap-4 mt-2">
-                <span className="text-3xl font-medium text-[var(--charcoal)]">{formatCurrency(currentPrice)}</span>
+                <span className={`text-3xl font-bold ${isOutOfStock ? 'text-[var(--muted)]' : 'text-[var(--charcoal)]'}`}>
+                  {formatCurrency(currentPrice)}
+                  {selectedVariant && (
+                    <span className="text-sm font-medium text-[var(--muted)] ml-3 align-middle uppercase tracking-widest">
+                      / {selectedVariant.label}
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-[var(--muted)] italic font-medium">{TAX_MESSAGE}</span>
               </div>
             </div>
@@ -116,22 +141,28 @@ function ProductDetailPage() {
             </p>
 
             {/* VARIANTS */}
-            {product.variants?.length > 1 && (
+            {availableVariants.length > 1 && (
               <div className="mb-10">
                 <h4 className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-4">Select Quantity / Size</h4>
                 <div className="flex flex-wrap gap-3">
-                  {product.variants.map((v, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedVariant(v)}
-                      className={`px-5 py-3 rounded-xl text-xs font-medium transition-all border
-                        ${selectedVariant?._id === v._id 
-                          ? 'bg-[var(--burgundy)] border-[var(--burgundy)] text-white shadow-xl scale-105' 
-                          : 'bg-white border-[var(--surface-border)] text-[var(--charcoal)] hover:border-[var(--gold)]'}`}
-                    >
-                      {v.label} — {formatCurrency(v.sellingPrice)}
-                    </button>
-                  ))}
+                  {availableVariants.map((v, i) => {
+                    const vOutOfStock = v.stock <= 0;
+                    return (
+                      <button
+                        key={i}
+                        disabled={vOutOfStock}
+                        onClick={() => setSelectedVariant(v)}
+                        className={`px-5 py-3 rounded-xl text-xs font-medium transition-all border
+                          ${selectedVariant?._id === v._id 
+                            ? 'bg-[var(--burgundy)] border-[var(--burgundy)] text-white shadow-xl scale-105' 
+                            : vOutOfStock
+                              ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                              : 'bg-white border-[var(--surface-border)] text-[var(--charcoal)] hover:border-[var(--gold)]'}`}
+                      >
+                        {v.label} — {formatCurrency(v.sellingPrice)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -140,25 +171,25 @@ function ProductDetailPage() {
             <div className="space-y-6 mt-auto">
               <div className="flex items-center gap-6">
                 <div className="flex items-center border border-[var(--surface-border)] rounded-2xl bg-white overflow-hidden h-14 px-2 shadow-inner">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-[var(--cream)] rounded-xl transition-colors"><Minus size={18} /></button>
-                  <span className="w-12 text-center text-lg font-medium text-[var(--charcoal)]">{quantity}</span>
-                  <button onClick={() => setQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-[var(--cream)] rounded-xl transition-colors"><Plus size={18} /></button>
+                  <button disabled={isOutOfStock} onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-[var(--cream)] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Minus size={18} /></button>
+                  <span className={`w-12 text-center text-lg font-medium ${isOutOfStock ? 'text-[var(--muted)]' : 'text-[var(--charcoal)]'}`}>{quantity}</span>
+                  <button disabled={isOutOfStock} onClick={() => setQuantity(q => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-[var(--cream)] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={18} /></button>
                 </div>
                 
                 <button 
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || quantity > currentStock}
                   onClick={handleAddToCart}
                   className="flex-1 btn-primary h-14 rounded-2xl shadow-2xl disabled:grayscale disabled:opacity-50"
                 >
-                  <span className="font-medium">{isOutOfStock ? "Out of Stock" : "Add to Shopping Bag"}</span> <ShoppingBag size={20} className="ml-2" />
+                  <span className="font-medium">{isOutOfStock ? "Sold Out" : "Add to Shopping Bag"}</span> <ShoppingBag size={20} className="ml-2" />
                 </button>
               </div>
 
               {/* STOCK STATUS */}
               <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${isOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
-                <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">
-                  {isOutOfStock ? 'Out of Stock' : `${currentStock} packs left in stock`}
+                <div className={`h-2 w-2 rounded-full ${isOutOfStock ? 'bg-red-500' : isLowStock ? 'bg-orange-500 animate-pulse' : 'bg-green-500 animate-pulse'}`} />
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-orange-600' : 'text-[var(--muted)]'}`}>
+                  {isOutOfStock ? 'Currently Sold Out' : isLowStock ? `Only ${currentStock} left in stock` : `${currentStock} packs left in stock`}
                 </span>
               </div>
             </div>
@@ -182,8 +213,8 @@ function ProductDetailPage() {
         </div>
 
         {/* SIMILAR PRODUCTS */}
-        <div className="mt-24 pt-16 border-t border-[var(--surface-border)]">
-          <SimilarProducts category={product.category} excludeId={product._id} />
+        <div className="mt-16 pt-8 border-t border-[var(--surface-border)]">
+          <SimilarProducts titleCategory={categoryName} products={similarProducts} />
         </div>
       </SectionContainer>
     </div>

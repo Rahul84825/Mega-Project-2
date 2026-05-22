@@ -1,6 +1,6 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { formatPrice } from "../services/utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 
 function CartItem({ item }) {
   const { dispatch } = useCart();
@@ -49,7 +49,7 @@ function CartItem({ item }) {
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm font-medium text-[#e8883a]">{formatPrice(itemPrice)}</div>
+            <div className="text-sm font-medium text-[#e8883a]">{formatCurrency(itemPrice)}</div>
 
             <div className="flex items-center gap-2 bg-[#fff2e2] px-2 py-1 rounded-full">
               <button

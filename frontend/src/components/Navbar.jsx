@@ -23,6 +23,10 @@ function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [search, setSearch] = useState("");
+  const [showPromo, setShowPromo] = useState(() => {
+    return localStorage.getItem("hidePromo") !== "true";
+  });
 
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
@@ -31,6 +35,20 @@ function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const dismissPromo = () => {
+    setShowPromo(false);
+    localStorage.setItem("hidePromo", "true");
+  };
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && search.trim()) {
+      navigate(`/sweets?search=${encodeURIComponent(search.trim())}`);
+      setSearch("");
+      setSearchFocused(false);
+      setMobileOpen(false);
+    }
+  };
 
   const navbarCategories = useMemo(() => {
     const list = Array.isArray(categories) ? categories : [];
@@ -57,19 +75,29 @@ function Navbar() {
   return (
     <>
       {/* ── TOP BAR (PROMOMOTIONAL) ── */}
-      <div className="bg-[var(--burgundy)] text-white py-2 px-6 text-center overflow-hidden whitespace-nowrap">
-        <div className="inline-flex items-center gap-8 animate-marquee-slow">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-            <Sparkles size={12} className="text-[var(--gold)]" /> Free Delivery Above ₹999
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-            <Bell size={12} className="text-[var(--gold)]" /> Diwali Pre-Orders Now Open!
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2 hidden md:inline-flex">
-            <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
-          </span>
+      {showPromo && (
+        <div className="bg-[var(--burgundy)] text-white py-2 px-6 text-center overflow-hidden whitespace-nowrap relative">
+          <div className="inline-flex items-center gap-8 animate-marquee-slow pr-8">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+              <Sparkles size={12} className="text-[var(--gold)]" /> Free Delivery Above ₹999
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+              <Bell size={12} className="text-[var(--gold)]" /> Diwali Pre-Orders Now Open!
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2 hidden md:inline-flex">
+              <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
+            </span>
+          </div>
+          
+          <button 
+            onClick={dismissPromo}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/10 rounded-lg transition-colors z-10"
+            aria-label="Close Announcement"
+          >
+            <X size={14} className="text-white/80 group-hover:text-white" />
+          </button>
         </div>
-      </div>
+      )}
 
       <nav className={`sticky top-0 z-[100] w-full transition-all duration-500 border-b ${
         scrolled 
@@ -100,6 +128,9 @@ function Navbar() {
               <Search size={18} className={`transition-colors duration-300 ${searchFocused ? 'text-[var(--burgundy)]' : 'text-[var(--muted)]'}`} />
               <input 
                 type="text" 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleSearch}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 placeholder="Search for Kaju Katli, Besan Laddu..." 
@@ -244,7 +275,14 @@ function Navbar() {
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input type="text" placeholder="Search sweets..." className="w-full h-14 bg-gray-50 rounded-2xl pl-12 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]/10" />
+                <input 
+                  type="text" 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleSearch}
+                  placeholder="Search sweets..." 
+                  className="w-full h-14 bg-gray-50 rounded-2xl pl-12 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]/10" 
+                />
               </div>
 
               <div className="space-y-4">

@@ -1,12 +1,12 @@
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
-import { calculateTotals, amountForFreeDelivery, formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
+import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 
 function CartPage() {
   const { cart, dispatch } = useCart();
   const navigate = useNavigate();
-  const { subtotal, deliveryFee, total } = calculateTotals(cart);
-  const amountNeeded = amountForFreeDelivery(subtotal);
+  const { subtotal, deliveryFee, total, deliveryThreshold } = calculateTotals(cart);
+  const amountNeeded = Math.max(0, deliveryThreshold - subtotal);
 
   if (cart.length === 0) {
     return (

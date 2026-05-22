@@ -1,31 +1,28 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
 import api from "../services/api";
 import { socket } from "../services/socket";
-import { calculateTotals } from "../utils/priceCalculator";
+import { calculateTotals } from "shared/utils/pricing";
 
 const ProductContext = createContext(null);
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
-const toSlug = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-
 export const normalizeProduct = (product) => {
+  const productId = String(product?._id || product?.id || "");
+  
   const normalizedVariants = toArray(product?.variants).map((variant, index) => {
     const mrp = Math.round(Number(variant?.mrp || 0));
     const sellingPrice = Math.round(Number(variant?.sellingPrice || mrp));
+    const variantId = variant?._id || variant?.id || `${productId}_v${index}`;
+    
     return {
       ...variant,
-      _id: variant?._id || variant?.id || `v_${index}`,
+      _id: String(variantId),
       mrp,
       sellingPrice,
       finalPrice: sellingPrice,
-      stock: Number(variant?.stock || 0)
+      stock: Number(variant?.stock || 0),
+      isAvailable: variant?.isAvailable !== undefined ? Boolean(variant.isAvailable) : true
     };
   });
 
@@ -35,7 +32,8 @@ export const normalizeProduct = (product) => {
 
   return {
     ...product,
-    _id: product?._id || product?.id,
+    _id: productId,
+    id: productId,
     variants: normalizedVariants,
     basePrice,
     price: basePrice,
@@ -55,7 +53,7 @@ const normalizeOrder = (order) => {
 
   return {
     ...order,
-    _id: order?._id || order?.id,
+    _id: String(order?._id || order?.id || ""),
     items,
     subtotal: order?.totals?.itemsSubtotal || order?.subtotal || subtotal,
     deliveryFee: order?.totals?.shippingFee ?? order?.deliveryFee ?? deliveryFee,
@@ -65,8 +63,8 @@ const normalizeOrder = (order) => {
 };
 
 const normalizeCategory = (category) => ({
-  _id: category?._id || category?.id || "",
-  id: category?.id || category?._id || "",
+  _id: String(category?._id || category?.id || ""),
+  id: String(category?.id || category?._id || ""),
   name: String(category?.name || "").trim(),
   slug: String(category?.slug || "").trim().toLowerCase(),
   image: category?.image || null,
@@ -88,8 +86,8 @@ const normalizeOffer = (offer = {}) => {
 
   return {
     ...offer,
-    id: offer?._id || offer?.id,
-    _id: offer?._id || offer?.id,
+    id: String(offer?._id || offer?.id || ""),
+    _id: String(offer?._id || offer?.id || ""),
     isActive,
     active: isActive,
     is_active: isActive,
@@ -100,148 +98,288 @@ const normalizeOffer = (offer = {}) => {
   };
 };
 
+// --- REDUCER SETUP ---
+
+const initialState = {
+  products: [],
+  orders: [],
+  offers: [],
+  categories: [],
+  loading: true,
+  loadingError: null,
+};
+
+const actionTypes = {
+  SET_LOADING: 'SET_LOADING',
+  SET_ERROR: 'SET_ERROR',
+  SET_DATA: 'SET_DATA',
+  UPSERT_PRODUCT: 'UPSERT_PRODUCT',
+  REMOVE_PRODUCT: 'REMOVE_PRODUCT',
+  UPSERT_ORDER: 'UPSERT_ORDER',
+  UPSERT_CATEGORY: 'UPSERT_CATEGORY',
+  REMOVE_CATEGORY: 'REMOVE_CATEGORY',
+  UPSERT_OFFER: 'UPSERT_OFFER',
+  REMOVE_OFFER: 'REMOVE_OFFER',
+};
+
+function productReducer(state, action) {
+  switch (action.type) {
+    case actionTypes.SET_LOADING:
+      return { ...state, loading: action.payload };
+    case actionTypes.SET_ERROR:
+      return { ...state, loadingError: action.payload, loading: false };
+    case actionTypes.SET_DATA:
+      return { ...state, ...action.payload, loading: false, loadingError: null };
+    
+    // Product Actions
+    case actionTypes.UPSERT_PRODUCT: {
+      const p = normalizeProduct(action.payload);
+      const exists = state.products.some(x => x._id === p._id);
+      return {
+        ...state,
+        products: exists 
+          ? state.products.map(x => x._id === p._id ? p : x)
+          : [p, ...state.products]
+      };
+    }
+    case actionTypes.REMOVE_PRODUCT:
+      return { ...state, products: state.products.filter(p => p._id !== action.payload) };
+
+    // Order Actions
+    case actionTypes.UPSERT_ORDER: {
+      const o = normalizeOrder(action.payload);
+      const exists = state.orders.some(x => x._id === o._id);
+      return {
+        ...state,
+        orders: exists
+          ? state.orders.map(x => x._id === o._id ? o : x)
+          : [o, ...state.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      };
+    }
+
+    // Category Actions
+    case actionTypes.UPSERT_CATEGORY: {
+      const c = normalizeCategory(action.payload);
+      const exists = state.categories.some(x => x._id === c._id);
+      const updated = exists 
+        ? state.categories.map(x => x._id === c._id ? c : x)
+        : [...state.categories, c];
+      return { ...state, categories: updated.sort((a, b) => a.name.localeCompare(b.name)) };
+    }
+    case actionTypes.REMOVE_CATEGORY:
+      return { ...state, categories: state.categories.filter(c => c._id !== action.payload) };
+
+    // Offer Actions
+    case actionTypes.UPSERT_OFFER: {
+      const off = normalizeOffer(action.payload);
+      const exists = state.offers.some(x => x._id === off._id);
+      return {
+        ...state,
+        offers: exists
+          ? state.offers.map(x => x._id === off._id ? off : x)
+          : [off, ...state.offers]
+      };
+    }
+    case actionTypes.REMOVE_OFFER:
+      return { ...state, offers: state.offers.filter(o => o._id !== action.payload) };
+
+    default:
+      return state;
+  }
+}
+
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [offers, setOffers] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState("");
+  const [state, dispatch] = useReducer(productReducer, initialState);
+  const isFetchingRef = useRef(false);
+
+  // --- CORE FETCHERS ---
+
+  const refreshAll = useCallback(async (showLoading = true) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (showLoading) dispatch({ type: actionTypes.SET_LOADING, payload: true });
+
+    try {
+      const [resProducts, resOrders, resCategories, resOffers] = await Promise.allSettled([
+        api.get("/api/products"),
+        api.get("/api/orders"),
+        api.get("/api/categories"),
+        api.get("/api/offers")
+      ]);
+
+      const payload = {};
+      if (resProducts.status === 'fulfilled') {
+        payload.products = toArray(resProducts.value.data?.products || resProducts.value.data).map(normalizeProduct);
+      }
+      if (resOrders.status === 'fulfilled') {
+        payload.orders = toArray(resOrders.value.data?.orders || resOrders.value.data).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+      if (resCategories.status === 'fulfilled') {
+        payload.categories = toArray(resCategories.value.data?.categories || resCategories.value.data).map(normalizeCategory);
+      }
+      if (resOffers.status === 'fulfilled') {
+        payload.offers = toArray(resOffers.value.data?.offers || resOffers.value.data).map(normalizeOffer);
+      }
+
+      dispatch({ type: actionTypes.SET_DATA, payload });
+    } catch (err) {
+      console.error("Failed to load initial data", err);
+      dispatch({ type: actionTypes.SET_ERROR, payload: err.message || "Failed to load data" });
+    } finally {
+      isFetchingRef.current = false;
+    }
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
       const { data } = await api.get("/api/products");
-      const list = toArray(data?.products || data).map(normalizeProduct);
-      setProducts(list);
-      return list;
-    } catch (error) { console.error(error); return []; }
-  }, []);
-
-  const fetchOrders = useCallback(async () => {
-    try {
-      const { data } = await api.get("/api/orders");
-      const list = toArray(data?.orders || data).map(normalizeOrder);
-      const sorted = list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setOrders(sorted);
-      return sorted;
-    } catch (error) { console.error(error); return []; }
+      dispatch({ type: actionTypes.SET_DATA, payload: { products: toArray(data?.products || data).map(normalizeProduct) } });
+    } catch (err) { console.error("fetchProducts error", err); }
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    try {
+     try {
       const { data } = await api.get("/api/categories");
-      const list = toArray(data?.categories || data).map(normalizeCategory);
-      setCategories(list);
-      return list;
-    } catch (error) { console.error(error); return []; }
+      dispatch({ type: actionTypes.SET_DATA, payload: { categories: toArray(data?.categories || data).map(normalizeCategory) } });
+    } catch (err) { console.error("fetchCategories error", err); }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+     try {
+      const { data } = await api.get("/api/orders");
+      const sorted = toArray(data?.orders || data).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      dispatch({ type: actionTypes.SET_DATA, payload: { orders: sorted } });
+    } catch (err) { console.error("fetchOrders error", err); }
   }, []);
 
   const fetchOffers = useCallback(async () => {
-    try {
+     try {
       const { data } = await api.get("/api/offers");
-      const list = toArray(data?.offers || data).map(normalizeOffer);
-      setOffers(list);
-      return list;
-    } catch (error) { console.error(error); return []; }
+      dispatch({ type: actionTypes.SET_DATA, payload: { offers: toArray(data?.offers || data).map(normalizeOffer) } });
+    } catch (err) { console.error("fetchOffers error", err); }
   }, []);
 
-  const refreshAll = useCallback(() => {
-    return Promise.all([fetchProducts(), fetchCategories(), fetchOffers()]);
-  }, [fetchProducts, fetchCategories, fetchOffers]);
 
-  const updateOrderState = useCallback((updatedOrder) => {
-    if (!updatedOrder) return null;
-    const normalized = normalizeOrder(updatedOrder);
-    const updatedId = normalized._id || normalized.id;
-    setOrders((prev) => prev.map((order) => (order._id === updatedId || order.id === updatedId ? normalized : order)));
-    return normalized;
-  }, []);
+  // --- LIFECYCLE & SOCKETS ---
 
   useEffect(() => {
-    setLoading(true);
-    refreshAll()
-      .catch(err => setLoadingError(err.message || "Failed to load data"))
-      .finally(() => setLoading(false));
+    refreshAll();
 
     if (!socket.connected) socket.connect();
 
-    socket.on("order:new", (order) => {
-      const normalized = normalizeOrder(order);
-      setOrders(prev => [normalized, ...prev]);
-    });
+    const handleOrderUpdate = (order) => {
+      if (order) dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
+    };
 
-    socket.on("order:updated", (order) => updateOrderState(order));
-    socket.on("product:updated", () => fetchProducts());
+    const handleProductUpdate = (product) => {
+      if (product) dispatch({ type: actionTypes.UPSERT_PRODUCT, payload: product });
+      else fetchProducts(); // fallback
+    };
+
+    const handleProductDeleted = (id) => {
+      if (id) dispatch({ type: actionTypes.REMOVE_PRODUCT, payload: id });
+    };
+
+    socket.on("order:new", handleOrderUpdate);
+    socket.on("order:updated", handleOrderUpdate);
+    socket.on("product:updated", handleProductUpdate);
+    socket.on("product:created", handleProductUpdate);
+    socket.on("product:deleted", handleProductDeleted);
     socket.on("stock:updated", () => fetchProducts());
 
     return () => {
-      socket.off("order:new");
-      socket.off("order:updated");
-      socket.off("product:updated");
+      socket.off("order:new", handleOrderUpdate);
+      socket.off("order:updated", handleOrderUpdate);
+      socket.off("product:updated", handleProductUpdate);
+      socket.off("product:created", handleProductUpdate);
+      socket.off("product:deleted", handleProductDeleted);
       socket.off("stock:updated");
     };
-  }, [refreshAll, fetchProducts, updateOrderState]);
+  }, [refreshAll, fetchProducts]);
 
   useEffect(() => {
-    const handleFocus = () => {
-      fetchProducts().catch(() => {});
-      fetchCategories().catch(() => {});
-    };
+    const handleFocus = () => refreshAll(false);
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [fetchProducts, fetchCategories]);
+  }, [refreshAll]);
 
+  // --- ACTIONS ---
+
+  // Products
   const addProduct = useCallback(async (payload) => {
     const { data } = await api.post("/api/products", payload);
-    const created = normalizeProduct(data?.product || data);
-    setProducts((prev) => [created, ...prev]);
-    return created;
+    const p = normalizeProduct(data?.product || data);
+    dispatch({ type: actionTypes.UPSERT_PRODUCT, payload: p });
+    return p;
   }, []);
 
   const updateProduct = useCallback(async (id, payload) => {
     const { data } = await api.put(`/api/products/${id}`, payload);
-    const updated = normalizeProduct(data?.product || data);
-    setProducts((prev) => prev.map((p) => (p._id === id || p.id === id ? updated : p)));
-    return updated;
+    const p = normalizeProduct(data?.product || data);
+    dispatch({ type: actionTypes.UPSERT_PRODUCT, payload: p });
+    return p;
   }, []);
 
   const deleteProduct = useCallback(async (id) => {
     await api.delete(`/api/products/${id}`);
-    setProducts((prev) => prev.filter((p) => p._id !== id && p.id !== id));
+    dispatch({ type: actionTypes.REMOVE_PRODUCT, payload: String(id) });
     return true;
   }, []);
 
+  const toggleProductStatus = useCallback(async (id, isActive) => {
+    const { data } = await api.patch(`/api/products/${id}/toggle-status`, { isActive });
+    const p = normalizeProduct(data?.product || data);
+    dispatch({ type: actionTypes.UPSERT_PRODUCT, payload: p });
+    return p;
+  }, []);
+
+  const toggleVariantStatus = useCallback(async (id, variantId, isAvailable) => {
+    const { data } = await api.patch(`/api/products/${id}/variants/${variantId}/toggle-status`, { isAvailable });
+    const p = normalizeProduct(data?.product || data);
+    dispatch({ type: actionTypes.UPSERT_PRODUCT, payload: p });
+    return p;
+  }, []);
+
+  // Categories
   const addCategory = useCallback(async (payload) => {
     const { data } = await api.post("/api/categories", payload);
-    const created = normalizeCategory(data?.category || data);
-    setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
-    return created;
+    const c = normalizeCategory(data?.category || data);
+    dispatch({ type: actionTypes.UPSERT_CATEGORY, payload: c });
+    return c;
   }, []);
 
   const updateCategory = useCallback(async (id, payload) => {
     const { data } = await api.put(`/api/categories/${id}`, payload);
-    const updated = normalizeCategory(data?.category || data);
-    setCategories((prev) => prev.map((c) => (c._id === id || c.id === id ? updated : c)).sort((a, b) => a.name.localeCompare(b.name)));
-    return updated;
+    const c = normalizeCategory(data?.category || data);
+    dispatch({ type: actionTypes.UPSERT_CATEGORY, payload: c });
+    return c;
   }, []);
 
   const deleteCategory = useCallback(async (id) => {
     await api.delete(`/api/categories/${id}`);
-    setCategories((prev) => prev.filter((c) => c._id !== id && c.id !== id));
+    dispatch({ type: actionTypes.REMOVE_CATEGORY, payload: String(id) });
     return true;
   }, []);
 
   const toggleCategory = useCallback(async (id) => {
-    const existing = categories.find((c) => c._id === id || c.id === id);
+    const existing = state.categories.find((c) => c._id === id);
     if (!existing) throw new Error("Category not found");
     return updateCategory(id, { is_active: !existing.is_active });
-  }, [categories, updateCategory]);
+  }, [state.categories, updateCategory]);
 
   const toggleCategoryFeatured = useCallback(async (id) => {
-    const existing = categories.find((c) => c._id === id || c.id === id);
+    const existing = state.categories.find((c) => c._id === id);
     if (!existing) throw new Error("Category not found");
     return updateCategory(id, { showInNavbar: !existing.showInNavbar });
-  }, [categories, updateCategory]);
+  }, [state.categories, updateCategory]);
+
+  // Orders
+  const updateOrderState = useCallback((updatedOrder) => {
+    if (!updatedOrder) return null;
+    const o = normalizeOrder(updatedOrder);
+    dispatch({ type: actionTypes.UPSERT_ORDER, payload: o });
+    return o;
+  }, []);
 
   const acceptOrder = useCallback(async (orderId, etaMinutes) => {
     const { data } = await api.patch(`/api/orders/${orderId}/accept`, { etaMinutes });
@@ -268,82 +406,74 @@ export function ProductProvider({ children }) {
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 
+  // Offers
   const addOffer = useCallback(async (payload) => {
     const { data } = await api.post("/api/offers", payload);
-    const created = normalizeOffer(data?.offer || data);
-    setOffers((prev) => [created, ...prev]);
-    return created;
+    const o = normalizeOffer(data?.offer || data);
+    dispatch({ type: actionTypes.UPSERT_OFFER, payload: o });
+    return o;
   }, []);
 
   const updateOffer = useCallback(async (id, payload) => {
     const { data } = await api.put(`/api/offers/${id}`, payload);
-    const updated = normalizeOffer(data?.offer || data);
-    setOffers((prev) => prev.map((o) => (o._id === id || o.id === id ? updated : o)));
-    return updated;
+    const o = normalizeOffer(data?.offer || data);
+    dispatch({ type: actionTypes.UPSERT_OFFER, payload: o });
+    return o;
   }, []);
 
   const deleteOffer = useCallback(async (id) => {
     await api.delete(`/api/offers/${id}`);
-    setOffers((prev) => prev.filter((o) => o._id !== id && o.id !== id));
+    dispatch({ type: actionTypes.REMOVE_OFFER, payload: String(id) });
     return true;
   }, []);
 
   const toggleOffer = useCallback(async (id) => {
-    const current = offers.find((o) => o._id === id || o.id === id);
-    if (!current) throw new Error("Offer not found");
-    const nextActive = !current.isActive;
-    setOffers((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, isActive: nextActive } : o)));
+    const existing = state.offers.find((o) => o._id === id);
+    if (!existing) throw new Error("Offer not found");
+    const nextActive = !existing.isActive;
+    
+    // Optimistic Update
+    dispatch({ type: actionTypes.UPSERT_OFFER, payload: { ...existing, isActive: nextActive } });
+    
     try {
       const { data } = await api.patch(`/api/offers/${id}/toggle`, { isActive: nextActive });
       return updateOffer(id, data?.offer || data);
     } catch (error) {
-      setOffers((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, isActive: !nextActive } : o)));
+      // Revert on failure
+      dispatch({ type: actionTypes.UPSERT_OFFER, payload: existing });
       throw error;
     }
-  }, [offers, updateOffer]);
+  }, [state.offers, updateOffer]);
 
-  const value = useMemo(
-    () => ({
-      products,
-      orders,
-      offers,
-      categories,
-      loading,
-      loadingError,
-      fetchCategories,
-      fetchProducts,
-      fetchOrders,
-      fetchOffers,
-      refresh: refreshAll,
-      refreshAll,
-      addProduct,
-      updateProduct,
-      deleteProduct,
-      addCategory,
-      updateCategory,
-      deleteCategory,
-      toggleCategory,
-      toggleCategoryFeatured,
-      acceptOrder,
-      rejectOrder,
-      verifyPickupOtp,
-      markOrderReady,
-      markOrderDelivered,
-      addOffer,
-      updateOffer,
-      deleteOffer,
-      toggleOffer,
-      updateOrderState
-    }),
-    [
-      products, orders, offers, categories, loading, loadingError,
-      fetchCategories, fetchProducts, fetchOrders, fetchOffers, refreshAll,
-      addProduct, updateProduct, deleteProduct,
-      addCategory, updateCategory, deleteCategory, toggleCategory, toggleCategoryFeatured,
-      acceptOrder, rejectOrder, verifyPickupOtp, markOrderReady, markOrderDelivered,
-      addOffer, updateOffer, deleteOffer, toggleOffer, updateOrderState
-    ]
-  );
+  const value = {
+    ...state,
+    refreshAll,
+    refresh: refreshAll, // alias for backwards compatibility
+    fetchProducts,
+    fetchCategories,
+    fetchOrders,
+    fetchOffers,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    toggleProductStatus,
+    toggleVariantStatus,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    toggleCategory,
+    toggleCategoryFeatured,
+    acceptOrder,
+    rejectOrder,
+    verifyPickupOtp,
+    markOrderReady,
+    markOrderDelivered,
+    updateOrderState,
+    addOffer,
+    updateOffer,
+    deleteOffer,
+    toggleOffer
+  };
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;
 }

@@ -1,5 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Core Components (always loaded)
 import CartDrawer from "./components/CartDrawer";
@@ -40,6 +42,9 @@ const AdminLayout = lazy(() => import("./admin/AdminLayout"));
 const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
 const AdminCategories = lazy(() => import("./admin/AdminCategories"));
 const AdminProducts = lazy(() => import("./admin/AdminProducts"));
+const AdminSnacksProducts = lazy(() => import("./admin/AdminSnacksProducts"));
+const AdminMalaiBarfiProducts = lazy(() => import("./admin/AdminMalaiBarfiProducts"));
+const AdminSignatureProducts = lazy(() => import("./admin/AdminSignatureProducts"));
 const AdminProductForm = lazy(() => import("./admin/AdminProductForm"));
 const AdminOffers = lazy(() => import("./admin/AdminOffers"));
 const AdminOrders = lazy(() => import("./admin/AdminOrders"));
@@ -62,7 +67,7 @@ const LazyFallback = () => (
  * Wraps store pages with Navbar, Cart, and Footer
  * Moved outside App to ensure stable identity
  */
-function StoreLayout({ children }) {
+function StoreLayout({ children, hideFooter = false }) {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--cream)" }}>
       <Navbar />
@@ -70,7 +75,7 @@ function StoreLayout({ children }) {
       <main className="flex-1">
         {children}
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 }
@@ -82,13 +87,14 @@ function App() {
         <ProductProvider>
           <GlobalStyle />
           <ScrollToTop />
+          <ToastContainer position="bottom-right" autoClose={3000} />
 
           <Routes>
             {/* ═══════════════════════════════════════════ */}
             {/* AUTH ROUTES */}
             {/* ═══════════════════════════════════════════ */}
-            <Route path="/login" element={<StoreLayout><Login /></StoreLayout>} />
-            <Route path="/register" element={<StoreLayout><Register /></StoreLayout>} />
+            <Route path="/login" element={<StoreLayout hideFooter={true}><Login /></StoreLayout>} />
+            <Route path="/register" element={<StoreLayout hideFooter={true}><Register /></StoreLayout>} />
 
             {/* ═══════════════════════════════════════════ */}
             {/* STORE ROUTES (With StoreLayout) */}
@@ -106,7 +112,7 @@ function App() {
               path="/my-orders"
               element={
                 <ProtectedRoute>
-                  <StoreLayout>
+                  <StoreLayout hideFooter={true}>
                     <MyOrders />
                   </StoreLayout>
                 </ProtectedRoute>
@@ -127,7 +133,7 @@ function App() {
             <Route
               path="/product/:id"
               element={
-                <StoreLayout>
+                <StoreLayout hideFooter={true}>
                   <ProductDetailPage />
                 </StoreLayout>
               }
@@ -136,7 +142,7 @@ function App() {
             <Route
               path="/cart"
               element={
-                <StoreLayout>
+                <StoreLayout hideFooter={true}>
                   <CartPage />
                 </StoreLayout>
               }
@@ -145,7 +151,7 @@ function App() {
             <Route
               path="/checkout"
               element={
-                <StoreLayout>
+                <StoreLayout hideFooter={true}>
                   <CheckoutPage />
                 </StoreLayout>
               }
@@ -156,7 +162,7 @@ function App() {
             <Route
               path="/payment-success"
               element={
-                <StoreLayout>
+                <StoreLayout hideFooter={true}>
                   <PaymentSuccessPage />
                 </StoreLayout>
               }
@@ -256,6 +262,9 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="products" element={<AdminProducts />} />
+              <Route path="snacks" element={<AdminSnacksProducts />} />
+              <Route path="malai-barfi" element={<AdminMalaiBarfiProducts />} />
+              <Route path="signature" element={<AdminSignatureProducts />} />
               <Route path="add-product" element={<AdminProductForm />} />
               <Route path="products/edit/:id" element={<Navigate to="/admin/add-product" replace />} />
               <Route path="categories" element={<AdminCategories />} />

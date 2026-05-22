@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useProducts } from "../context/ProductContext";
-import { formatCurrency } from "../utils/priceCalculator";
+import { formatCurrency } from "shared/utils/pricing";
 import api from "../services/api";
 import { 
   Package, Clock, CheckCircle2, XCircle, 

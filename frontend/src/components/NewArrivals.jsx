@@ -10,8 +10,9 @@ function NewArrivals({ initialCategory = "all", title = "New Arrivals" }) {
   const navigate = useNavigate();
 
   const filteredProducts = useMemo(() => {
-    if (initialCategory === "all") return products.slice(0, 8);
-    return products.filter(p => 
+    const activeProducts = products.filter(p => p.isActive !== false);
+    if (initialCategory === "all") return activeProducts.slice(0, 8);
+    return activeProducts.filter(p => 
       p.categorySlug === initialCategory || 
       p.category === initialCategory
     ).slice(0, 8);

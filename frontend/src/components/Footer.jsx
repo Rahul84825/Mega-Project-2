@@ -5,6 +5,7 @@ import {
   Shield, Truck, RefreshCw,
   ChevronRight,
 } from "lucide-react";
+import LocationCard from "./common/LocationCard";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const QUICK_LINKS = [

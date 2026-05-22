@@ -48,7 +48,6 @@ const orderItemSchema = new mongoose.Schema(
     selectedVariant: {
       variantId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       label: { type: String, trim: true },
-      sku: { type: String, trim: true, default: "" },
       weight: { type: String, trim: true, default: "" },
       size: { type: String, trim: true, default: "" }
     },

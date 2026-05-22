@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, UploadCloud, AlertCircle, CheckCircle2, X, Plus, Trash2, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, UploadCloud, AlertCircle, CheckCircle2, X, Plus, Trash2, Sparkles, Package, ChevronRight } from "lucide-react";
+import { toast } from "react-toastify";
 import { useProducts } from "../context/ProductContext";
 import api from "../services/api";
-import { formatCurrency, TAX_MESSAGE } from "../utils/priceCalculator";
+import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 
 const EMPTY_FORM_BASE = {
   name: "",
@@ -15,6 +16,7 @@ const EMPTY_FORM_BASE = {
   tags: "",
   gstPercent: "0",
   isSignature: false,
+  isActive: true,
   variants: []
 };
 const MAX_VARIANT_PRICE = 10000000;
@@ -67,16 +69,18 @@ const AdminProductForm = () => {
         tags: (productFromState.tags || []).join(", "),
         gstPercent: String(productFromState.gstPercent || "0"),
         isSignature: Boolean(productFromState.isSignature),
+        isActive: productFromState.isActive !== undefined ? Boolean(productFromState.isActive) : true,
         variants: (productFromState.variants || []).map(v => ({
           id: v._id || v.id,
           label: v.label || "",
           mrp: String(v.mrp || ""),
           discountPercent: String(v.discountPercent || "0"),
-          stock: String(v.stock || "0")
+          stock: String(v.stock || "0"),
+          isAvailable: v.isAvailable !== undefined ? Boolean(v.isAvailable) : true
         }))
       });
     } else {
-      setForm({ ...EMPTY_FORM_BASE, variants: [{ id: 'v1', label: '', mrp: '', discountPercent: '0', stock: '0' }] });
+      setForm({ ...EMPTY_FORM_BASE, variants: [{ id: 'v1', label: '', mrp: '', discountPercent: '0', stock: '0', isAvailable: true }] });
     }
   }, [isEditMode, productFromState]);
 
@@ -96,7 +100,7 @@ const AdminProductForm = () => {
   const addVariant = () => {
     setForm(prev => ({
       ...prev,
-      variants: [...prev.variants, { id: `v${Date.now()}`, label: '', mrp: '', discountPercent: '0', stock: '0' }]
+      variants: [...prev.variants, { id: `v${Date.now()}`, label: '', mrp: '', discountPercent: '0', stock: '0', isAvailable: true }]
     }));
   };
 
@@ -108,29 +112,69 @@ const AdminProductForm = () => {
   };
 
   const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || e.dataTransfer?.files || []);
     if (!files.length) return;
+
+    // Filter for images only
+    const imageFiles = files.filter(f => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("Please select image files only.");
+      return;
+    }
 
     setUploading(true);
     setUploadProgress(10);
     try {
       const formData = new FormData();
-      files.forEach(f => formData.append("images", f));
-      const { data } = await api.post("/api/upload/multiple", formData);
+      imageFiles.forEach(f => formData.append("images", f));
+      
+      const { data } = await api.post("/api/upload/multiple", formData, {
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+        }
+      });
+
       const urls = (data.images || []).map(img => img.url).filter(Boolean);
-      setForm(prev => ({ ...prev, images: [...prev.images, ...urls], image: prev.image || urls[0] }));
-      setUploadProgress(100);
+      if (urls.length > 0) {
+        setForm(prev => ({ 
+          ...prev, 
+          images: [...prev.images, ...urls], 
+          image: prev.image || urls[0] 
+        }));
+        toast.success(`Successfully uploaded ${urls.length} images`);
+      } else {
+        throw new Error("No image URLs returned from server");
+      }
     } catch (err) {
-      setErrors(prev => ({ ...prev, image: "Upload failed" }));
+      console.error("Upload failed:", err);
+      const msg = err.response?.data?.message || err.message || "Upload failed";
+      toast.error(msg);
+      setErrors(prev => ({ ...prev, image: msg }));
     } finally {
-      setTimeout(() => { setUploading(false); setUploadProgress(0); }, 500);
+      setTimeout(() => { 
+        setUploading(false); 
+        setUploadProgress(0); 
+      }, 500);
     }
+  };
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleImageUpload(e);
   };
 
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.category) e.category = "Required";
+    if (form.images.length === 0) e.image = "At least one image is required";
     
     const ve = {};
     form.variants.forEach(v => {
@@ -139,6 +183,9 @@ const AdminProductForm = () => {
     });
 
     setVariantErrors(ve);
+    if (Object.keys(e).length || Object.keys(ve).length) {
+       toast.error("Please fix errors in the form before saving.");
+    }
     return Object.keys(e).length || Object.keys(ve).length ? e : null;
   };
 
@@ -148,26 +195,55 @@ const AdminProductForm = () => {
     setSubmitting(true);
     try {
       const payload = {
-        ...form,
+        name: form.name.trim(),
+        category: form.category,
+        description: form.description.trim(),
+        brand: form.brand.trim(),
+        gstPercent: Number(form.gstPercent || 0),
+        isSignature: Boolean(form.isSignature),
+        isActive: Boolean(form.isActive),
         tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+        images: form.images,
+        image: form.image || form.images[0] || "",
         variants: form.variants.map(v => ({
-          ...v,
-          mrp: Number(v.mrp),
-          discountPercent: Number(v.discountPercent),
+          _id: (v.id && !v.id.toString().startsWith('v')) ? v.id : undefined,
+          label: v.label.trim(),
+          mrp: Math.round(Number(v.mrp)),
+          discountPercent: Number(v.discountPercent || 0),
           sellingPrice: calculateSellingPrice(v.mrp, v.discountPercent),
-          finalPrice: calculateSellingPrice(v.mrp, v.discountPercent), // Inclusive of GST
-          stock: Number(v.stock)
+          finalPrice: calculateSellingPrice(v.mrp, v.discountPercent),
+          stock: Math.max(0, Math.floor(Number(v.stock || 0))),
+          isAvailable: Boolean(v.isAvailable)
         }))
       };
+
+      // Auto-calculate total stock from variants
+      payload.stock = payload.variants.reduce((sum, v) => sum + v.stock, 0);
 
       if (isEditMode) await updateProduct(productFromState._id, payload);
       else await addProduct(payload);
 
       setSaved(true);
+      toast.success(isEditMode ? "Mithai updated successfully!" : "Mithai published successfully!");
       await fetchProducts();
       setTimeout(() => navigate("/admin/products"), 1500);
     } catch (err) {
-      setErrors({ submit: err.message });
+      console.error("Save error:", err);
+      
+      // Handle validation errors from express-validator
+      const serverErrors = err.response?.data?.errors;
+      if (Array.isArray(serverErrors) && serverErrors.length > 0) {
+        const errorMap = {};
+        serverErrors.forEach(e => {
+          errorMap[e.field || 'submit'] = e.message;
+        });
+        setErrors(prev => ({ ...prev, ...errorMap }));
+        toast.error(`Validation failed: ${serverErrors[0].message}`);
+      } else {
+        const msg = err.response?.data?.message || err.message || "Failed to save mithai";
+        toast.error(msg);
+        setErrors({ submit: msg });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -189,21 +265,39 @@ const AdminProductForm = () => {
             <div>
               <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Product Name</label>
               <input value={form.name} onChange={e => set("name", e.target.value)} className="input-field" placeholder="e.g. Kesar Katli" />
-              {errors.name && <p className="text-red-500 text-[10px] mt-1">{errors.name}</p>}
+              {errors.name && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.name}</p>}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Category</label>
-                <select value={form.category} onChange={e => set("category", e.target.value)} className="input-field">
+                <select value={form.category} onChange={e => set("category", e.target.value)} className="input-field cursor-pointer">
                   <option value="">Select Category</option>
                   {categories.map(c => <option key={c._id} value={c.slug}>{c.name}</option>)}
                 </select>
-                {errors.category && <p className="text-red-500 text-[10px] mt-1">{errors.category}</p>}
+                {errors.category && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.category}</p>}
               </div>
+              <div>
+                <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Collection Type</label>
+                <select 
+                  value={form.isSignature ? "signature" : "regular"} 
+                  onChange={e => set("isSignature", e.target.value === "signature")} 
+                  className="input-field cursor-pointer"
+                >
+                  <option value="regular">Regular Collection</option>
+                  <option value="signature">Signature Collection</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">GST % (Info only)</label>
                 <input type="number" value={form.gstPercent} onChange={e => set("gstPercent", e.target.value)} className="input-field" />
+              </div>
+              <div>
+                <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Brand</label>
+                <input value={form.brand} onChange={e => set("brand", e.target.value)} className="input-field" placeholder="e.g. Mithai World" />
               </div>
             </div>
 
@@ -224,29 +318,39 @@ const AdminProductForm = () => {
               {form.variants.map((v, i) => {
                 const sp = calculateSellingPrice(v.mrp, v.discountPercent);
                 return (
-                  <div key={v.id} className="p-4 rounded-2xl bg-[var(--cream)]/30 border border-[var(--surface-border)] relative group">
+                  <div key={v.id} className={`p-4 rounded-2xl border relative group transition-colors ${v.isAvailable ? 'bg-[var(--cream)]/30 border-[var(--surface-border)]' : 'bg-gray-50 border-gray-200'}`}>
                     <button onClick={() => removeVariant(v.id)} className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X size={12} /></button>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Label (e.g. 500g)</label>
-                        <input value={v.label} onChange={e => updateVariant(v.id, "label", e.target.value)} className="input-field h-9 text-xs" />
+                        <input value={v.label} onChange={e => updateVariant(v.id, "label", e.target.value)} className={`input-field h-9 text-xs ${variantErrors[`${v.id}.label`] ? 'border-red-500' : ''}`} disabled={!v.isAvailable} />
                       </div>
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">MRP (₹)</label>
-                        <input type="number" value={v.mrp} onChange={e => updateVariant(v.id, "mrp", e.target.value)} className="input-field h-9 text-xs" />
+                        <input type="number" value={v.mrp} onChange={e => updateVariant(v.id, "mrp", e.target.value)} className={`input-field h-9 text-xs ${variantErrors[`${v.id}.mrp`] ? 'border-red-500' : ''}`} disabled={!v.isAvailable} />
                       </div>
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Discount (%)</label>
-                        <input type="number" value={v.discountPercent} onChange={e => updateVariant(v.id, "discountPercent", e.target.value)} className="input-field h-9 text-xs" />
+                        <input type="number" value={v.discountPercent} onChange={e => updateVariant(v.id, "discountPercent", e.target.value)} className="input-field h-9 text-xs" disabled={!v.isAvailable} />
                       </div>
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Stock (Qty)</label>
-                        <input type="number" value={v.stock} onChange={e => updateVariant(v.id, "stock", e.target.value)} className="input-field h-9 text-xs" />
+                        <input type="number" value={v.stock} onChange={e => updateVariant(v.id, "stock", e.target.value)} className="input-field h-9 text-xs" disabled={!v.isAvailable} />
                       </div>
                     </div>
-                    <div className="mt-3 flex justify-between items-center text-[10px]">
+                    <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-[var(--surface-border)]/50">
+                       <span className={`text-[10px] font-bold uppercase tracking-widest ${v.isAvailable ? 'text-emerald-600' : 'text-rose-500'}`}>{v.isAvailable ? 'Available' : 'Unavailable'}</span>
+                       <button 
+                          type="button"
+                          onClick={() => updateVariant(v.id, "isAvailable", !v.isAvailable)}
+                          className={`h-5 w-9 rounded-full transition-all relative shrink-0 ${v.isAvailable ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                       >
+                          <div className={`absolute h-3 w-3 rounded-full bg-white transition-all shadow-sm top-1 ${v.isAvailable ? 'left-[20px]' : 'left-1'}`} />
+                       </button>
+                    </div>
+                    <div className="mt-4 flex justify-between items-center text-[10px] border-t border-[var(--surface-border)] pt-3">
                       <span className="text-[var(--muted)] italic">{TAX_MESSAGE}</span>
-                      <span className="font-medium text-[var(--charcoal)]">Selling Price: {formatCurrency(sp)}</span>
+                      <span className={`font-medium ${v.isAvailable ? 'text-[var(--charcoal)]' : 'text-gray-400'}`}>Selling Price: {formatCurrency(sp)}</span>
                     </div>
                   </div>
                 );
@@ -261,24 +365,49 @@ const AdminProductForm = () => {
             <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-4 block">Product Images</label>
             
             <div className="space-y-4">
-              <div className="aspect-square rounded-2xl bg-[var(--cream)] border-2 border-dashed border-[var(--surface-border)] overflow-hidden flex flex-col items-center justify-center relative group">
+              <div 
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                className={`aspect-square rounded-2xl bg-[var(--cream)] border-2 border-dashed overflow-hidden flex flex-col items-center justify-center relative group transition-colors ${errors.image ? 'border-red-300' : 'border-[var(--surface-border)] hover:border-[var(--gold)]'}`}
+              >
                 {form.images[0] ? (
                   <img src={form.images[0]} className="w-full h-full object-cover" alt="" />
                 ) : (
                   <div className="text-center p-4">
                     <UploadCloud size={32} className="mx-auto text-[var(--muted)] mb-2 opacity-50" />
-                    <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">No primary image</p>
+                    <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">Drop files here</p>
+                    <p className="text-[9px] text-[var(--muted)] mt-1 font-medium">or click to browse</p>
                   </div>
                 )}
-                <input type="file" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" multiple />
-                {uploading && <div className="absolute inset-0 bg-white/80 flex items-center justify-center"><div className="w-8 h-8 border-4 border-[var(--burgundy)] border-t-transparent rounded-full animate-spin" /></div>}
+                <input type="file" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" multiple accept="image/*" />
+                
+                {(uploading || uploadProgress > 0) && (
+                  <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-3 overflow-hidden">
+                       <div className="bg-[var(--burgundy)] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                    <p className="text-[10px] font-bold text-[var(--burgundy)] uppercase tracking-widest">Uploading {uploadProgress}%</p>
+                  </div>
+                )}
               </div>
+
+              {errors.image && <p className="text-red-500 text-[10px] font-medium text-center">{errors.image}</p>}
 
               <div className="grid grid-cols-4 gap-2">
                 {form.images.map((img, i) => (
-                  <div key={i} className="aspect-square rounded-lg bg-gray-100 overflow-hidden border border-[var(--surface-border)] relative group">
+                  <div key={i} className="aspect-square rounded-lg bg-gray-100 overflow-hidden border border-[var(--surface-border)] relative group cursor-pointer hover:border-[var(--gold)] transition-all">
                     <img src={img} className="w-full h-full object-cover" alt="" />
-                    <button onClick={() => setForm(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }))} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Trash2 size={14} /></button>
+                    <button 
+                      onClick={() => setForm(prev => ({ 
+                        ...prev, 
+                        images: prev.images.filter((_, idx) => idx !== i),
+                        image: prev.images[i] === prev.image ? prev.images.filter((_, idx) => idx !== i)[0] || "" : prev.image
+                      }))} 
+                      className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    {img === form.image && <div className="absolute top-1 right-1 h-2 w-2 bg-[var(--gold)] rounded-full shadow-sm" />}
                   </div>
                 ))}
               </div>
@@ -289,19 +418,19 @@ const AdminProductForm = () => {
             <h3 className="serif text-xl text-[var(--saffron)]">Publish</h3>
             <p className="text-xs text-white/60">Ensure all details are correct. Products are visible to customers immediately after publishing.</p>
             
-            {/* Signature Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-[var(--saffron)] transition-colors cursor-pointer" onClick={() => set("isSignature", !form.isSignature)}>
+            {/* Storefront Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-[var(--gold)] transition-colors cursor-pointer" onClick={() => set("isActive", !form.isActive)}>
               <div className="flex items-center gap-3">
-                <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${form.isSignature ? 'bg-[var(--saffron)] text-[var(--charcoal)]' : 'bg-white/10 text-white/40'}`}>
-                  <Sparkles size={16} />
+                <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${form.isActive ? 'bg-[var(--gold)] text-[var(--charcoal)]' : 'bg-white/10 text-white/40'}`}>
+                  <Package size={16} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest leading-none mb-1">Signature Sweet</p>
-                  <p className="text-[9px] text-white/40 uppercase tracking-tighter">Feature on homepage</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest leading-none mb-1">Storefront Visibility</p>
+                  <p className="text-[9px] text-white/40 uppercase tracking-tighter">{form.isActive ? "Visible to customers" : "Hidden from customers"}</p>
                 </div>
               </div>
-              <div className={`w-10 h-5 rounded-full relative transition-colors ${form.isSignature ? 'bg-green-500' : 'bg-white/20'}`}>
-                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.isSignature ? 'left-6' : 'left-1'}`} />
+              <div className={`w-10 h-5 rounded-full relative transition-colors ${form.isActive ? 'bg-emerald-500' : 'bg-white/20'}`}>
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.isActive ? 'left-6' : 'left-1'}`} />
               </div>
             </div>
 
