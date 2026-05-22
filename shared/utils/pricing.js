@@ -83,6 +83,12 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
     shippingFee: Math.round(shippingFee),
     discountTotal: Math.round(discountTotal),
     grandTotal: Math.round(grandTotal),
+    
+    // Frontend aliases (for compatibility with existing components)
+    subtotal: Math.round(itemsSubtotal),
+    deliveryFee: Math.round(shippingFee),
+    total: Math.round(grandTotal),
+
     isFreeDelivery: shippingFee === 0 && itemsSubtotal > 0,
     deliveryThreshold: DELIVERY_THRESHOLD
   };

@@ -303,46 +303,7 @@ function CheckoutPage() {
           </div>
         </div>
 
-        {/* ── Delivery Support Section ── */}
-        <div className="mt-12 pt-12 border-t border-[rgba(83,44,22,0.08)]">
-          <div className="mb-8">
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
-              Need Delivery Help?
-            </p>
-            <h3 className="text-2xl font-medium tracking-tight text-[#24140f] mb-3">
-              Get Assistance
-            </h3>
-            <p className="text-[13px] text-[#6e5443]">
-              Questions about delivery to your area? Contact us or visit our store to discuss your delivery options.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Quick Actions */}
-            <div className="space-y-4">
-              <a href="tel:+919511289914"
-                 className="flex items-center justify-center gap-2 rounded-xl bg-[#1e0f0a]
-                            py-3.5 text-sm font-medium text-white shadow-sm transition-all
-                            hover:-translate-y-0.5 hover:shadow-md w-full">
-                <Phone className="h-4 w-4" /> Call Support
-              </a>
-              <a href="https://wa.me/919511289914" target="_blank" rel="noopener noreferrer"
-                 className="flex items-center justify-center gap-2 rounded-xl bg-[#22c55e]
-                            py-3.5 text-sm font-medium text-white shadow-sm transition-all
-                            hover:-translate-y-0.5 hover:bg-[#16a34a] hover:shadow-md w-full">
-                <MessageSquare className="h-4 w-4" /> WhatsApp Support
-              </a>
-            </div>
-
-            {/* Store Location Card */}
-            <LocationCard compact={true} />
-
-            {/* Map Preview */}
-            <div className="h-64 rounded-xl overflow-hidden shadow-sm border border-[rgba(83,44,22,0.12)]">
-              <StoreMap size="small" showTitle={false} />
-            </div>
-          </div>
-        </div>
+        
 
       </div>
     </div>
