@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Package, PlusCircle, Tag,
-  ShoppingBag, Store, LogOut, ChevronLeft, Menu, Percent, Image,
+  ShoppingBag, Store, LogOut, ChevronLeft, Menu, Percent, Image, Sparkles
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import brandLogo from "../assets/image.png";
