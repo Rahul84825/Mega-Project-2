@@ -184,6 +184,19 @@ function GlobalStyle() {
       /* Custom Scrollbar for Containers */
       .custom-scrollbar::-webkit-scrollbar { width: 4px; }
       .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--surface-border); border-radius: 10px; }
+
+      /* Marquee Animation */
+      @keyframes marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .animate-marquee-slow {
+        display: inline-flex;
+        animation: marquee 20s linear infinite;
+      }
+      .animate-marquee-slow:hover {
+        animation-play-state: paused;
+      }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);

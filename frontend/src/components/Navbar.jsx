@@ -76,7 +76,7 @@ function Navbar() {
     <>
       {/* ── TOP BAR (PROMOMOTIONAL) ── */}
       {showPromo && (
-        <div className="bg-[var(--burgundy)] text-white py-2 px-6 text-center overflow-hidden whitespace-nowrap relative">
+        <div className="bg-[var(--burgundy)] text-white py-2 px-4 text-center overflow-hidden whitespace-nowrap relative min-h-[36px] flex items-center">
           <div className="inline-flex items-center gap-8 animate-marquee-slow pr-8">
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <Sparkles size={12} className="text-[var(--gold)]" /> Free Delivery Above ₹999
@@ -87,11 +87,18 @@ function Navbar() {
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2 hidden md:inline-flex">
               <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
             </span>
+            {/* Duplicated for seamless loop */}
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+              <Sparkles size={12} className="text-[var(--gold)]" /> Free Delivery Above ₹999
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+              <Bell size={12} className="text-[var(--gold)]" /> Diwali Pre-Orders Now Open!
+            </span>
           </div>
           
           <button 
             onClick={dismissPromo}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/10 rounded-lg transition-colors z-10"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/10 rounded-lg transition-colors z-10 bg-[var(--burgundy)]"
             aria-label="Close Announcement"
           >
             <X size={14} className="text-white/80 group-hover:text-white" />
