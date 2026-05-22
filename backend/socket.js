@@ -2,7 +2,10 @@ import { Server } from "socket.io";
 
 let io;
 
-const getFrontendOrigin = () => process.env.FRONTEND_URL || "http://localhost:5173";
+const getFrontendOrigin = () => {
+  const url = process.env.FRONTEND_URL || "http://localhost:5173";
+  return url.replace(/\/$/, "");
+};
 
 export const initializeSocket = (httpServer) => {
   if (io) {

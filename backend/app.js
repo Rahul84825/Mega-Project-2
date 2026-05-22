@@ -23,7 +23,10 @@ import { logger } from "./utils/logger.js";
 
 const app = express();
 
-const getFrontendOrigin = () => process.env.FRONTEND_URL || "http://localhost:5173";
+const getFrontendOrigin = () => {
+  const url = process.env.FRONTEND_URL || "http://localhost:5173";
+  return url.replace(/\/$/, "");
+};
 const getAllowedScriptOrigins = () => [
   "'self'",
   "https://accounts.google.com",
