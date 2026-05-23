@@ -306,7 +306,6 @@ const AdminProductForm = () => {
                   <option value="regular">Regular Collection</option>
                   <option value="signature">Signature Collection</option>
                   <option value="snack">Snacks Collection</option>
-                  <option value="malai-barfi">Malai Barfi Collection</option>
                 </select>
               </div>
             </div>
