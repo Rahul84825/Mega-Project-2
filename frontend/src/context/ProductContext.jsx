@@ -504,7 +504,8 @@ export function ProductProvider({ children }) {
     addOffer,
     updateOffer,
     deleteOffer,
-    toggleOffer
+    toggleOffer,
+    playNotification
   };
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;
