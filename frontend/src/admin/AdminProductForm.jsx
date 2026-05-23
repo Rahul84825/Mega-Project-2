@@ -376,21 +376,21 @@ const AdminProductForm = () => {
                       
                       <div className="grid grid-cols-3 gap-2">
                          <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
-                            <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">Base (Ex-GST)</p>
+                            <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">Net Selling</p>
                             <p className="text-xs font-bold text-[var(--charcoal)]">
-                               {formatCurrency(Math.round(sp / (1 + Number(form.gstPercent || 0) / 100)))}
+                               {formatCurrency(sp)}
                             </p>
                          </div>
                          <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
                             <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">GST ({form.gstPercent}%)</p>
                             <p className="text-xs font-bold text-emerald-600">
-                               {formatCurrency(sp - Math.round(sp / (1 + Number(form.gstPercent || 0) / 100)))}
+                               + {formatCurrency(Math.round((sp * Number(form.gstPercent || 0)) / 100))}
                             </p>
                          </div>
                          <div className="bg-[var(--burgundy)]/5 p-2 rounded-lg border border-[var(--burgundy)]/20">
-                            <p className="text-[8px] font-bold text-[var(--burgundy)] uppercase tracking-tighter mb-0.5">Final Selling</p>
+                            <p className="text-[8px] font-bold text-[var(--burgundy)] uppercase tracking-tighter mb-0.5">Total Price</p>
                             <p className="text-xs font-bold text-[var(--burgundy)]">
-                               {formatCurrency(sp)}
+                               {formatCurrency(sp + Math.round((sp * Number(form.gstPercent || 0)) / 100))}
                             </p>
                          </div>
                       </div>

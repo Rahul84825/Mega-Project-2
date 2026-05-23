@@ -6,8 +6,8 @@
  * SINGLE SOURCE OF TRUTH for all pricing, totals, and delivery calculations.
  * Used by Backend, Frontend, Cart, Checkout, Admin, and Emails.
  * 
- * BUSINESS RULE: GST is ALREADY INCLUDED in the admin product pricing.
- * DO NOT double-add GST. All prices are final selling prices.
+ * BUSINESS RULE: GST is added EXTRA on top of the selling price.
+ * All prices entered in admin are net prices (before GST).
  */
 
 const normalizeNumber = (val, fallback = 0) => {
@@ -26,7 +26,7 @@ export const formatCurrency = (amount) => {
   }).format(normalizeNumber(amount));
 };
 
-export const TAX_MESSAGE = "Inclusive of all taxes";
+export const TAX_MESSAGE = "Exclusive of GST";
 
 // --- VARIANT PRICING ---
 
@@ -52,12 +52,12 @@ const DELIVERY_CHARGE = 40;
  * @param {Array} items - The items in the cart or order.
  * @param {Number} manualDiscount - Any extra discount applied (e.g. coupon).
  * @param {Number} manualShipping - Override shipping fee (if not auto-calculated).
- * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal, gstTotal }
+ * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal, gstTotal, netSubtotal }
  */
 export const calculateTotals = (items = [], manualDiscount = 0, manualShipping = null) => {
   if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0, netSubtotal: 0 };
 
-  let itemsSubtotal = 0; // Inclusive of GST
+  let netSubtotal = 0; // Sum of selling prices (Before GST)
   let gstTotal = 0;
 
   items.forEach((item) => {
@@ -65,48 +65,46 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
     const qty = normalizeNumber(item?.quantity || 1);
     const rate = normalizeNumber(item?.gstRate || item?.gstPercent || 0);
     
-    const lineTotal = price * qty;
-    itemsSubtotal += lineTotal;
+    const lineNetTotal = price * qty;
+    netSubtotal += lineNetTotal;
 
-    // Calculate inclusive GST
-    // Formula: GST Amount = Total - (Total / (1 + Rate/100))
+    // Calculate exclusive GST (Added ON TOP)
     if (rate > 0) {
-      const lineGst = lineTotal - (lineTotal / (1 + rate / 100));
+      const lineGst = (lineNetTotal * rate) / 100;
       gstTotal += lineGst;
     }
   });
 
-  const netSubtotal = itemsSubtotal - gstTotal;
   const discountTotal = normalizeNumber(manualDiscount);
   
   // Calculate delivery fee
   let shippingFee = 0;
-  if (itemsSubtotal > 0) {
+  if (netSubtotal > 0) {
     if (manualShipping !== null && manualShipping !== undefined) {
       shippingFee = normalizeNumber(manualShipping);
     } else {
-      shippingFee = itemsSubtotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
+      shippingFee = netSubtotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
     }
   }
 
-  // Calculate final total
-  // itemsSubtotal already includes GST, so grandTotal = itemsSubtotal + shippingFee - discountTotal
-  const grandTotal = Math.max(0, itemsSubtotal + shippingFee - discountTotal);
+  // Calculate final total (Exclusive GST + Delivery)
+  // Grand Total = Net Subtotal + GST + Shipping - Discount
+  const grandTotal = Math.max(0, netSubtotal + gstTotal + shippingFee - discountTotal);
 
   return {
-    itemsSubtotal: Math.round(itemsSubtotal), // Inclusive
-    netSubtotal: Math.round(netSubtotal),     // Exclusive of GST
+    netSubtotal: Math.round(netSubtotal),
+    gstTotal: Math.round(gstTotal),
     shippingFee: Math.round(shippingFee),
     discountTotal: Math.round(discountTotal),
-    gstTotal: Math.round(gstTotal), 
     grandTotal: Math.round(grandTotal),
     
-    // Frontend aliases
-    subtotal: Math.round(itemsSubtotal),
+    // Compatibility aliases
+    subtotal: Math.round(netSubtotal),
+    itemsSubtotal: Math.round(netSubtotal),
     deliveryFee: Math.round(shippingFee),
     total: Math.round(grandTotal),
 
-    isFreeDelivery: shippingFee === 0 && itemsSubtotal > 0,
+    isFreeDelivery: shippingFee === 0 && netSubtotal > 0,
     deliveryThreshold: DELIVERY_THRESHOLD
   };
 };
@@ -129,6 +127,6 @@ export const getVariantPricingSnapshot = (product, variant) => {
     mrp,
     discountPercent,
     sellingPrice,
-    finalPrice: sellingPrice // Re-affirming that sellingPrice IS the final price (inclusive of taxes)
+    finalPrice: sellingPrice // Selling price is net price in exclusive model
   };
 };
