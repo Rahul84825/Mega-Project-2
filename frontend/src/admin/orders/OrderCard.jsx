@@ -35,7 +35,7 @@ const OrderCard = ({
   const itemCount = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
   
   const statusMeta = STATUS_META[status] || { label: status, cls: "bg-gray-100 text-gray-700" };
-  const methodMeta = PAYMENT_METHOD_META[payMethod] || { label: payMethod, icon: CreditCard };
+  const Icon = PAYMENT_METHOD_META[payMethod]?.icon || CreditCard;
   const payStatusMeta = PAYMENT_STATUS_META[payStatus] || { label: payStatus, cls: "bg-gray-100 text-gray-500" };
 
   const formattedTime = order.createdAt 
@@ -109,7 +109,7 @@ const OrderCard = ({
 
         <div className="space-y-3 md:text-right md:flex md:flex-col md:items-end">
           <div className="flex items-center gap-2 bg-[#fffaf3] border border-[#e6d3b3] px-3 py-1.5 rounded-xl shadow-sm w-fit md:ml-auto">
-            <methodMeta.icon size={14} className="text-[#8b4513]" />
+            <Icon size={14} className="text-[#8b4513]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#2d1b0e]">{payMethod}</span>
             <span className={`ml-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest ${payStatusMeta.cls}`}>
               {payStatusMeta.label}
