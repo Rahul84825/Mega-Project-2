@@ -72,7 +72,7 @@ function HeroSection() {
       ))}
 
       {/* ── CONTENT ── */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-20 text-center md:text-left">
+      <div className="relative z-10 w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-20 text-center md:text-left">
         <div className="max-w-3xl">
           <div className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100">
              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-[var(--gold)] text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-8 shadow-2xl">

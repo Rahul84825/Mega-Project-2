@@ -41,31 +41,31 @@ function CategoryCarousel() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {homepageCategories.map((category, idx) => (
             <button
               key={category._id}
               onClick={() => handleCategoryClick(category.slug)}
               style={{ animationDelay: `${idx * 100}ms` }}
-              className="group relative w-full h-48 sm:h-64 overflow-hidden rounded-[24px] sm:rounded-[32px] border border-[var(--surface-border)] shadow-sm hover:shadow-2xl transition-all duration-700 hover:-translate-y-1.5 active:scale-95 animate-in fade-in slide-in-from-bottom-4"
+              className="group relative w-full h-[300px] sm:h-[400px] lg:h-[450px] overflow-hidden rounded-[32px] sm:rounded-[48px] border border-[var(--surface-border)] shadow-md hover:shadow-3xl transition-all duration-700 hover:-translate-y-2 active:scale-95 animate-in fade-in slide-in-from-bottom-4"
             >
               <div className="absolute inset-0 bg-[var(--charcoal)] overflow-hidden">
                 {category.image ? (
-                  <img src={category.image} alt={category.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-1000 ease-out group-hover:scale-110" />
+                  <img src={category.image} alt={category.name} className="w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-all duration-1000 ease-out group-hover:scale-110" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--gold)]/20 to-[var(--burgundy)]/20" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity duration-500 group-hover:opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-opacity duration-500 group-hover:opacity-80" />
               </div>
 
-              <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 z-10 text-left">
-                <h3 className="text-white font-black text-xs sm:text-sm lg:text-base drop-shadow-lg leading-tight transition-transform duration-500 group-hover:-translate-y-1">
+              <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-10 z-10 text-left">
+                <h3 className="serif text-white font-bold text-2xl sm:text-3xl lg:text-4xl drop-shadow-2xl leading-tight transition-transform duration-500 group-hover:-translate-y-2">
                   {category.name}
                 </h3>
-                <div className="w-6 h-0.5 bg-[var(--saffron)] mt-2 transition-all duration-700 ease-out group-hover:w-full group-hover:bg-[var(--gold)] shadow-[0_0_10px_rgba(212,160,23,0.5)]" />
+                <div className="w-12 h-1 bg-[var(--saffron)] mt-4 transition-all duration-700 ease-out group-hover:w-full group-hover:bg-[var(--gold)] shadow-[0_0_20px_rgba(212,160,23,0.6)]" />
                 
-                <div className="flex items-center gap-2 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-white/90 mt-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500 delay-100">
-                  Shop Now <ArrowRight size={10} className="text-[var(--gold)]" />
+                <div className="flex items-center gap-3 text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-white/90 mt-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0 duration-500 delay-100">
+                  Explore Collection <ArrowRight size={14} className="text-[var(--gold)]" />
                 </div>
               </div>
               

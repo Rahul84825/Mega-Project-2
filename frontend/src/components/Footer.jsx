@@ -84,7 +84,7 @@ const Footer = () => {
 
       {/* ── Main section ── */}
       <div className="relative z-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 pb-12">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 pt-14 pb-12">
 
           {/* Brand row + trust badges */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6
@@ -254,7 +254,7 @@ const Footer = () => {
 
       {/* ── Bottom bar ── */}
       <div className="relative z-10 border-t border-white/[0.07] bg-black/25">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
 
             <p className="text-xs font-medium text-[rgba(255,248,240,0.35)]">

@@ -117,7 +117,7 @@ function Navbar() {
           ? 'bg-white/90 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(139,30,63,0.15)] border-gray-100 py-2.5' 
           : 'bg-[var(--cream)] border-transparent py-4'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-4 lg:gap-8">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-4 lg:gap-8">
           
           {/* ── LOGO ── */}
           <button 

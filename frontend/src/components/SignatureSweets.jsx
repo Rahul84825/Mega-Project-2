@@ -41,13 +41,13 @@ const SignatureSweets = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+          <div className="responsive-grid">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="aspect-[4/5] bg-white rounded-2xl md:rounded-3xl border border-[var(--surface-border)] animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+          <div className="responsive-grid">
             {sweets.map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}

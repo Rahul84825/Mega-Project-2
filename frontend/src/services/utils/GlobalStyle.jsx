@@ -18,12 +18,12 @@ function GlobalStyle() {
         --muted: #7a5c3a;
         
         /* Compact Spacing System */
-        --section-py: 48px;
-        --section-py-mobile: 32px;
-        --container-px: 24px;
-        --container-px-mobile: 16px;
-        --card-gap: 20px;
-        --card-gap-mobile: 12px;
+        --section-py: 64px;
+        --section-py-mobile: 40px;
+        --container-px: 32px;
+        --container-px-mobile: 20px;
+        --card-gap: 24px;
+        --card-gap-mobile: 16px;
       }
 
       *, *::before, *::after { box-sizing: border-box; }
@@ -49,17 +49,17 @@ function GlobalStyle() {
       /* Standardized Section Titles — ALWAYS Left Aligned */
       .section-title {
         text-align: left !important;
-        margin-bottom: clamp(16px, 3vw, 24px);
+        margin-bottom: clamp(24px, 4vw, 32px);
       }
       
       .section-title h2 {
         font-family: 'Playfair Display', serif;
-        font-size: clamp(20px, 5vw, 36px);
+        font-size: clamp(24px, 6vw, 42px);
         font-weight: 800;
         color: var(--charcoal);
-        line-height: 1.2;
+        line-height: 1.1;
         position: relative;
-        padding-bottom: 8px;
+        padding-bottom: 12px;
         margin: 0;
       }
       
@@ -68,38 +68,44 @@ function GlobalStyle() {
         position: absolute;
         left: 0;
         bottom: 0;
-        width: 32px;
-        height: 2px;
+        width: 40px;
+        height: 3px;
         background: var(--saffron);
         border-radius: 10px;
       }
 
       .section-title p {
-        font-size: clamp(12px, 2vw, 14px);
+        font-size: clamp(14px, 2.5vw, 16px);
         color: var(--muted);
-        margin-top: 8px;
+        margin-top: 12px;
         font-weight: 500;
-        max-width: 600px;
-        line-height: 1.5;
+        max-width: 650px;
+        line-height: 1.6;
       }
 
-      /* Compact Layout Containers */
+      /* Responsive Grid System */
       .responsive-grid {
         display: grid;
-        gap: var(--card-gap);
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--card-gap-mobile);
+        grid-template-columns: repeat(2, 1fr);
       }
 
-      @media (max-width: 768px) {
+      @media (min-width: 640px) {
         .responsive-grid {
-          grid-template-columns: repeat(2, 1fr);
-          gap: var(--card-gap-mobile);
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: var(--card-gap);
         }
       }
 
-      @media (min-width: 769px) and (max-width: 1024px) {
+      @media (min-width: 1024px) {
         .responsive-grid {
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        }
+      }
+
+      @media (min-width: 1536px) {
+        .responsive-grid {
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         }
       }
 
