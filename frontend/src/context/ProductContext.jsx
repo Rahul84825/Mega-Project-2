@@ -300,8 +300,9 @@ export function ProductProvider({ children }) {
     const handleNewOrder = (order) => {
       if (order) {
         dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
-        // Play notification if admin
-        if (isAdmin) {
+        // Play notification ONLY if user is confirmed as Admin
+        // This ensures customers don't hear the Swiggy-style alert
+        if (isAdmin === true) {
           playNotification();
         }
       }
