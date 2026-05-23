@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { 
   X, User, MapPin, Phone, Mail, Package, 
   CreditCard, Truck, ShieldCheck, Timer, 
-  ChevronRight, Receipt, Calendar, Clock
+  ChevronRight, Receipt, Calendar, Clock, CheckCircle2
 } from "lucide-react";
 import { formatCurrency } from "shared/utils/pricing";
 import { 

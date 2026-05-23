@@ -74,31 +74,37 @@ function Navbar() {
 
   return (
     <>
-      {/* ── TOP BAR (PROMOMOTIONAL) ── */}
+      {/* ── TOP BAR (PROMOTIONAL) ── */}
       {showPromo && (
-        <div className="bg-[var(--burgundy)] text-white py-2 px-4 text-center overflow-hidden whitespace-nowrap relative min-h-[36px] flex items-center">
+        <div className="bg-[var(--burgundy)] text-white py-2 px-4 text-center overflow-hidden whitespace-nowrap relative min-h-[40px] flex items-center group/promo">
           <div className="inline-flex items-center gap-8 animate-marquee-slow pr-8">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <Sparkles size={12} className="text-[var(--gold)]" /> Free Delivery Above ₹999
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <Bell size={12} className="text-[var(--gold)]" /> Diwali Pre-Orders Now Open!
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2 hidden md:inline-flex">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
             </span>
             {/* Duplicated for seamless loop */}
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <Sparkles size={12} className="text-[var(--gold)]" /> Free Delivery Above ₹999
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <Bell size={12} className="text-[var(--gold)]" /> Diwali Pre-Orders Now Open!
+            </span>
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+              <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
             </span>
           </div>
           
+          {/* Fade Overlay for Mobile Close Button */}
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[var(--burgundy)] via-[var(--burgundy)]/80 to-transparent z-10 md:hidden" />
+          
           <button 
             onClick={dismissPromo}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/10 rounded-lg transition-colors z-10 bg-[var(--burgundy)]"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-colors z-20 bg-[var(--burgundy)] md:bg-transparent"
             aria-label="Close Announcement"
           >
             <X size={14} className="text-white/80 group-hover:text-white" />
