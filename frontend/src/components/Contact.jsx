@@ -124,41 +124,18 @@ const Contact = () => {
         <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-16">
 
           {/* ── Left: info ── */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
 
             {/* Notice */}
             <div className="flex items-start gap-3 rounded-2xl border border-[rgba(212,160,23,0.25)]
                             bg-[rgba(212,160,23,0.07)] p-5">
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-[#b76a1f]" />
               <div>
-                <h3 className="mb-1 text-sm font-medium text-[#24140f]">Quick Support</h3>
+                <h3 className="mb-1 text-sm font-medium text-[#24140f]">Direct Assistance</h3>
                 <p className="text-[13px] leading-relaxed text-[#6e5443]">
-                  For bulk orders or product inquiries, contact us directly on WhatsApp or phone.
+                  Need immediate help with a bulk order or delivery? Reach out to us directly through the channels below.
                 </p>
               </div>
-            </div>
-
-            {/* Quick action buttons */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <a href="tel:+919511289914"
-                 className="flex items-center justify-center gap-2 rounded-xl bg-[#1e0f0a]
-                            py-3.5 text-sm font-medium text-white shadow-sm transition-all
-                            hover:-translate-y-0.5 hover:shadow-md">
-                <Phone className="h-4 w-4" /> Call Now
-              </a>
-              <a href="https://wa.me/919511289914" target="_blank" rel="noopener noreferrer"
-                 className="flex items-center justify-center gap-2 rounded-xl bg-[#22c55e]
-                            py-3.5 text-sm font-medium text-white shadow-sm transition-all
-                            hover:-translate-y-0.5 hover:bg-[#16a34a] hover:shadow-md">
-                <MessageSquare className="h-4 w-4" /> WhatsApp Us
-              </a>
-              <a href="mailto:mithaiworld08@gmail.com"
-                 className="flex items-center justify-center gap-2 rounded-xl border
-                            border-[rgba(83,44,22,0.15)] bg-white py-3.5 text-sm font-medium
-                            text-[#3b2417] shadow-sm transition-all hover:bg-[#fffaf3]
-                            sm:col-span-2">
-                <Mail className="h-4 w-4" /> Email Support
-              </a>
             </div>
 
             {/* Store info cards */}
