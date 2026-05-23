@@ -3,15 +3,19 @@ import { useNavigate } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import SectionContainer from "./home/SectionContainer";
 import { useProducts } from "../context/ProductContext";
+import { useAuth } from "../context/AuthContext";
 
 const RecentlyViewed = () => {
   const navigate = useNavigate();
   const { products } = useProducts();
+  const { user } = useAuth();
   const [viewedIds, setViewedIds] = useState([]);
 
   useEffect(() => {
     try {
-      const data = JSON.parse(localStorage.getItem("recentlyViewed")) || [];
+      const userId = user?.id || user?._id || "guest";
+      const storageKey = `recentlyViewed-${userId}`;
+      const data = JSON.parse(localStorage.getItem(storageKey)) || [];
       // Support both old format (objects) and new format (ids)
       const ids = Array.isArray(data) 
         ? data.map(item => typeof item === 'object' ? (item._id || item.id) : item)
@@ -20,7 +24,7 @@ const RecentlyViewed = () => {
     } catch (_error) {
       setViewedIds([]);
     }
-  }, []);
+  }, [user]);
 
   const items = useMemo(() => {
     if (!products || products.length === 0 || viewedIds.length === 0) return [];

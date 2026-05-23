@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ShoppingBag, ChevronLeft, ShieldCheck, Truck, RefreshCw, Star, Minus, Plus } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useProducts } from "../context/ProductContext";
+import { useAuth } from "../context/AuthContext";
 import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 import SimilarProducts from "../components/SimilarProducts";
 import SectionContainer from "../components/home/SectionContainer";
@@ -11,6 +12,7 @@ function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { products, loading } = useProducts();
+  const { user } = useAuth();
   const { dispatch, openCart } = useCart();
   
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -31,9 +33,12 @@ function ProductDetailPage() {
       setActiveImage(0);
       setQuantity(1);
 
-      // Add to Recently Viewed
+      // Add to Recently Viewed (Per User)
       try {
-        const viewed = JSON.parse(localStorage.getItem("recentlyViewed")) || [];
+        const userId = user?.id || user?._id || "guest";
+        const storageKey = `recentlyViewed-${userId}`;
+        const raw = localStorage.getItem(storageKey);
+        const viewed = raw ? JSON.parse(raw) : [];
         const viewedIds = viewed.map(item => typeof item === 'object' ? (item._id || item.id) : item).filter(Boolean);
         
         const newViewed = [
@@ -41,12 +46,12 @@ function ProductDetailPage() {
           ...viewedIds.filter(id => id !== product._id)
         ].slice(0, 10);
         
-        localStorage.setItem("recentlyViewed", JSON.stringify(newViewed));
+        localStorage.setItem(storageKey, JSON.stringify(newViewed));
       } catch (err) {
         console.error("Error updating recently viewed:", err);
       }
     }
-  }, [product, availableVariants]);
+  }, [product, availableVariants, user]);
 
   const similarProducts = useMemo(() => {
     if (!product || !products) return [];
