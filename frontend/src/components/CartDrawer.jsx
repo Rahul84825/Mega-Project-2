@@ -94,23 +94,23 @@ function CartDrawer() {
           <div className="p-6 bg-[var(--cream)] border-t border-[var(--surface-border)] shadow-[0_-8px_30px_rgba(0,0,0,0.05)]">
             <div className="space-y-2 mb-6">
               <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
-                <span>Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>Items Subtotal (Excl. Tax)</span>
+                <span>{formatCurrency(calculateTotals(cart).netSubtotal)}</span>
               </div>
-              <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
-                <span>Delivery</span>
-                <span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span>
-              </div>
-              {gstTotal > 0 && (
-                <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
-                  <span>Estimated GST (Included)</span>
-                  <span>{formatCurrency(gstTotal)}</span>
+              {calculateTotals(cart).gstTotal > 0 && (
+                <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
+                  <span>Estimated GST</span>
+                  <span>{formatCurrency(calculateTotals(cart).gstTotal)}</span>
                 </div>
               )}
+              <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
+                <span>Delivery</span>
+                <span>{calculateTotals(cart).deliveryFee === 0 ? 'FREE' : formatCurrency(calculateTotals(cart).deliveryFee)}</span>
+              </div>
               <div className="h-px bg-[var(--surface-border)] my-2" />
               <div className="flex justify-between text-xl font-medium text-[var(--charcoal)]">
                 <span>Total</span>
-                <span className="text-[var(--burgundy)]">{formatCurrency(total)}</span>
+                <span className="text-[var(--burgundy)]">{formatCurrency(calculateTotals(cart).total)}</span>
               </div>
               <p className="text-[10px] text-center text-[var(--muted)] italic mt-2">{TAX_MESSAGE}</p>
             </div>

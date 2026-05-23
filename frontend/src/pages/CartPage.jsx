@@ -121,8 +121,8 @@ function CartPage() {
               {/* Summary rows */}
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
-                  <span>Subtotal</span>
-                  <span className="font-medium text-[var(--charcoal)]">{formatCurrency(subtotal)}</span>
+                  <span>Items Subtotal (Ex-GST)</span>
+                  <span className="font-medium text-[var(--charcoal)]">{formatCurrency(calculateTotals(cart).netSubtotal)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
@@ -135,9 +135,9 @@ function CartPage() {
                 </div>
 
                 {gstTotal > 0 && (
-                  <div className="flex justify-between text-xs font-medium text-emerald-600/80">
-                    <span>GST (Included)</span>
-                    <span>{formatCurrency(gstTotal)}</span>
+                  <div className="flex justify-between text-sm md:text-base text-[var(--muted)]">
+                    <span>GST ({cart[0]?.gstRate || 'Tax'})</span>
+                    <span className="font-medium text-emerald-600">{formatCurrency(gstTotal)}</span>
                   </div>
                 )}
 

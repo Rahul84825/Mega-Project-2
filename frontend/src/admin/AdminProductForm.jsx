@@ -368,9 +368,32 @@ const AdminProductForm = () => {
                           <div className={`absolute h-3 w-3 rounded-full bg-white transition-all shadow-sm top-1 ${v.isAvailable ? 'left-[20px]' : 'left-1'}`} />
                        </button>
                     </div>
-                    <div className="mt-4 flex justify-between items-center text-[10px] border-t border-[var(--surface-border)] pt-3">
-                      <span className="text-[var(--muted)] italic">{TAX_MESSAGE}</span>
-                      <span className={`font-medium ${v.isAvailable ? 'text-[var(--charcoal)]' : 'text-gray-400'}`}>Selling Price: {formatCurrency(sp)}</span>
+                    <div className="mt-4 flex flex-col gap-2 border-t border-[var(--surface-border)] pt-3">
+                      <div className="flex justify-between items-center text-[10px]">
+                         <span className="text-[var(--muted)] font-medium uppercase tracking-tighter">Price Breakdown</span>
+                         <span className="text-[var(--muted)] italic">{TAX_MESSAGE}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2">
+                         <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
+                            <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">Base (Ex-GST)</p>
+                            <p className="text-xs font-bold text-[var(--charcoal)]">
+                               {formatCurrency(Math.round(sp / (1 + Number(form.gstPercent || 0) / 100)))}
+                            </p>
+                         </div>
+                         <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
+                            <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">GST ({form.gstPercent}%)</p>
+                            <p className="text-xs font-bold text-emerald-600">
+                               {formatCurrency(sp - Math.round(sp / (1 + Number(form.gstPercent || 0) / 100)))}
+                            </p>
+                         </div>
+                         <div className="bg-[var(--burgundy)]/5 p-2 rounded-lg border border-[var(--burgundy)]/20">
+                            <p className="text-[8px] font-bold text-[var(--burgundy)] uppercase tracking-tighter mb-0.5">Final Selling</p>
+                            <p className="text-xs font-bold text-[var(--burgundy)]">
+                               {formatCurrency(sp)}
+                            </p>
+                         </div>
+                      </div>
                     </div>
                   </div>
                 );

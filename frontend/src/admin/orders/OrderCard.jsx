@@ -188,21 +188,21 @@ const OrderCard = ({
             {/* ── BILL SUMMARY ── */}
             <div className="p-4 rounded-xl bg-[#fffaf3] border border-[#e6d3b3] space-y-3 shadow-inner">
               <div className="flex justify-between text-xs font-medium text-[#7a5c3a]">
-                <span>Items Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>Net Amount (Ex-GST)</span>
+                <span>{formatCurrency(subtotal - (totals.gstTotal || order.gstTotal || 0))}</span>
               </div>
+              {(totals.gstTotal || order.gstTotal) > 0 && (
+                <div className="flex justify-between text-xs font-medium text-emerald-600">
+                  <span>GST Amount</span>
+                  <span>{formatCurrency(totals.gstTotal || order.gstTotal)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-xs font-medium text-[#7a5c3a]">
                 <span>Delivery Charge</span>
                 <span className={shippingFee === 0 ? "text-emerald-600 font-bold" : ""}>
                   {shippingFee > 0 ? formatCurrency(shippingFee) : "FREE"}
                 </span>
               </div>
-              {(totals.gstTotal || order.gstTotal) > 0 && (
-                <div className="flex justify-between text-xs font-medium text-emerald-600/80">
-                  <span>GST (Included)</span>
-                  <span>{formatCurrency(totals.gstTotal || order.gstTotal)}</span>
-                </div>
-              )}
               {Number(totals.discountTotal || 0) > 0 && (
                 <div className="flex justify-between text-xs font-bold text-emerald-600">
                   <span>Discount</span>

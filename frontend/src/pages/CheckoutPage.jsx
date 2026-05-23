@@ -292,11 +292,11 @@ function CheckoutPage() {
                 ))}
               </div>
               <div className="space-y-2 text-xs font-medium text-white/70 mb-6">
-                <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                <div className="flex justify-between"><span>Delivery</span><span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span></div>
-                {gstTotal > 0 && (
-                  <div className="flex justify-between text-emerald-400/80"><span>GST (Included)</span><span>{formatCurrency(gstTotal)}</span></div>
+                <div className="flex justify-between"><span>Items (Excl. Tax)</span><span>{formatCurrency(calculateTotals(cart).netSubtotal)}</span></div>
+                {calculateTotals(cart).gstTotal > 0 && (
+                  <div className="flex justify-between text-emerald-400/80"><span>GST Amount</span><span>{formatCurrency(calculateTotals(cart).gstTotal)}</span></div>
                 )}
+                <div className="flex justify-between"><span>Delivery</span><span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span></div>
               </div>
               <div className="flex justify-between items-center text-lg font-medium pt-4 border-t border-white/10">
                 <span className="serif text-[var(--saffron)]">Total</span>

@@ -55,9 +55,9 @@ const DELIVERY_CHARGE = 40;
  * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal, gstTotal }
  */
 export const calculateTotals = (items = [], manualDiscount = 0, manualShipping = null) => {
-  if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0 };
+  if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0, netSubtotal: 0 };
 
-  let itemsSubtotal = 0;
+  let itemsSubtotal = 0; // Inclusive of GST
   let gstTotal = 0;
 
   items.forEach((item) => {
@@ -76,6 +76,7 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
     }
   });
 
+  const netSubtotal = itemsSubtotal - gstTotal;
   const discountTotal = normalizeNumber(manualDiscount);
   
   // Calculate delivery fee
@@ -89,16 +90,18 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
   }
 
   // Calculate final total
+  // itemsSubtotal already includes GST, so grandTotal = itemsSubtotal + shippingFee - discountTotal
   const grandTotal = Math.max(0, itemsSubtotal + shippingFee - discountTotal);
 
   return {
-    itemsSubtotal: Math.round(itemsSubtotal),
+    itemsSubtotal: Math.round(itemsSubtotal), // Inclusive
+    netSubtotal: Math.round(netSubtotal),     // Exclusive of GST
     shippingFee: Math.round(shippingFee),
     discountTotal: Math.round(discountTotal),
-    gstTotal: Math.round(gstTotal), // GST extracted from inclusive itemsSubtotal
+    gstTotal: Math.round(gstTotal), 
     grandTotal: Math.round(grandTotal),
     
-    // Frontend aliases (for compatibility with existing components)
+    // Frontend aliases
     subtotal: Math.round(itemsSubtotal),
     deliveryFee: Math.round(shippingFee),
     total: Math.round(grandTotal),

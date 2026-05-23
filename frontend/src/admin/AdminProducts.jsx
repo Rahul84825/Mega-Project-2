@@ -232,6 +232,11 @@ const AdminProducts = () => {
                                 <span className="text-[10px] font-medium text-[#7a5c3a] bg-[#f5e6d3]/50 px-2 py-0.5 rounded-md">
                                   {hasVariants ? `${variants.length} Sizes` : '1 Size'}
                                 </span>
+                                {product.gstPercent > 0 && (
+                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                    {product.gstPercent}% GST
+                                  </span>
+                                )}
                                 <span className="text-[10px] font-medium text-[#7a5c3a]">
                                   Total Stock: {totalStock}
                                 </span>
