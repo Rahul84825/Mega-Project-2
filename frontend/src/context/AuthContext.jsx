@@ -130,10 +130,14 @@ export function AuthProvider({ children }) {
 
     if (reason) {
       toast.info(reason);
+    } else {
+      toast.success("Successfully logged out");
     }
 
     if (redirectToLogin) {
       navigate("/login", { replace: true });
+    } else {
+      navigate("/", { replace: true });
     }
   }, [navigate]);
 

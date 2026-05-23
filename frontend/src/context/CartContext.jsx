@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useReducer, useState } from "react";
+import { useAuth } from "./AuthContext";
 
 const CartContext = createContext(null);
-const CART_STORAGE_KEY = "mithai-world-cart";
+const CART_STORAGE_BASE_KEY = "mithai-world-cart";
 
 const getCartItemKey = (item) => {
   const productId = item?.productId || item?._id || item?.id || "";
@@ -59,7 +60,7 @@ function cartReducer(state, action) {
       return [];
 
     case "SYNC":
-      return action.payload;
+      return Array.isArray(action.payload) ? action.payload : [];
 
     default:
       return state;
@@ -67,18 +68,34 @@ function cartReducer(state, action) {
 }
 
 export function CartProvider({ children }) {
+  const { user } = useAuth();
+  const userId = user?.id || user?._id || "guest";
+  const storageKey = `${CART_STORAGE_BASE_KEY}-${userId}`;
+
   const [cart, dispatch] = useReducer(cartReducer, [], () => {
     try {
-      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      const raw = localStorage.getItem(`${CART_STORAGE_BASE_KEY}-${user?.id || user?._id || "guest"}`);
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  // Sync cart when user changes
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const savedCart = raw ? JSON.parse(raw) : [];
+      dispatch({ type: "SYNC", payload: savedCart });
+    } catch {
+      dispatch({ type: "SYNC", payload: [] });
+    }
+  }, [storageKey]);
+
+  // Persist cart changes
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(cart));
+  }, [cart, storageKey]);
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
   const openCart   = () => setIsCartOpen(true);
