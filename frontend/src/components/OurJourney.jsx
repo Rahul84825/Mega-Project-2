@@ -50,91 +50,70 @@ const OurJourney = ({
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden py-16 md:py-24
-                 font-['Inter',system-ui,sans-serif]"
-      style={{
-        background: "linear-gradient(180deg, #fff6e9 0%, #fff3e0 100%)",
-      }}
+      className="relative overflow-hidden py-16 md:py-28 bg-[#fffaf3] pattern-bg"
     >
-      {/* Subtle radial tints — same as navbar-root palette */}
-      <div className="pointer-events-none absolute inset-0
-                      bg-[radial-gradient(circle_at_10%_20%,rgba(244,160,36,0.06)_0%,transparent_35%),
-                          radial-gradient(circle_at_90%_80%,rgba(122,31,44,0.04)_0%,transparent_30%)]" />
+      {/* Decorative Blur Elements */}
+      <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] bg-[var(--gold)]/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 h-[500px] w-[500px] bg-[var(--burgundy)]/5 rounded-full blur-3xl pointer-events-none" />
 
-      <SectionContainer className="relative">
-        <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
+      <SectionContainer className="relative z-10">
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
 
           {/* ── LEFT — Text + milestones ── */}
-          <div className={`transition-all duration-500 ease-out
-                           ${visible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-6"}`}>
+          <div className={`transition-all duration-1000 ease-out delay-100
+                           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
 
             {/* Eyebrow */}
-            <div className="mb-4 flex items-center gap-2.5">
-              <span className="block h-px w-7 bg-[#d4a017]" />
-              <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
-                Our Story
-              </span>
+            <div className="mb-6 flex items-center gap-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--gold)] text-[10px] font-black tracking-widest uppercase">
+                Established 2019
+              </div>
             </div>
 
             {/* Heading */}
-            <h2 className="mb-3.5 text-[clamp(26px,3vw,38px)] font-medium
-                           leading-[1.15] tracking-[-0.02em] text-[#24140f]">
+            <h2 className="serif mb-4 text-3xl md:text-5xl font-medium leading-[1.1] text-[var(--charcoal)]">
               {title}
             </h2>
 
             {/* Subtitle */}
-            <p className="mb-2.5 max-w-[460px] text-[15px] font-medium
-                          leading-[1.65] text-[#3b2417]">
+            <p className="mb-4 max-w-[500px] text-base md:text-lg font-bold italic leading-relaxed text-[var(--burgundy)] opacity-80">
               {subtitle}
             </p>
 
             {/* Description */}
-            <p className="mb-8 max-w-[440px] text-[13px] font-normal
-                          leading-[1.75] text-[#6e5443]">
+            <p className="mb-10 max-w-[480px] text-sm md:text-base font-medium leading-relaxed text-[var(--muted)]">
               {description}
             </p>
 
             {/* Milestone cards */}
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-4">
               {milestones.map((item, i) => (
                 <div
                   key={`${item.year}-${i}`}
-                  className="group flex gap-4 rounded-[14px]
-                             border border-[rgba(83,44,22,0.12)]
-                             bg-white/60 px-[18px] py-4
-                             backdrop-blur-sm
-                             transition-all duration-200
-                             hover:-translate-y-0.5
-                             hover:border-[rgba(212,160,23,0.40)]
-                             hover:bg-white/80
-                             hover:shadow-[0_10px_28px_rgba(83,44,22,0.08)]"
+                  style={{ transitionDelay: `${300 + (i * 150)}ms` }}
+                  className={`group flex gap-5 rounded-[24px] border border-[var(--surface-border)] bg-white/40 p-5 backdrop-blur-sm transition-all duration-500
+                             ${visible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}
+                             hover:bg-white hover:shadow-[0_20px_40px_-10px_rgba(139,30,63,0.1)] hover:-translate-y-1`}
                 >
-                  {/* Year dot + connector line */}
-                  <div className="flex shrink-0 flex-col items-center gap-1.5 pt-0.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center
-                                    rounded-full border-[1.5px] border-[rgba(212,160,23,0.40)]
-                                    bg-[rgba(212,160,23,0.14)]">
-                      <div className="h-2 w-2 rounded-full bg-[#b76a1f]" />
+                  {/* Year Circle */}
+                  <div className="flex shrink-0 flex-col items-center gap-2">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--burgundy)] text-[10px] font-black text-white shadow-lg shadow-[var(--burgundy)]/20 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
+                      {item.year.slice(0, 2)}
                     </div>
                     {i < milestones.length - 1 && (
-                      <div className="min-h-[20px] w-px flex-1
-                                      bg-gradient-to-b from-[rgba(212,160,23,0.35)] to-transparent" />
+                      <div className="w-0.5 flex-1 bg-gradient-to-b from-[var(--burgundy)]/20 to-transparent rounded-full" />
                     )}
                   </div>
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
-                    <span className="mb-1 inline-block rounded-full
-                                     border border-[rgba(212,160,23,0.28)]
-                                     bg-[rgba(212,160,23,0.10)]
-                                     px-2.5 py-0.5 text-[10px] font-medium
-                                     uppercase tracking-[0.22em] text-[#8a5a15]">
+                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gold)]">
                       {item.year}
-                    </span>
-                    <h3 className="mb-1 text-[14px] font-medium leading-[1.3] text-[#24140f]">
+                    </div>
+                    <h3 className="serif mb-1 text-lg font-medium text-[var(--charcoal)] group-hover:text-[var(--burgundy)] transition-colors">
                       {item.title}
                     </h3>
-                    <p className="m-0 text-[13px] font-normal leading-[1.65] text-[#6e5443]">
+                    <p className="text-xs md:text-sm font-medium leading-relaxed text-[var(--muted)]">
                       {item.description}
                     </p>
                   </div>
@@ -144,58 +123,42 @@ const OurJourney = ({
 
           </div>
 
-          {/* ── RIGHT — Single image ── */}
+          {/* ── RIGHT — Image Experience ── */}
           <div
-            className={`sticky top-24 transition-all duration-500 delay-100 ease-out
-                         ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-6"}`}
+            className={`transition-all duration-1000 delay-300 ease-out
+                         ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-20"}`}
           >
-            {/* Vertical accent line */}
-            <div className="absolute -left-4 top-6 hidden h-[calc(100%-3rem)] w-px
-                            bg-gradient-to-b from-[#d4a017] via-[rgba(200,138,26,0.15)] to-transparent
-                            lg:block" />
+            <div className="relative p-4 sm:p-8">
+              {/* Decorative Frame */}
+              <div className="absolute inset-0 border-2 border-[var(--gold)]/20 rounded-[40px] rotate-2 transform translate-x-4 translate-y-4 pointer-events-none" />
+              
+              <div className="group relative overflow-hidden rounded-[32px] sm:rounded-[48px] border-4 border-white bg-[#fff3e0] shadow-[0_40px_80px_-20px_rgba(45,27,14,0.2)] transition-all duration-700 hover:shadow-2xl">
+                {/* Image */}
+                <div className="aspect-[4/5] sm:aspect-square overflow-hidden">
+                  {image?.src && !imgError ? (
+                    <img
+                      src={image.src}
+                      alt={image.alt || "Our journey"}
+                      onError={() => setImgError(true)}
+                      className="h-full w-full object-cover transition-all duration-1000 ease-out group-hover:scale-110 group-hover:rotate-2"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-[#fff6e9] via-[#fdebd0] to-[#f5dfc0]" />
+                  )}
+                </div>
 
-            {/* Image card */}
-            <div className="group relative overflow-hidden rounded-3xl
-                            border border-[rgba(83,44,22,0.16)]
-                            bg-[#fff3e0]
-                            shadow-[0_20px_48px_rgba(83,44,22,0.10)]
-                            transition-all duration-300
-                            hover:-translate-y-1
-                            hover:shadow-[0_28px_60px_rgba(83,44,22,0.14)]">
-
-              {/* Image */}
-              <div className="aspect-square overflow-hidden">
-                {image?.src && !imgError ? (
-                  <img
-                    src={image.src}
-                    alt={image.alt || "Our journey"}
-                    onError={() => setImgError(true)}
-                    className="h-full w-full object-cover transition-transform duration-500
-                               group-hover:scale-[1.04]"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br
-                                  from-[#fff6e9] via-[#fdebd0] to-[#f5dfc0]" />
-                )}
-              </div>
-
-              {/* Bottom overlay */}
-              <div className="pointer-events-none absolute inset-0
-                              bg-gradient-to-b from-transparent via-transparent
-                              to-[rgba(83,44,22,0.06)]" />
-
-              {/* Caption pill — matches navbar/filter pill style */}
-              <div className="absolute bottom-4 left-4 rounded-full
-                              border border-[rgba(83,44,22,0.20)]
-                              bg-[rgba(255,246,233,0.92)]
-                              px-3.5 py-1.5 text-[11px] font-medium
-                              tracking-[0.04em] text-[#7a1f2c]
-                              shadow-[0_2px_8px_rgba(83,44,22,0.10)]
-                              backdrop-blur-md">
-                Est. 2024 · Still going
+                {/* Shimmer Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                
+                {/* Float Badge */}
+                <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/90 backdrop-blur-xl border border-white shadow-xl translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--charcoal)]">Still Preparing Fresh Daily</p>
+                  </div>
+                </div>
               </div>
             </div>
-
           </div>
         </div>
       </SectionContainer>

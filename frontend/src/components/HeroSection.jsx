@@ -52,47 +52,54 @@ function HeroSection() {
   }, [slides.length]);
 
   return (
-    <section className="relative h-[480px] md:h-[600px] w-full overflow-hidden flex items-center justify-center bg-[var(--charcoal)]">
+    <section className="relative h-[520px] md:h-[700px] w-full overflow-hidden flex items-center justify-center bg-[var(--charcoal)]">
       {/* ── BACKGROUND SLIDES ── */}
       {slides.map((slide, i) => (
         <div 
           key={slide._id || i}
-          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === activeIndex ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 transition-all duration-1000 ease-in-out ${i === activeIndex ? 'opacity-100' : 'opacity-0'}`}
         >
           <div 
-            className="absolute inset-0 bg-cover bg-center scale-105 transition-transform duration-[6000ms]"
-            style={{ backgroundImage: `url(${slide.image})`, transform: i === activeIndex ? 'scale(1)' : 'scale(1.1)' }}
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-[8000ms] ease-linear"
+            style={{ 
+              backgroundImage: `url(${slide.image})`, 
+              transform: i === activeIndex ? 'scale(1.1) rotate(1deg)' : 'scale(1) rotate(0deg)' 
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--charcoal)]/90 via-[var(--charcoal)]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--charcoal)]/95 via-[var(--charcoal)]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--charcoal)]/40 via-transparent to-transparent md:hidden" />
         </div>
       ))}
 
       {/* ── CONTENT ── */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 text-center md:text-left">
-        <div className="max-w-2xl animate-in slide-in-from-left duration-700">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[var(--saffron)] text-[10px] font-medium uppercase tracking-[0.3em] mb-6">
-            <Sparkles size={14} /> {HERO_CONTENT.subtitle}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-20 text-center md:text-left">
+        <div className="max-w-3xl">
+          <div className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100">
+             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-[var(--gold)] text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-8 shadow-2xl">
+               <Sparkles size={16} className="animate-pulse" /> {HERO_CONTENT.subtitle}
+             </div>
           </div>
           
-          <h1 className="serif text-4xl md:text-6xl lg:text-7xl font-medium text-white leading-[1.1] mb-6 tracking-tight">
+          <h1 className="serif text-4xl md:text-7xl lg:text-8xl font-medium text-white leading-[1.05] mb-8 tracking-tighter animate-in slide-in-from-bottom-6 fade-in duration-700 delay-300">
             {HERO_CONTENT.title} <br />
-            <span className="text-[var(--saffron)]">{HERO_CONTENT.highlight}</span>
+            <span className="text-[var(--gold)] bg-clip-text text-transparent bg-gradient-to-r from-[var(--gold)] via-[var(--saffron)] to-[var(--gold)]">{HERO_CONTENT.highlight}</span>
           </h1>
           
-          <p className="text-white/80 text-sm md:text-lg font-medium leading-relaxed mb-10 max-w-lg mx-auto md:mx-0">
+          <p className="text-white/80 text-sm md:text-xl font-medium leading-relaxed mb-12 max-w-xl mx-auto md:mx-0 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-500">
             {HERO_CONTENT.description}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-5 animate-in slide-in-from-bottom-10 fade-in duration-700 delay-700">
             <button 
               onClick={() => navigate("/sweets")}
-              className="btn-primary h-14 px-10 text-sm w-full sm:w-auto shadow-2xl"
+              className="btn-primary h-16 px-12 text-sm w-full sm:w-auto shadow-[0_20px_50px_-10px_rgba(139,30,63,0.5)] active:scale-95 group overflow-hidden relative"
             >
-              {HERO_CONTENT.ctaPrimary} <ArrowRight size={18} />
+              <span className="relative z-10 flex items-center gap-2">{HERO_CONTENT.ctaPrimary} <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></span>
+              <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
             </button>
             <button 
               onClick={() => navigate("/about")}
-              className="h-14 px-10 rounded-xl border border-white/30 text-white text-sm font-medium uppercase tracking-widest hover:bg-white hover:text-[var(--charcoal)] transition-all w-full sm:w-auto backdrop-blur-sm"
+              className="h-16 px-12 rounded-2xl border-2 border-white/20 text-white text-xs font-black uppercase tracking-[0.2em] hover:bg-white hover:text-[var(--charcoal)] transition-all w-full sm:w-auto backdrop-blur-md active:scale-95 shadow-xl"
             >
               {HERO_CONTENT.ctaSecondary}
             </button>
@@ -100,13 +107,22 @@ function HeroSection() {
         </div>
       </div>
 
+      {/* ── PROGRESS BAR ── */}
+      <div className="absolute bottom-0 left-0 h-1 bg-[var(--gold)]/30 w-full">
+         <div 
+           key={activeIndex} 
+           className="h-full bg-[var(--gold)] animate-progress" 
+           style={{ animationDuration: '6000ms' }} 
+         />
+      </div>
+
       {/* ── DOTS ── */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:left-12 md:translate-x-0 flex gap-2">
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 md:left-20 md:translate-x-0 flex items-center gap-3">
         {slides.map((_, i) => (
           <button 
             key={i} 
             onClick={() => setActiveIndex(i)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-10 bg-[var(--saffron)]' : 'w-2 bg-white/30 hover:bg-white/50'}`}
+            className={`transition-all duration-500 rounded-full ${i === activeIndex ? 'w-12 h-1.5 bg-[var(--gold)] shadow-[0_0_15px_var(--gold)]' : 'w-2 h-2 bg-white/20 hover:bg-white/40'}`}
           />
         ))}
       </div>
