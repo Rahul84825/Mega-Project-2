@@ -249,9 +249,9 @@ function AdminCategories() {
                     <h3 className="text-base font-medium text-[var(--charcoal)] mb-1">{cat.name}</h3>
                     <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">{cat.type}</p>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setModal(cat)} className="p-2 hover:bg-[var(--cream)] rounded-lg transition-colors"><Pencil size={14} /></button>
-                    <button onClick={() => setDeleteConfirm(cat)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                  <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setModal(cat)} className="p-2 hover:bg-[var(--cream)] rounded-lg transition-colors bg-[var(--cream)]/30 md:bg-transparent" title="Edit"><Pencil size={14} /></button>
+                    <button onClick={() => setDeleteConfirm(cat)} className="p-2 hover:bg-red-50 text-rose-500 rounded-lg transition-colors bg-rose-50/50 md:bg-transparent" title="Delete"><Trash2 size={14} /></button>
                   </div>
                 </div>
 

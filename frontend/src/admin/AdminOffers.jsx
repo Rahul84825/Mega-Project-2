@@ -404,9 +404,9 @@ const AdminOffers = () => {
                     <h3 className="text-lg font-medium text-[var(--charcoal)] leading-tight mb-2">{offer.title}</h3>
                     <p className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-widest">{offer.offerType}</p>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setModal(offer)} className="p-2 hover:bg-[var(--cream)] rounded-lg transition-colors"><Pencil size={16} /></button>
-                    <button onClick={() => setDeleteConfirm(offer._id)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                  <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setModal(offer)} className="p-2 hover:bg-[var(--cream)] rounded-lg transition-colors bg-[var(--cream)]/30 md:bg-transparent" title="Edit"><Pencil size={16} /></button>
+                    <button onClick={() => setDeleteConfirm(offer._id)} className="p-2 hover:bg-red-50 text-rose-500 rounded-lg transition-colors bg-rose-50/50 md:bg-transparent" title="Delete"><Trash2 size={16} /></button>
                   </div>
                 </div>
 
