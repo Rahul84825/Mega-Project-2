@@ -124,6 +124,9 @@ function ProductCard({ product }) {
           <div className="flex flex-col">
             <span className={`text-lg sm:text-xl font-bold ${isOutOfStock ? 'text-[var(--muted)]' : 'text-[var(--charcoal)]'}`}>
               {formatCurrency(displayPrice)}
+              {!isOutOfStock && product.gstPercent > 0 && (
+                <span className="text-[10px] text-emerald-600 font-bold ml-1.5">+ {product.gstPercent}% GST</span>
+              )}
               {selectedVariant && (
                 <span className="text-[10px] font-medium text-[var(--muted)] ml-1.5 align-middle uppercase tracking-wider">
                   / {selectedVariant.label}

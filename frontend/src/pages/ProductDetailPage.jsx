@@ -141,7 +141,7 @@ function ProductDetailPage() {
                 <div className="flex flex-col">
                   <span className="text-xs text-[var(--muted)] italic font-medium">{TAX_MESSAGE}</span>
                   {product.gstPercent > 0 && (
-                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">GST: {product.gstPercent}% Included</span>
+                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">+ {product.gstPercent}% GST EXTRA</span>
                   )}
                 </div>
               </div>
