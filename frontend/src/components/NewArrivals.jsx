@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, Sparkles } from "lucide-react";
 import ProductCard from "./ProductCard";
 import SectionContainer from "./home/SectionContainer";
 import { normalizeProduct, useProducts } from "../context/ProductContext";

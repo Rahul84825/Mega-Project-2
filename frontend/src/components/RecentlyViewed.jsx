@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import ProductCard from "./ProductCard";
 import SectionContainer from "./home/SectionContainer";
 import { useProducts } from "../context/ProductContext";
