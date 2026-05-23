@@ -33,13 +33,35 @@ const loadRazorpayScript = () => {
   return razorpayScriptPromise;
 };
 
+const CHECKOUT_STORAGE_KEY = "mithai-world-checkout-state";
+
 function CheckoutPage() {
   const { cart, dispatch } = useCart();
   const { fetchProducts } = useProducts();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" });
-  const [step, setStep] = useState(1);
+
+  // Load initial state from localStorage
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CHECKOUT_STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed?.form || { name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" };
+    } catch {
+      return { name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" };
+    }
+  });
+
+  const [step, setStep] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CHECKOUT_STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed?.step || 1;
+    } catch {
+      return 1;
+    }
+  });
+
   const [processing, setProcessing] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -48,10 +70,16 @@ function CheckoutPage() {
   
   const { subtotal, deliveryFee, gstTotal, total } = calculateTotals(cart);
 
+  // Sync state to localStorage
+  useEffect(() => {
+    localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ form, step }));
+  }, [form, step]);
+
   useEffect(() => {
     isMountedRef.current = true;
     loadRazorpayScript().then(loaded => isMountedRef.current && setScriptReady(loaded));
     
+    // Auto-fill from user profile ONLY if fields are empty
     if (user) {
       setForm(prev => ({
         ...prev,
@@ -79,6 +107,7 @@ function CheckoutPage() {
   const handleOrderSuccess = async (order) => {
     await fetchProducts().catch(console.error);
     dispatch({ type: "CLEAR" });
+    localStorage.removeItem(CHECKOUT_STORAGE_KEY); // Clear persisted state on success
     navigate("/payment-success", { state: { order }, replace: true });
   };
 
