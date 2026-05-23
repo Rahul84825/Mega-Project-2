@@ -83,7 +83,8 @@ function ProductDetailPage() {
         price: currentPrice,
         image: product.images?.[0] || product.image,
         quantity,
-        stock: currentStock
+        stock: currentStock,
+        gstRate: product.gstPercent || 0
       }
     });
     openCart();
@@ -128,7 +129,7 @@ function ProductDetailPage() {
                 <Star size={12} fill="currentColor" /> {categoryName}
               </div>
               <h1 className={`serif text-4xl md:text-5xl lg:text-6xl mb-4 leading-tight font-medium ${isOutOfStock ? 'text-[var(--muted)]' : ''}`}>{product.name}</h1>
-              <div className="flex items-baseline gap-4 mt-2">
+              <div className="flex items-baseline gap-4 mt-2 flex-wrap">
                 <span className={`text-3xl font-bold ${isOutOfStock ? 'text-[var(--muted)]' : 'text-[var(--charcoal)]'}`}>
                   {formatCurrency(currentPrice)}
                   {selectedVariant && (
@@ -137,7 +138,12 @@ function ProductDetailPage() {
                     </span>
                   )}
                 </span>
-                <span className="text-xs text-[var(--muted)] italic font-medium">{TAX_MESSAGE}</span>
+                <div className="flex flex-col">
+                  <span className="text-xs text-[var(--muted)] italic font-medium">{TAX_MESSAGE}</span>
+                  {product.gstPercent > 0 && (
+                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">GST: {product.gstPercent}% Included</span>
+                  )}
+                </div>
               </div>
             </div>
 

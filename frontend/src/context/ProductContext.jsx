@@ -46,10 +46,11 @@ const normalizeOrder = (order) => {
   const items = toArray(order?.items).map(item => ({
     ...item,
     price: Number(item.price || item.sellingPriceAtPurchase || 0),
-    quantity: Number(item.quantity || 1)
+    quantity: Number(item.quantity || 1),
+    gstRate: Number(item.gstRate || 0)
   }));
 
-  const { subtotal, deliveryFee, total } = calculateTotals(items);
+  const { subtotal, deliveryFee, total, gstTotal } = calculateTotals(items);
 
   return {
     ...order,
@@ -57,6 +58,7 @@ const normalizeOrder = (order) => {
     items,
     subtotal: order?.totals?.itemsSubtotal || order?.subtotal || subtotal,
     deliveryFee: order?.totals?.shippingFee ?? order?.deliveryFee ?? deliveryFee,
+    gstTotal: order?.totals?.gstTotal || order?.gstTotal || gstTotal,
     total: order?.totals?.grandTotal || order?.total || total,
     status: (order?.status || "PLACED").toUpperCase()
   };

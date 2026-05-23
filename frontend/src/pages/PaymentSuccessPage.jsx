@@ -110,6 +110,12 @@ function PaymentSuccessPage() {
                 <span>Delivery</span>
                 <span>{(order.totals?.shippingFee || order.deliveryFee) > 0 ? formatCurrency(order.totals?.shippingFee || order.deliveryFee) : 'FREE'}</span>
               </div>
+              {(order.totals?.gstTotal || order.gstTotal) > 0 && (
+                <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
+                  <span>GST (Included)</span>
+                  <span>{formatCurrency(order.totals?.gstTotal || order.gstTotal)}</span>
+                </div>
+              )}
               <div className="h-px bg-[var(--surface-border)] my-2" />
               <div className="flex justify-between text-lg font-medium text-[var(--charcoal)]">
                 <span>Total</span>

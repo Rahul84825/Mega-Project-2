@@ -9,7 +9,7 @@ function CartDrawer() {
   const { cart, isCartOpen, closeCart, dispatch } = useCart();
   const navigate = useNavigate();
 
-  const { subtotal, deliveryFee, total } = calculateTotals(cart);
+  const { subtotal, deliveryFee, gstTotal, total } = calculateTotals(cart);
 
   useEffect(() => {
     if (isCartOpen) document.body.style.overflow = "hidden";
@@ -101,6 +101,12 @@ function CartDrawer() {
                 <span>Delivery</span>
                 <span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span>
               </div>
+              {gstTotal > 0 && (
+                <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
+                  <span>Estimated GST (Included)</span>
+                  <span>{formatCurrency(gstTotal)}</span>
+                </div>
+              )}
               <div className="h-px bg-[var(--surface-border)] my-2" />
               <div className="flex justify-between text-xl font-medium text-[var(--charcoal)]">
                 <span>Total</span>

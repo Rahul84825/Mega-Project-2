@@ -197,6 +197,12 @@ const OrderCard = ({
                   {shippingFee > 0 ? formatCurrency(shippingFee) : "FREE"}
                 </span>
               </div>
+              {(totals.gstTotal || order.gstTotal) > 0 && (
+                <div className="flex justify-between text-xs font-medium text-emerald-600/80">
+                  <span>GST (Included)</span>
+                  <span>{formatCurrency(totals.gstTotal || order.gstTotal)}</span>
+                </div>
+              )}
               {Number(totals.discountTotal || 0) > 0 && (
                 <div className="flex justify-between text-xs font-bold text-emerald-600">
                   <span>Discount</span>

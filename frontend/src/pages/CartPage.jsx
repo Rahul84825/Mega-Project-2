@@ -5,7 +5,7 @@ import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/prici
 function CartPage() {
   const { cart, dispatch } = useCart();
   const navigate = useNavigate();
-  const { subtotal, deliveryFee, total, deliveryThreshold } = calculateTotals(cart);
+  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold } = calculateTotals(cart);
   const amountNeeded = Math.max(0, deliveryThreshold - subtotal);
 
   if (cart.length === 0) {
@@ -65,10 +65,8 @@ function CartPage() {
                     <button
                       onClick={() =>
                         dispatch({
-                          type: "UPDATE_QTY",
-                          productId: item.productId,
-                          variantId: item.variantId,
-                          quantity: item.quantity - 1
+                          type: "UPDATE_QUANTITY",
+                          payload: { ...item, quantity: item.quantity - 1 }
                         })
                       }
                       className="w-12 h-12 flex items-center justify-center hover:bg-[#f5e6d3] font-medium text-[var(--burgundy)] transition-colors"
@@ -81,10 +79,8 @@ function CartPage() {
                     <button
                       onClick={() =>
                         dispatch({
-                          type: "UPDATE_QTY",
-                          productId: item.productId,
-                          variantId: item.variantId,
-                          quantity: item.quantity + 1
+                          type: "UPDATE_QUANTITY",
+                          payload: { ...item, quantity: item.quantity + 1 }
                         })
                       }
                       className="w-12 h-12 flex items-center justify-center hover:bg-[#f5e6d3] font-medium text-[var(--burgundy)] transition-colors"
@@ -102,9 +98,8 @@ function CartPage() {
                   <button
                     onClick={() =>
                       dispatch({
-                        type: "REMOVE",
-                        productId: item.productId,
-                        variantId: item.variantId
+                        type: "REMOVE_ITEM",
+                        payload: item
                       })
                     }
                     className="ml-auto sm:ml-0 w-8 h-8 flex items-center justify-center text-[#ccc] hover:text-[#999] transition-colors flex-shrink-0"
@@ -138,6 +133,13 @@ function CartPage() {
                     <span className="font-medium text-[var(--charcoal)]">{formatCurrency(deliveryFee)}</span>
                   )}
                 </div>
+
+                {gstTotal > 0 && (
+                  <div className="flex justify-between text-xs font-medium text-emerald-600/80">
+                    <span>GST (Included)</span>
+                    <span>{formatCurrency(gstTotal)}</span>
+                  </div>
+                )}
 
                 {deliveryFee > 0 && amountNeeded > 0 && (
                   <p className="text-xs text-[var(--saffron)] bg-[var(--saffron)]/10 p-3 rounded-lg">

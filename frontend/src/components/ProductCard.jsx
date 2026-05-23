@@ -39,7 +39,8 @@ function ProductCard({ product }) {
         name: product.name,
         price: variant.sellingPrice,
         image: product.images?.[0] || product.image,
-        stock: variant.stock
+        stock: variant.stock,
+        gstRate: product.gstPercent || 0
       }
     });
 

@@ -47,21 +47,34 @@ const DELIVERY_CHARGE = 40;
 
 /**
  * Calculates totals for a given array of items.
- * Items must have: { price: number, quantity: number }
+ * Items must have: { price: number, quantity: number, gstRate: number }
  * 
  * @param {Array} items - The items in the cart or order.
  * @param {Number} manualDiscount - Any extra discount applied (e.g. coupon).
  * @param {Number} manualShipping - Override shipping fee (if not auto-calculated).
- * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal }
+ * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal, gstTotal }
  */
 export const calculateTotals = (items = [], manualDiscount = 0, manualShipping = null) => {
-  if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0 };
+  if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0 };
 
-  const itemsSubtotal = items.reduce((total, item) => {
+  let itemsSubtotal = 0;
+  let gstTotal = 0;
+
+  items.forEach((item) => {
     const price = normalizeNumber(item?.price || item?.sellingPrice || item?.sellingPriceAtPurchase || 0);
     const qty = normalizeNumber(item?.quantity || 1);
-    return total + (price * qty);
-  }, 0);
+    const rate = normalizeNumber(item?.gstRate || item?.gstPercent || 0);
+    
+    const lineTotal = price * qty;
+    itemsSubtotal += lineTotal;
+
+    // Calculate inclusive GST
+    // Formula: GST Amount = Total - (Total / (1 + Rate/100))
+    if (rate > 0) {
+      const lineGst = lineTotal - (lineTotal / (1 + rate / 100));
+      gstTotal += lineGst;
+    }
+  });
 
   const discountTotal = normalizeNumber(manualDiscount);
   
@@ -82,7 +95,7 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
     itemsSubtotal: Math.round(itemsSubtotal),
     shippingFee: Math.round(shippingFee),
     discountTotal: Math.round(discountTotal),
-    gstTotal: 0, // GST is inclusive in itemsSubtotal
+    gstTotal: Math.round(gstTotal), // GST extracted from inclusive itemsSubtotal
     grandTotal: Math.round(grandTotal),
     
     // Frontend aliases (for compatibility with existing components)

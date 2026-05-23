@@ -46,7 +46,7 @@ function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const isMountedRef = useRef(true);
   
-  const { subtotal, deliveryFee, total } = calculateTotals(cart);
+  const { subtotal, deliveryFee, gstTotal, total } = calculateTotals(cart);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -101,9 +101,10 @@ function CheckoutPage() {
           name: item.name,
           price: Number(item.price),
           quantity: item.quantity,
-          image: item.image
+          image: item.image,
+          gstRate: item.gstRate || 0
         })),
-        totals: { itemsSubtotal: subtotal, shippingFee: deliveryFee, grandTotal: total, currency: "INR" },
+        totals: { itemsSubtotal: subtotal, shippingFee: deliveryFee, gstTotal, grandTotal: total, currency: "INR" },
         payment: { method: "COD", status: "PENDING" }
       };
 
@@ -143,7 +144,7 @@ function CheckoutPage() {
                 shippingAddress: { line1: form.address, city: form.city, state: form.state, postalCode: form.pincode, country: "IN" },
                 items: cart.map(i => ({ ...i, productId: i.productId })),
                 amount: total,
-                totals: { itemsSubtotal: subtotal, shippingFee: deliveryFee, grandTotal: total, currency: "INR" }
+                totals: { itemsSubtotal: subtotal, shippingFee: deliveryFee, gstTotal, grandTotal: total, currency: "INR" }
               }
             });
             if (verifyData.success) handleOrderSuccess(verifyData.order);
@@ -293,6 +294,9 @@ function CheckoutPage() {
               <div className="space-y-2 text-xs font-medium text-white/70 mb-6">
                 <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
                 <div className="flex justify-between"><span>Delivery</span><span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span></div>
+                {gstTotal > 0 && (
+                  <div className="flex justify-between text-emerald-400/80"><span>GST (Included)</span><span>{formatCurrency(gstTotal)}</span></div>
+                )}
               </div>
               <div className="flex justify-between items-center text-lg font-medium pt-4 border-t border-white/10">
                 <span className="serif text-[var(--saffron)]">Total</span>

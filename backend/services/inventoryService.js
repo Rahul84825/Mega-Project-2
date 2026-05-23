@@ -163,6 +163,9 @@ export const reserveStock = async ({
 
     const pricing = getVariantPricingSnapshot(product, variant);
     const subtotal = pricing.sellingPrice * quantity;
+    const gstRate = Number(product.gstPercent || 0);
+    const gstAmount = gstRate > 0 ? (subtotal - (subtotal / (1 + gstRate / 100))) : 0;
+
     itemSnapshots.push({
       productId,
       titleSnapshot: product.name,
@@ -173,8 +176,8 @@ export const reserveStock = async ({
         weight: item?.weight || "",
         size: item?.size || ""
       },
-      gstRate: product.gstPercent || 0,
-      gstAmount: 0, // GST is inclusive, tracking amount is not strictly necessary for grand total
+      gstRate: gstRate,
+      gstAmount: Math.round(gstAmount),
       mrpAtPurchase: pricing.mrp,
       sellingPriceAtPurchase: pricing.sellingPrice,
       quantity,
