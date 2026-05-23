@@ -19,7 +19,7 @@ function GlobalStyle() {
         
         /* Compact Spacing System */
         --section-py: 64px;
-        --section-py-mobile: 40px;
+        --section-py-mobile: 48px;
         --container-px: 32px;
         --container-px-mobile: 20px;
         --card-gap: 24px;
@@ -54,7 +54,7 @@ function GlobalStyle() {
       
       .section-title h2 {
         font-family: 'Playfair Display', serif;
-        font-size: clamp(24px, 6vw, 42px);
+        font-size: clamp(24px, 5vw, 40px);
         font-weight: 800;
         color: var(--charcoal);
         line-height: 1.1;
@@ -75,37 +75,50 @@ function GlobalStyle() {
       }
 
       .section-title p {
-        font-size: clamp(14px, 2.5vw, 16px);
+        font-size: clamp(13px, 2vw, 15px);
         color: var(--muted);
-        margin-top: 12px;
+        margin-top: 10px;
         font-weight: 500;
-        max-width: 650px;
+        max-width: 600px;
         line-height: 1.6;
       }
 
-      /* Responsive Grid System */
+      /* Consistent Responsive Grid System */
       .responsive-grid {
         display: grid;
         gap: var(--card-gap-mobile);
         grid-template-columns: repeat(2, 1fr);
+        width: 100%;
       }
 
       @media (min-width: 640px) {
         .responsive-grid {
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: var(--card-gap);
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .responsive-grid {
+          grid-template-columns: repeat(3, 1fr);
         }
       }
 
       @media (min-width: 1024px) {
         .responsive-grid {
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .responsive-grid {
+          grid-template-columns: repeat(4, 1fr);
         }
       }
 
       @media (min-width: 1536px) {
         .responsive-grid {
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          grid-template-columns: repeat(5, 1fr);
         }
       }
 
