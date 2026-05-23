@@ -67,7 +67,7 @@ function CheckoutPage() {
 
   const isAddressValid = ["name", "phone", "email", "address", "city", "pincode", "state"].every(k => String(form[k] || "").trim().length > 0) &&
     /^\d{6}$/.test(form.pincode) &&
-    /^\d{10}$/.test(form.phone.replace(/\D/g, ""));
+    /^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/.test(form.phone.trim());
 
   const validateStock = () => {
     for (const item of cart) {

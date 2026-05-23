@@ -185,179 +185,293 @@ const AdminProducts = () => {
         </div>
       </div>
 
-      {/* DATA GRID */}
-      <div className="bg-white rounded-[32px] border border-[#e6d3b3] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
-              <tr className="bg-[#fffaf3] border-b border-[#e6d3b3]">
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[35%]">Mithai & Detail</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[15%]">Category</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[15%]">Pricing</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[20%]">Status</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] text-right w-[15%]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e6d3b3]/50">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-24 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#fffaf3] mb-4 text-[#d4a373]">
-                      <Package size={32} />
-                    </div>
-                    <p className="text-sm font-bold text-[#7a5c3a]">No products found.</p>
-                    <p className="text-xs font-medium text-[#a67f52] mt-1">Try adjusting your search or filters.</p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((product) => {
-                  const id = getId(product);
-                  const preview = product.images?.[0] || product.image || "";
-                  const pricing = getDisplayPricing(product);
-                  const totalStock = getVariantStock(product);
-                  const isExpanded = expandedStockId === id;
-                  const variants = product.variants || [];
-                  const hasVariants = variants.length > 0;
+      {/* DATA GRID & MOBILE CARDS */}
+      <div className="space-y-4">
+        {/* Mobile View: Cards */}
+        <div className="grid grid-cols-1 gap-4 md:hidden">
+          {filtered.length === 0 ? (
+            <div className="bg-white rounded-[32px] border border-[#e6d3b3] p-12 text-center shadow-sm">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#fffaf3] mb-4 text-[#d4a373]">
+                <Package size={32} />
+              </div>
+              <p className="text-sm font-bold text-[#7a5c3a]">No products found.</p>
+            </div>
+          ) : (
+            filtered.map((product) => {
+              const id = getId(product);
+              const preview = product.images?.[0] || product.image || "";
+              const pricing = getDisplayPricing(product);
+              const totalStock = getVariantStock(product);
+              const isExpanded = expandedStockId === id;
+              const variants = product.variants || [];
+              const hasVariants = variants.length > 0;
 
-                  return (
-                    <React.Fragment key={id}>
-                      {/* Main Product Row */}
-                      <tr className={`hover:bg-[#fffaf3]/50 transition-colors group ${isExpanded ? 'bg-[#fffaf3]' : ''}`}>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-white border border-[#f0e0c4] overflow-hidden shrink-0 shadow-sm flex items-center justify-center p-1 relative">
-                              {preview ? (
-                                <img src={preview} className="w-full h-full object-cover rounded-xl" alt={product.name} />
-                              ) : (
-                                <Package size={20} className="text-[#e6d3b3]" />
-                              )}
-                              {!product.isActive && (
-                                <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
-                                  <span className="bg-[#2d1b0e] text-white text-[8px] font-bold px-1.5 py-0.5 rounded">HIDDEN</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-[#2d1b0e] truncate hover:text-[#8b4513] transition-colors cursor-default" title={product.name}>
-                                {product.name}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] font-medium text-[#7a5c3a] bg-[#f5e6d3]/50 px-2 py-0.5 rounded-md">
-                                  {hasVariants ? `${variants.length} Sizes` : '1 Size'}
-                                </span>
-                                {product.gstPercent > 0 && (
-                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                    {product.gstPercent}% GST
-                                  </span>
+              return (
+                <div key={id} className={`bg-white rounded-3xl border border-[#e6d3b3] p-5 shadow-sm space-y-4 ${!product.isActive ? 'bg-gray-50/50' : ''}`}>
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-white border border-[#f0e0c4] overflow-hidden shrink-0 shadow-sm relative">
+                      {preview ? (
+                        <img src={preview} className="w-full h-full object-cover" alt={product.name} />
+                      ) : (
+                        <Package size={24} className="text-[#e6d3b3] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                      )}
+                      {!product.isActive && (
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                          <span className="bg-[#2d1b0e] text-white text-[8px] font-bold px-1.5 py-0.5 rounded">HIDDEN</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-bold text-[#2d1b0e] leading-tight mb-1">{product.name}</h4>
+                      <p className="text-[10px] font-bold text-[#8b4513] uppercase tracking-widest">{getCategoryName(product.category)}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-sm font-bold text-[#2d1b0e]">{formatCurrency(pricing.finalPrice)}</span>
+                        {pricing.mrp > pricing.finalPrice && (
+                          <span className="text-[10px] font-medium text-[#a67f52] line-through">{formatCurrency(pricing.mrp)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-[#e6d3b3]/50">
+                    <div className="flex items-center gap-3">
+                      {!product.isSignature ? (
+                        <button 
+                          disabled={busyId === id}
+                          onClick={() => handleStatusToggle(product)}
+                          className={`h-5 w-9 rounded-full transition-all relative flex items-center shrink-0 border-2 ${product.isActive ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-200 border-gray-300'}`}
+                        >
+                           <div className={`absolute h-3 w-3 rounded-full bg-white transition-all shadow-sm ${product.isActive ? 'left-[16px]' : 'left-0.5'}`} />
+                        </button>
+                      ) : (
+                        <Sparkles size={14} className="text-[var(--gold)]" />
+                      )}
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-[#7a5c3a]">Stock: {totalStock}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => navigate("/admin/add-product", { state: { product } })}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#fffaf3] border border-[#e6d3b3] text-[#7a5c3a] active:bg-[#f5e6d3]"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button 
+                        onClick={() => setDeleteConfirm(id)}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 border border-rose-100 text-rose-500 active:bg-rose-100"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      {hasVariants && (
+                        <button 
+                          onClick={() => toggleExpand(id)}
+                          className={`h-9 px-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${isExpanded ? 'bg-[#8b4513] text-white border-[#8b4513]' : 'bg-white text-[#7a5c3a] border-[#e6d3b3]'}`}
+                        >
+                          {isExpanded ? 'Hide Sizes' : 'Sizes'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && hasVariants && (
+                    <div className="pt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                      {variants.map((v) => {
+                        const vId = v._id || v.id;
+                        const isAvail = v.isAvailable !== false;
+                        return (
+                          <div key={vId} className={`p-3 rounded-2xl border flex items-center justify-between ${isAvail ? 'bg-[#fffaf3]/50 border-[#f0e0c4]' : 'bg-gray-50 border-gray-200 grayscale-[0.5]'}`}>
+                            <div className="text-[11px] font-bold text-[#2d1b0e]">{v.label} · <span className="text-[#8b4513]">{formatCurrency(v.sellingPrice)}</span></div>
+                            <button 
+                              onClick={() => handleVariantToggle(id, vId, isAvail)}
+                              className={`h-4 w-7 rounded-full transition-all relative flex items-center shrink-0 border ${isAvail ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-200 border-gray-300'}`}
+                            >
+                              <div className={`absolute h-2.5 w-2.5 rounded-full bg-white transition-all ${isAvail ? 'left-[13px]' : 'left-0.5'}`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block bg-white rounded-[32px] border border-[#e6d3b3] shadow-sm overflow-hidden">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-[#fffaf3] border-b border-[#e6d3b3]">
+                  <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[35%]">Mithai & Detail</th>
+                  <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[15%]">Category</th>
+                  <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[15%]">Pricing</th>
+                  <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] w-[20%]">Status</th>
+                  <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] text-right w-[15%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e6d3b3]/50">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-24 text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#fffaf3] mb-4 text-[#d4a373]">
+                        <Package size={32} />
+                      </div>
+                      <p className="text-sm font-bold text-[#7a5c3a]">No products found.</p>
+                      <p className="text-xs font-medium text-[#a67f52] mt-1">Try adjusting your search or filters.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((product) => {
+                    const id = getId(product);
+                    const preview = product.images?.[0] || product.image || "";
+                    const pricing = getDisplayPricing(product);
+                    const totalStock = getVariantStock(product);
+                    const isExpanded = expandedStockId === id;
+                    const variants = product.variants || [];
+                    const hasVariants = variants.length > 0;
+
+                    return (
+                      <React.Fragment key={id}>
+                        {/* Main Product Row */}
+                        <tr className={`hover:bg-[#fffaf3]/50 transition-colors group ${isExpanded ? 'bg-[#fffaf3]' : ''}`}>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-4">
+                              <div className="w-14 h-14 rounded-2xl bg-white border border-[#f0e0c4] overflow-hidden shrink-0 shadow-sm flex items-center justify-center p-1 relative">
+                                {preview ? (
+                                  <img src={preview} className="w-full h-full object-cover rounded-xl" alt={product.name} />
+                                ) : (
+                                  <Package size={20} className="text-[#e6d3b3]" />
                                 )}
-                                <span className="text-[10px] font-medium text-[#7a5c3a]">
-                                  Total Stock: {totalStock}
-                                </span>
+                                {!product.isActive && (
+                                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
+                                    <span className="bg-[#2d1b0e] text-white text-[8px] font-bold px-1.5 py-0.5 rounded">HIDDEN</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-[#2d1b0e] truncate hover:text-[#8b4513] transition-colors cursor-default" title={product.name}>
+                                  {product.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] font-medium text-[#7a5c3a] bg-[#f5e6d3]/50 px-2 py-0.5 rounded-md">
+                                    {hasVariants ? `${variants.length} Sizes` : '1 Size'}
+                                  </span>
+                                  {product.gstPercent > 0 && (
+                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                      {product.gstPercent}% GST
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] font-medium text-[#7a5c3a]">
+                                    Total Stock: {totalStock}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className="inline-block bg-[#f5e6d3]/50 text-[#8b4513] text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase border border-[#e6d3b3]/50 shadow-sm">
-                            {getCategoryName(product.category)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col justify-center">
-                            <span className="text-sm font-bold text-[#2d1b0e]">{formatCurrency(pricing.finalPrice)}</span>
-                            {pricing.mrp > pricing.finalPrice && (
-                              <span className="text-[10px] font-medium text-[#a67f52] line-through">
-                                {formatCurrency(pricing.mrp)}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          {!product.isSignature ? (
-                            <div className="flex items-center gap-3">
-                              <button 
-                                disabled={busyId === id}
-                                onClick={() => handleStatusToggle(product)}
-                                className={`h-6 w-11 rounded-full transition-all relative flex items-center shrink-0 border-2 ${product.isActive ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-100 border-gray-200'} ${busyId === id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                title={product.isActive ? "Hide from Storefront" : "Show on Storefront"}
-                              >
-                                 <div className={`absolute h-4 w-4 rounded-full bg-white transition-all shadow-md ${product.isActive ? 'left-[20px]' : 'left-0.5'}`} />
-                              </button>
-                              <span className={`text-[10px] font-bold uppercase tracking-widest ${product.isActive ? 'text-emerald-700' : 'text-gray-500'}`}>
-                                {product.isActive ? "Live" : "Hidden"}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--gold)] bg-[var(--gold)]/10 px-2 py-1 rounded-md">
-                              Signature Item
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="inline-block bg-[#f5e6d3]/50 text-[#8b4513] text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase border border-[#e6d3b3]/50 shadow-sm">
+                              {getCategoryName(product.category)}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {hasVariants && (
-                              <button 
-                                onClick={() => toggleExpand(id)}
-                                className={`h-9 px-3 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${isExpanded ? 'bg-[#8b4513] text-white border-[#8b4513] shadow-md' : 'bg-white text-[#7a5c3a] border-[#e6d3b3] hover:border-[#8b4513] hover:text-[#8b4513] shadow-sm'}`}
-                              >
-                                Variants {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                              </button>
-                            )}
-                            <div className="flex items-center gap-1 bg-[#fffaf3] border border-[#e6d3b3] p-1 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all">
-                              <button onClick={() => navigate("/admin/add-product", { state: { product } })} className="p-1.5 hover:bg-white hover:text-[#8b4513] text-[#7a5c3a] rounded-lg transition-all" title="Edit">
-                                <Pencil size={14} />
-                              </button>
-                              <div className="w-px h-4 bg-[#e6d3b3]" />
-                              <button onClick={() => setDeleteConfirm(id)} className="p-1.5 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-lg transition-all" title="Delete">
-                                <Trash2 size={14} />
-                              </button>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col justify-center">
+                              <span className="text-sm font-bold text-[#2d1b0e]">{formatCurrency(pricing.finalPrice)}</span>
+                              {pricing.mrp > pricing.finalPrice && (
+                                <span className="text-[10px] font-medium text-[#a67f52] line-through">
+                                  {formatCurrency(pricing.mrp)}
+                                </span>
+                              )}
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Expandable Variants Row (Accordion Style) */}
-                      {isExpanded && hasVariants && (
-                        <tr className="bg-[#fffaf3] border-b border-[#e6d3b3]">
-                          <td colSpan={5} className="px-0 py-0">
-                            <div className="px-6 py-4 bg-white/50 border-t border-dashed border-[#e6d3b3]/50">
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-12 border-l-2 border-[#8b4513]/20 ml-6 py-2">
-                                {variants.map((v, i) => {
-                                  const vId = v._id || v.id;
-                                  const isAvail = v.isAvailable !== false;
-                                  const isBusy = busyId === vId;
-                                  
-                                  return (
-                                    <div key={vId} className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${isAvail ? 'bg-white border-[#f0e0c4] shadow-sm' : 'bg-gray-50 border-gray-200 grayscale-[0.5]'}`}>
-                                      <div className="min-w-0">
-                                        <p className="text-sm font-bold text-[#2d1b0e] truncate">{v.label}</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <p className="text-xs font-medium text-[#7a5c3a]">{formatCurrency(v.sellingPrice)}</p>
-                                          <span className="text-[10px] text-[#a67f52] px-1.5 py-0.5 rounded bg-[#f5e6d3]/50 font-medium">Stock: {v.stock || 0}</span>
-                                        </div>
-                                      </div>
-                                      
-                                      <button 
-                                        disabled={isBusy}
-                                        onClick={() => handleVariantToggle(id, vId, isAvail)}
-                                        className={`h-6 w-11 rounded-full transition-all relative flex items-center shrink-0 border-2 ${isAvail ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-200 border-gray-300'} ${isBusy ? 'opacity-50' : 'cursor-pointer'}`}
-                                      >
-                                        <div className={`absolute h-4 w-4 rounded-full bg-white transition-all shadow-sm ${isAvail ? 'left-[20px]' : 'left-0.5'}`} />
-                                      </button>
-                                    </div>
-                                  );
-                                })}
+                          </td>
+                          <td className="px-6 py-5">
+                            {!product.isSignature ? (
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  disabled={busyId === id}
+                                  onClick={() => handleStatusToggle(product)}
+                                  className={`h-6 w-11 rounded-full transition-all relative flex items-center shrink-0 border-2 ${product.isActive ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-100 border-gray-200'} ${busyId === id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                  title={product.isActive ? "Hide from Storefront" : "Show on Storefront"}
+                                >
+                                   <div className={`absolute h-4 w-4 rounded-full bg-white transition-all shadow-md ${product.isActive ? 'left-[20px]' : 'left-0.5'}`} />
+                                </button>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${product.isActive ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                  {product.isActive ? "Live" : "Hidden"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--gold)] bg-[var(--gold)]/10 px-2 py-1 rounded-md">
+                                Signature Item
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {hasVariants && (
+                                <button 
+                                  onClick={() => toggleExpand(id)}
+                                  className={`h-9 px-3 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${isExpanded ? 'bg-[#8b4513] text-white border-[#8b4513] shadow-md' : 'bg-white text-[#7a5c3a] border-[#e6d3b3] hover:border-[#8b4513] hover:text-[#8b4513] shadow-sm'}`}
+                                >
+                                  Variants {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                              )}
+                              <div className="flex items-center gap-1 bg-[#fffaf3] border border-[#e6d3b3] p-1 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+                                <button onClick={() => navigate("/admin/add-product", { state: { product } })} className="p-1.5 hover:bg-white hover:text-[#8b4513] text-[#7a5c3a] rounded-lg transition-all" title="Edit">
+                                  <Pencil size={14} />
+                                </button>
+                                <div className="w-px h-4 bg-[#e6d3b3]" />
+                                <button onClick={() => setDeleteConfirm(id)} className="p-1.5 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-lg transition-all" title="Delete">
+                                  <Trash2 size={14} />
+                                </button>
                               </div>
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+
+                        {/* Expandable Variants Row (Accordion Style) */}
+                        {isExpanded && hasVariants && (
+                          <tr className="bg-[#fffaf3] border-b border-[#e6d3b3]">
+                            <td colSpan={5} className="px-0 py-0">
+                              <div className="px-6 py-4 bg-white/50 border-t border-dashed border-[#e6d3b3]/50">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-12 border-l-2 border-[#8b4513]/20 ml-6 py-2">
+                                  {variants.map((v, i) => {
+                                    const vId = v._id || v.id;
+                                    const isAvail = v.isAvailable !== false;
+                                    const isBusy = busyId === vId;
+                                    
+                                    return (
+                                      <div key={vId} className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${isAvail ? 'bg-white border-[#f0e0c4] shadow-sm' : 'bg-gray-50 border-gray-200 grayscale-[0.5]'}`}>
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-bold text-[#2d1b0e] truncate">{v.label}</p>
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <p className="text-xs font-medium text-[#7a5c3a]">{formatCurrency(v.sellingPrice)}</p>
+                                            <span className="text-[10px] text-[#a67f52] px-1.5 py-0.5 rounded bg-[#f5e6d3]/50 font-medium">Stock: {v.stock || 0}</span>
+                                          </div>
+                                        </div>
+                                        
+                                        <button 
+                                          disabled={isBusy}
+                                          onClick={() => handleVariantToggle(id, vId, isAvail)}
+                                          className={`h-6 w-11 rounded-full transition-all relative flex items-center shrink-0 border-2 ${isAvail ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-200 border-gray-300'} ${isBusy ? 'opacity-50' : 'cursor-pointer'}`}
+                                        >
+                                          <div className={`absolute h-4 w-4 rounded-full bg-white transition-all shadow-sm ${isAvail ? 'left-[20px]' : 'left-0.5'}`} />
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
