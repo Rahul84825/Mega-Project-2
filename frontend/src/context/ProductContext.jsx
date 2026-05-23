@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useReducer, useRef }
 import api from "../services/api";
 import { socket } from "../services/socket";
 import { calculateTotals } from "shared/utils/pricing";
+import { useAuth } from "./AuthContext";
 
 const ProductContext = createContext(null);
 
@@ -193,6 +194,25 @@ function productReducer(state, action) {
 export function ProductProvider({ children }) {
   const [state, dispatch] = useReducer(productReducer, initialState);
   const isFetchingRef = useRef(false);
+  const { isAdmin } = useAuth();
+  const audioRef = useRef(null);
+
+  // Initialize audio object
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      audioRef.current = new Audio("/notification.mp3");
+      audioRef.current.preload = "auto";
+    }
+  }, []);
+
+  const playNotification = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(err => {
+        console.warn("Audio playback failed (usually due to user interaction policy):", err);
+      });
+    }
+  }, []);
 
   // --- CORE FETCHERS ---
 
@@ -269,6 +289,16 @@ export function ProductProvider({ children }) {
 
     if (!socket.connected) socket.connect();
 
+    const handleNewOrder = (order) => {
+      if (order) {
+        dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
+        // Play notification if admin
+        if (isAdmin) {
+          playNotification();
+        }
+      }
+    };
+
     const handleOrderUpdate = (order) => {
       if (order) dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
     };
@@ -282,7 +312,7 @@ export function ProductProvider({ children }) {
       if (id) dispatch({ type: actionTypes.REMOVE_PRODUCT, payload: id });
     };
 
-    socket.on("order:new", handleOrderUpdate);
+    socket.on("order:new", handleNewOrder);
     socket.on("order:updated", handleOrderUpdate);
     socket.on("product:updated", handleProductUpdate);
     socket.on("product:created", handleProductUpdate);
@@ -290,14 +320,14 @@ export function ProductProvider({ children }) {
     socket.on("stock:updated", () => fetchProducts());
 
     return () => {
-      socket.off("order:new", handleOrderUpdate);
+      socket.off("order:new", handleNewOrder);
       socket.off("order:updated", handleOrderUpdate);
       socket.off("product:updated", handleProductUpdate);
       socket.off("product:created", handleProductUpdate);
       socket.off("product:deleted", handleProductDeleted);
       socket.off("stock:updated");
     };
-  }, [refreshAll, fetchProducts]);
+  }, [refreshAll, fetchProducts, isAdmin, playNotification]);
 
   useEffect(() => {
     const handleFocus = () => refreshAll(false);

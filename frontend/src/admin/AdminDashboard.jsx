@@ -4,7 +4,7 @@ import {
   Package, Tag, AlertTriangle, TrendingUp, 
   PlusCircle, ShoppingBag, LayoutDashboard, 
   IndianRupee, ChevronRight, Users, Sparkles, Clock, CheckCircle2,
-  Download, FileText, BarChart3
+  Download, FileText, BarChart3, Volume2
 } from "lucide-react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -17,7 +17,7 @@ import toast from "../services/utils/toast";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { products, orders, fetchOrders } = useProducts();
+  const { products, orders, fetchOrders, playNotification } = useProducts();
   const [loading, setLoading] = useState(true);
   const [reportStats, setReportStats] = useState({
     totalUsers: 0,
@@ -90,6 +90,11 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSoundTest = () => {
+    playNotification();
+    toast.success("Notification sound enabled!");
+  };
+
   const lowStockProducts = useMemo(() => {
     return products.filter(p => p.stock < 10).slice(0, 5);
   }, [products]);
@@ -106,6 +111,13 @@ const AdminDashboard = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={handleSoundTest}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[10px] font-bold uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 transition-all shadow-sm"
+            title="Ensure order sounds are enabled"
+          >
+            <Volume2 size={14} /> Sound Test
+          </button>
           <button 
             onClick={() => downloadReport('sales')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-[var(--surface-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm"

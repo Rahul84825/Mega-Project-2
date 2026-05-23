@@ -164,7 +164,7 @@ export const reserveStock = async ({
     const pricing = getVariantPricingSnapshot(product, variant);
     const subtotal = pricing.sellingPrice * quantity;
     const gstRate = Number(product.gstPercent || 0);
-    const gstAmount = gstRate > 0 ? (subtotal - (subtotal / (1 + gstRate / 100))) : 0;
+    const gstAmount = (subtotal * gstRate) / 100;
 
     itemSnapshots.push({
       productId,
@@ -182,7 +182,7 @@ export const reserveStock = async ({
       sellingPriceAtPurchase: pricing.sellingPrice,
       quantity,
       subtotal: subtotal,
-      finalAmount: subtotal, // sellingPrice is already inclusive of tax
+      finalAmount: subtotal + Math.round(gstAmount), // Exclusive model: Selling Price + GST
       stockSnapshot: {
         stockAtPurchase: isSimpleProduct ? product.stock : variant.stock,
         warehouseId: item?.warehouseId || ""
