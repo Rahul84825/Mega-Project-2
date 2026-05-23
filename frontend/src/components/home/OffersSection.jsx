@@ -23,9 +23,6 @@ const OffersSection = () => {
 
   return (
     <section className="py-12 md:py-24 bg-[var(--cream)] relative overflow-hidden">
-      {/* Subtle Background Text */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[20vw] font-black text-[var(--burgundy)]/3 pointer-events-none select-none serif">OFFERS</div>
-
       <SectionContainer className="relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
           <div className="section-title mb-0">
