@@ -80,8 +80,23 @@ const MyOrders = () => {
             return (
               <div 
                 key={order._id}
-                className="bg-white rounded-2xl border border-[var(--surface-border)] shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl border border-[var(--surface-border)] shadow-sm overflow-hidden hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500"
               >
+                {/* ── REJECTION NOTICE ── */}
+                {order.status === "REJECTED" && order.rejectionReason && (
+                  <div className="bg-rose-50 border-b border-rose-100 p-4 flex items-start gap-3">
+                    <div className="h-6 w-6 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                      <XCircle size={14} strokeWidth={3} />
+                    </div>
+                    <div>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-1">Cancellation Reason</h4>
+                      <p className="text-xs font-bold text-rose-900 italic leading-relaxed">
+                        "{order.rejectionReason}"
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 md:p-6 border-b border-[var(--surface-border)] bg-[var(--cream)]/30">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
