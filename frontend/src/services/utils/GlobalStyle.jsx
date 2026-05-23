@@ -49,17 +49,17 @@ function GlobalStyle() {
       /* Standardized Section Titles — ALWAYS Left Aligned */
       .section-title {
         text-align: left !important;
-        margin-bottom: 24px;
+        margin-bottom: clamp(16px, 3vw, 24px);
       }
       
       .section-title h2 {
         font-family: 'Playfair Display', serif;
-        font-size: clamp(24px, 4vw, 36px);
+        font-size: clamp(20px, 5vw, 36px);
         font-weight: 800;
         color: var(--charcoal);
         line-height: 1.2;
         position: relative;
-        padding-bottom: 12px;
+        padding-bottom: 8px;
         margin: 0;
       }
       
@@ -68,31 +68,38 @@ function GlobalStyle() {
         position: absolute;
         left: 0;
         bottom: 0;
-        width: 48px;
-        height: 3px;
+        width: 32px;
+        height: 2px;
         background: var(--saffron);
         border-radius: 10px;
       }
 
       .section-title p {
-        font-size: 14px;
+        font-size: clamp(12px, 2vw, 14px);
         color: var(--muted);
-        margin-top: 12px;
+        margin-top: 8px;
         font-weight: 500;
         max-width: 600px;
+        line-height: 1.5;
       }
 
       /* Compact Layout Containers */
       .responsive-grid {
         display: grid;
         gap: var(--card-gap);
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       }
 
-      @media (max-width: 640px) {
+      @media (max-width: 768px) {
         .responsive-grid {
           grid-template-columns: repeat(2, 1fr);
           gap: var(--card-gap-mobile);
+        }
+      }
+
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .responsive-grid {
+          grid-template-columns: repeat(3, 1fr);
         }
       }
 
