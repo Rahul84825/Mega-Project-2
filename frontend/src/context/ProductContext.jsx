@@ -199,18 +199,26 @@ export function ProductProvider({ children }) {
 
   // Initialize audio object
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !audioRef.current) {
       audioRef.current = new Audio("/notification.mp3");
       audioRef.current.preload = "auto";
+      audioRef.current.load();
     }
   }, []);
 
   const playNotification = useCallback(() => {
     if (audioRef.current) {
+      // Force reload if needed and play
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(err => {
-        console.warn("Audio playback failed (usually due to user interaction policy):", err);
-      });
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.warn("Audio playback failed (usually due to user interaction policy):", err);
+          // Fallback: try to load and play again
+          audioRef.current.load();
+        });
+      }
     }
   }, []);
 
