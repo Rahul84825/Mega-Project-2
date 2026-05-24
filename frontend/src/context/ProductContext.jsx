@@ -197,25 +197,55 @@ export function ProductProvider({ children }) {
   const { isAdmin } = useAuth();
   const audioRef = useRef(null);
 
-  // Initialize audio object
+  // Initialize audio object and handle autoplay "unlocking"
   useEffect(() => {
     if (typeof window !== "undefined" && !audioRef.current) {
-      audioRef.current = new Audio("/notification.mp3");
-      audioRef.current.preload = "auto";
-      audioRef.current.load();
+      const audio = new Audio("/notification.mp3");
+      audio.preload = "auto";
+      audio.load();
+      audioRef.current = audio;
+
+      // Interaction listener to unlock audio for modern browsers
+      const unlockAudio = () => {
+        if (audioRef.current) {
+          // Play a silent version or just start/stop to "unlock" the context
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+              console.log("🔔 Notification audio unlocked");
+            }).catch(e => console.log("Audio unlock failed:", e));
+          }
+          window.removeEventListener("click", unlockAudio);
+          window.removeEventListener("keydown", unlockAudio);
+          window.removeEventListener("touchstart", unlockAudio);
+        }
+      };
+
+      window.addEventListener("click", unlockAudio);
+      window.addEventListener("keydown", unlockAudio);
+      window.addEventListener("touchstart", unlockAudio);
+
+      return () => {
+        window.removeEventListener("click", unlockAudio);
+        window.removeEventListener("keydown", unlockAudio);
+        window.removeEventListener("touchstart", unlockAudio);
+      };
     }
   }, []);
 
   const playNotification = useCallback(() => {
     if (audioRef.current) {
-      // Force reload if needed and play
+      // Stop current playback if any
+      audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      const playPromise = audioRef.current.play();
       
+      const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(err => {
-          console.warn("Audio playback failed (usually due to user interaction policy):", err);
-          // Fallback: try to load and play again
+          console.warn("🔔 Audio playback failed (blocked by browser):", err);
+          // Fallback: try to reload
           audioRef.current.load();
         });
       }

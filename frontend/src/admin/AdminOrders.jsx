@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles, Filter, Volume2 } from "lucide-react";
+import { Search, Sparkles, Filter } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency } from "shared/utils/pricing";
@@ -21,7 +21,6 @@ const AdminOrders = () => {
     verifyPickupOtp,
     markOrderReady,
     markOrderDelivered,
-    playNotification
   } = useProducts();
 
   const [activeTab, setActiveTab] = useState("NEW");
@@ -35,11 +34,6 @@ const AdminOrders = () => {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
-
-  const handleSoundTest = () => {
-    playNotification();
-    toast.success("Order alert sound active!");
-  };
 
   const selectedOrder = useMemo(() => 
     (orders || []).find(o => o._id === selectedId),
@@ -122,12 +116,6 @@ const AdminOrders = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button 
-            onClick={handleSoundTest}
-            className="flex items-center justify-center gap-2 px-4 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-[10px] font-bold uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 transition-all shadow-sm"
-          >
-            <Volume2 size={16} /> Sound Test
-          </button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
             <input
