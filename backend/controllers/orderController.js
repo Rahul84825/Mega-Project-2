@@ -90,6 +90,7 @@ export const placeOrder = async (req, res) => {
         reason: "Order placement",
         discountTotal: orderData?.totals?.discountTotal,
         shippingFee: orderData?.totals?.shippingFee,
+        pincode: orderData?.shippingAddress?.postalCode || "",
         roundingAdjustment: orderData?.totals?.roundingAdjustment
       });
 

@@ -68,7 +68,7 @@ function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const isMountedRef = useRef(true);
   
-  const { subtotal, deliveryFee, gstTotal, total } = calculateTotals(cart);
+  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold, deliveryLabel, isFreeDelivery } = calculateTotals(cart, { pincode: form.pincode });
 
   // Sync state to localStorage
   useEffect(() => {
@@ -320,12 +320,36 @@ function CheckoutPage() {
                   </div>
                 ))}
               </div>
-              <div className="space-y-2 text-xs font-medium text-white/70 mb-6">
-                <div className="flex justify-between"><span>Items (Excl. Tax)</span><span>{formatCurrency(calculateTotals(cart).netSubtotal)}</span></div>
-                {calculateTotals(cart).gstTotal > 0 && (
-                  <div className="flex justify-between text-emerald-400/80"><span>GST Amount</span><span>{formatCurrency(calculateTotals(cart).gstTotal)}</span></div>
+              <div className="space-y-3 text-xs font-medium text-white/70 mb-6">
+                <div className="flex justify-between">
+                  <span>Items (Excl. Tax)</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                {gstTotal > 0 && (
+                  <div className="flex justify-between text-emerald-400/80">
+                    <span>GST Amount</span>
+                    <span>{formatCurrency(gstTotal)}</span>
+                  </div>
                 )}
-                <div className="flex justify-between"><span>Delivery</span><span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span></div>
+                <div className="flex justify-between items-center py-2 border-y border-white/5 my-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-white/40 uppercase tracking-wider flex items-center gap-1">
+                      <Truck size={10} /> {deliveryLabel}
+                    </span>
+                    <span>Delivery Fee</span>
+                  </div>
+                  <span className={deliveryFee === 0 ? "text-emerald-400 font-bold" : ""}>
+                    {deliveryFee === 0 ? "FREE" : formatCurrency(deliveryFee)}
+                  </span>
+                </div>
+
+                {!isFreeDelivery && (
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/10 animate-in fade-in duration-500">
+                    <p className="text-[10px] leading-tight text-white/80">
+                      Add <span className="text-[var(--saffron)] font-bold">{formatCurrency(deliveryThreshold - subtotal)}</span> more for <span className="text-emerald-400 font-bold tracking-tight">FREE DELIVERY</span> in this area.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex justify-between items-center text-lg font-medium pt-4 border-t border-white/10">
                 <span className="serif text-[var(--saffron)]">Total</span>

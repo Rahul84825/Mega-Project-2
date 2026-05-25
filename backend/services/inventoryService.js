@@ -59,7 +59,9 @@ export const reserveStock = async ({
   orderNumber,
   reason = "Order reservation",
   discountTotal = 0,
-  shippingFee = 0,
+  shippingFee = null,
+  pincode = "",
+  distance = null,
   roundingAdjustment = 0
 }) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -200,7 +202,12 @@ export const reserveStock = async ({
     }
   }
 
-  const totals = calculateTotals(itemSnapshots, discountTotal, shippingFee);
+  const totals = calculateTotals(itemSnapshots, { 
+    manualDiscount: discountTotal, 
+    manualShipping: shippingFee, 
+    pincode, 
+    distance 
+  });
 
   return {
     itemSnapshots,

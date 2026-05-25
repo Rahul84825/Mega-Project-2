@@ -42,19 +42,66 @@ export const calculateSellingPrice = (mrp, discountPercent) => {
 
 // --- CART & ORDER TOTALS ---
 
-const DELIVERY_THRESHOLD = 500;
-const DELIVERY_CHARGE = 40;
+const DEFAULT_DELIVERY_CHARGE = 40;
+const BASE_PINCODE = "411014";
+
+// Mock distance mapping from BASE_PINCODE to other Pune pincodes (for demo purposes)
+const PINCODE_DISTANCES = {
+  "411014": 0,    // Viman Nagar
+  "411006": 3,    // Yerwada / Kalyani Nagar
+  "411032": 4,    // Yerwada
+  "411001": 7,    // Camp / MG Road
+  "411011": 9,    // Kasba Peth
+  "411002": 11,   // Swargate
+  "411038": 13,   // Kothrud
+  "411045": 16,   // Baner
+  "411057": 22,   // Hinjewadi
+  "411028": 12,   // Hadapsar
+  "411013": 8     // Hadapsar
+};
+
+/**
+ * Rules for free delivery based on distance/pincode
+ * - Same Pincode (411014): Free above ₹200
+ * - Distance > 5km: Free above ₹500
+ * - Distance > 10km: Free above ₹1000
+ * - Distance > 15km: Free above ₹1500
+ */
+export const getDeliveryConfig = (pincode = "", distance = null) => {
+  const code = String(pincode).trim();
+  
+  // 1. Same Pincode check
+  if (code === BASE_PINCODE) {
+    return { threshold: 200, charge: DEFAULT_DELIVERY_CHARGE, label: "Same Pincode (Viman Nagar)" };
+  }
+
+  // 2. Use distance if provided or found in mapping
+  const effectiveDistance = distance !== null ? distance : (PINCODE_DISTANCES[code] || null);
+
+  if (effectiveDistance !== null) {
+    if (effectiveDistance > 15) return { threshold: 1500, charge: DEFAULT_DELIVERY_CHARGE, label: `Long Distance (${effectiveDistance}km)` };
+    if (effectiveDistance > 10) return { threshold: 1000, charge: DEFAULT_DELIVERY_CHARGE, label: `Medium Distance (${effectiveDistance}km)` };
+    if (effectiveDistance > 5) return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Standard Distance (${effectiveDistance}km)` };
+    
+    // Within 5km but different pincode
+    return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Local Delivery (${effectiveDistance}km)` };
+  }
+
+  // 3. Fallback / Unknown distance
+  return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: "Standard Delivery" };
+};
 
 /**
  * Calculates totals for a given array of items.
  * Items must have: { price: number, quantity: number, gstRate: number }
  * 
  * @param {Array} items - The items in the cart or order.
- * @param {Number} manualDiscount - Any extra discount applied (e.g. coupon).
- * @param {Number} manualShipping - Override shipping fee (if not auto-calculated).
+ * @param {Object} options - { manualDiscount, manualShipping, pincode, distance }
  * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal, gstTotal, netSubtotal }
  */
-export const calculateTotals = (items = [], manualDiscount = 0, manualShipping = null) => {
+export const calculateTotals = (items = [], options = {}) => {
+  const { manualDiscount = 0, manualShipping = null, pincode = "", distance = null } = options;
+  
   if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0, netSubtotal: 0 };
 
   let netSubtotal = 0; // Sum of selling prices (Before GST)
@@ -77,7 +124,11 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
 
   const discountTotal = normalizeNumber(manualDiscount);
   
-  // Calculate delivery fee
+  // Dynamic Delivery Logic
+  const deliveryConfig = getDeliveryConfig(pincode, distance);
+  const DELIVERY_THRESHOLD = deliveryConfig.threshold;
+  const DELIVERY_CHARGE = deliveryConfig.charge;
+
   let shippingFee = 0;
   if (netSubtotal > 0) {
     if (manualShipping !== null && manualShipping !== undefined) {
@@ -88,7 +139,6 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
   }
 
   // Calculate final total (Exclusive GST + Delivery)
-  // Grand Total = Net Subtotal + GST + Shipping - Discount
   const grandTotal = Math.max(0, netSubtotal + gstTotal + shippingFee - discountTotal);
 
   return {
@@ -105,7 +155,8 @@ export const calculateTotals = (items = [], manualDiscount = 0, manualShipping =
     total: Math.round(grandTotal),
 
     isFreeDelivery: shippingFee === 0 && netSubtotal > 0,
-    deliveryThreshold: DELIVERY_THRESHOLD
+    deliveryThreshold: DELIVERY_THRESHOLD,
+    deliveryLabel: deliveryConfig.label
   };
 };
 
