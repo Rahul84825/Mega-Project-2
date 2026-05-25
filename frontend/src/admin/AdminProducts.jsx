@@ -246,7 +246,7 @@ const AdminProducts = () => {
                       ) : (
                         <Sparkles size={14} className="text-[var(--gold)]" />
                       )}
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-[#7a5c3a]">Stock: {totalStock}</span>
+                      {/* Removed Stock display */}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -363,9 +363,7 @@ const AdminProducts = () => {
                                       {product.gstPercent}% GST
                                     </span>
                                   )}
-                                  <span className="text-[10px] font-medium text-[#7a5c3a]">
-                                    Total Stock: {totalStock}
-                                  </span>
+                                  {/* Removed Total Stock display */}
                                 </div>
                               </div>
                             </div>
@@ -416,7 +414,7 @@ const AdminProducts = () => {
                                   Variants {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
                               )}
-                              <div className="flex items-center gap-1 bg-[#fffaf3] border border-[#e6d3b3] p-1 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+                              <div className="flex items-center gap-1 bg-[#fffaf3] border border-[#e6d3b3] p-1 rounded-xl shadow-sm md:opacity-0 md:group-hover:opacity-100 transition-all">
                                 <button onClick={() => navigate("/admin/add-product", { state: { product } })} className="p-1.5 hover:bg-white hover:text-[#8b4513] text-[#7a5c3a] rounded-lg transition-all" title="Edit">
                                   <Pencil size={14} />
                                 </button>
@@ -446,7 +444,7 @@ const AdminProducts = () => {
                                           <p className="text-sm font-bold text-[#2d1b0e] truncate">{v.label}</p>
                                           <div className="flex items-center gap-2 mt-1">
                                             <p className="text-xs font-medium text-[#7a5c3a]">{formatCurrency(v.sellingPrice)}</p>
-                                            <span className="text-[10px] text-[#a67f52] px-1.5 py-0.5 rounded bg-[#f5e6d3]/50 font-medium">Stock: {v.stock || 0}</span>
+                                            {/* Removed Stock display */}
                                           </div>
                                         </div>
                                         

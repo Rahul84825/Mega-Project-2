@@ -6,7 +6,11 @@ import { useAuth } from "./AuthContext";
 
 const ProductContext = createContext(null);
 
-const toArray = (value) => (Array.isArray(value) ? value : []);
+const toArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'string') return [value];
+  return [];
+};
 
 export const normalizeProduct = (product) => {
   const productId = String(product?._id || product?.id || "");
@@ -35,11 +39,12 @@ export const normalizeProduct = (product) => {
     ...product,
     _id: productId,
     id: productId,
+    isActive: product?.isActive !== undefined ? Boolean(product.isActive) : true,
     variants: normalizedVariants,
     basePrice,
     price: basePrice,
     stock: normalizedVariants.reduce((sum, v) => sum + v.stock, 0) || Number(product?.stock || 0),
-    images: toArray(product?.images || product?.image)
+    images: toArray(product?.images?.length ? product.images : product?.image)
   };
 };
 

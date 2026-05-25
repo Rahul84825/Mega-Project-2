@@ -185,7 +185,6 @@ const AdminProductForm = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.category) e.category = "Required";
-    if (form.images.length === 0) e.image = "At least one image is required";
     
     const ve = {};
     form.variants.forEach(v => {

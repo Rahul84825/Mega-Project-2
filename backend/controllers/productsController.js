@@ -236,7 +236,8 @@ export const createProduct = async (req, res, next) => {
       isHero,
       isSignature,
       isSnack,
-      isMalaiBarfi
+      isMalaiBarfi,
+      isActive
     } = req.body || {};
 
     if (!name || !category) {
@@ -314,7 +315,8 @@ export const createProduct = async (req, res, next) => {
       isHero: Boolean(isHero),
       isSignature: Boolean(isSignature),
       isSnack: Boolean(isSnack),
-      isMalaiBarfi: Boolean(isMalaiBarfi)
+      isMalaiBarfi: Boolean(isMalaiBarfi),
+      isActive: isActive !== undefined ? Boolean(isActive) : true
     });
 
     if (product.isHero) {
