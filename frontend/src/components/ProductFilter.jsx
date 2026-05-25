@@ -55,7 +55,7 @@ const FilterDropdown = ({ label, value, options, onChange }) => {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-50 min-w-[200px] overflow-hidden rounded-[16px] border border-[#e8d5b7] bg-[#fffaf3] shadow-[0_10px_32px_rgba(122,40,40,0.12)] animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute left-0 top-[calc(100%+8px)] z-50 min-w-[200px] max-h-[300px] overflow-y-auto rounded-[16px] border border-[#e8d5b7] bg-[#fffaf3] shadow-[0_10px_32px_rgba(122,40,40,0.12)] animate-in fade-in slide-in-from-top-2 duration-150 scrollbar-thin scrollbar-thumb-[var(--gold)]/20">
           <div className="flex flex-col py-1">
             {options.map((option) => {
               const isSelected = value === option.id;

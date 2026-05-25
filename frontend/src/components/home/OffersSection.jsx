@@ -22,7 +22,7 @@ const OffersSection = () => {
   if (!activeOffers.length && !loading) return null;
 
   return (
-    <section className="py-12 md:py-24 bg-[var(--cream)] relative overflow-hidden">
+    <section className="py-8 md:py-16 bg-[var(--cream)] relative overflow-hidden">
       <SectionContainer className="relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
           <div className="section-title mb-0">

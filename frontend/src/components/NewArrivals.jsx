@@ -20,7 +20,7 @@ function NewArrivals({ initialCategory = "all", title = "New Arrivals" }) {
   }, [products, initialCategory]);
 
   return (
-    <section className="py-12 md:py-28 bg-[var(--cream)] relative overflow-hidden">
+    <section className="py-8 md:py-16 bg-[var(--cream)] relative overflow-hidden">
       {/* Background Decorative Blur */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 h-[600px] w-[600px] bg-[var(--saffron)]/5 rounded-full blur-[120px] pointer-events-none" />
 

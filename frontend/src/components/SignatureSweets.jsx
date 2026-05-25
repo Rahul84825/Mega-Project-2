@@ -18,7 +18,7 @@ const SignatureSweets = () => {
   if (!loading && sweets.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-24 bg-[#fffaf3] relative overflow-hidden">
+    <section className="py-8 md:py-16 bg-[#fffaf3] relative overflow-hidden">
       {/* Decorative Background Element */}
       <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 h-[500px] w-[500px] bg-[var(--burgundy)]/5 rounded-full blur-3xl pointer-events-none" />
       

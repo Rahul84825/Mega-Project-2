@@ -52,12 +52,10 @@ function Navbar() {
 
   const navbarCategories = useMemo(() => {
     const list = Array.isArray(categories) ? categories : [];
-    return list.filter(c => c.showInNavbar && c.is_active !== false);
-  }, [categories]);
-
-  const sweetsCategories = useMemo(() => {
-    const list = Array.isArray(categories) ? categories : [];
-    return list.filter(c => c.type === "sweets" && c.is_active !== false);
+    return list
+      .filter(c => c.showInNavbar && c.is_active !== false)
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .slice(0, 6);
   }, [categories]);
 
   const handleNav = (path) => {
@@ -182,7 +180,7 @@ function Navbar() {
                   <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_40px_80px_-15px_rgba(139,30,63,0.2)] p-6 min-w-[280px] overflow-hidden">
                     <div className="grid grid-cols-1 gap-1">
                       <div className="text-[9px] font-black text-[var(--gold)] uppercase tracking-[0.3em] mb-3 pl-3 opacity-60">Sweets & Mithai</div>
-                      {sweetsCategories.map(cat => (
+                      {navbarCategories.map(cat => (
                         <button
                           key={cat._id}
                           onClick={() => handleNav(`/sweets?category=${cat.slug}`)}
@@ -315,7 +313,7 @@ function Navbar() {
                   <div className="space-y-2 mt-4">
                     <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--gold)] opacity-70 ml-2">Categories</p>
                     <div className="grid grid-cols-1 gap-2">
-                      {sweetsCategories.map((cat, idx) => (
+                      {navbarCategories.map((cat, idx) => (
                         <button 
                           key={cat._id} 
                           onClick={() => handleNav(`/sweets?category=${cat.slug}`)} 
