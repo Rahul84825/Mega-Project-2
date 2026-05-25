@@ -116,8 +116,7 @@ export const reserveStock = async ({
       }
     }
 
-    // Check stock for both simple and variant products
-    const stockAvailable = isSimpleProduct ? (product.stock || 0) : (variant.stock || 0);
+    // Check for availability only - numeric stock is no longer used for checks
     const isAvailable = isSimpleProduct ? (product.isActive !== false) : (variant.isAvailable !== false);
 
     if (!isAvailable) {
@@ -128,6 +127,8 @@ export const reserveStock = async ({
       );
     }
 
+    // Skip numeric stock checks and updates
+    /* 
     if (Number(stockAvailable) < quantity) {
       throw new InventoryError(
         `${product.name} is out of stock or has insufficient quantity (requested: ${quantity}, available: ${stockAvailable})`,
@@ -135,31 +136,7 @@ export const reserveStock = async ({
         "INSUFFICIENT_STOCK"
       );
     }
-
-    // Update stock: for simple products use product.stock, for variants use variants.N.stock
-    let stockCheck;
-    if (isSimpleProduct) {
-      stockCheck = await Product.updateOne(
-        { _id: productId, stock: { $gte: quantity } },
-        { $inc: { stock: -quantity } },
-        { session }
-      );
-    } else {
-      const variantPath = `variants.${variantIndex}.stock`;
-      stockCheck = await Product.updateOne(
-        { _id: productId, [variantPath]: { $gte: quantity } },
-        { $inc: { [variantPath]: -quantity } },
-        { session }
-      );
-    }
-
-    if (stockCheck.modifiedCount === 0) {
-      throw new InventoryError(
-        `${product.name} went out of stock during checkout`,
-        409,
-        "STOCK_RACE"
-      );
-    }
+    */
 
     const pricing = getVariantPricingSnapshot(product, variant);
     const subtotal = pricing.sellingPrice * quantity;
@@ -184,7 +161,7 @@ export const reserveStock = async ({
       subtotal: subtotal,
       finalAmount: subtotal + Math.round(gstAmount), // Exclusive model: Selling Price + GST
       stockSnapshot: {
-        stockAtPurchase: isSimpleProduct ? product.stock : variant.stock,
+        stockAtPurchase: isSimpleProduct ? (product.stock || 0) : (variant.stock || 0),
         warehouseId: item?.warehouseId || ""
       }
     });
@@ -195,8 +172,8 @@ export const reserveStock = async ({
       variantLabel: variant?.label || "Default",
       action: "RESERVE",
       quantity,
-      stockBefore: isSimpleProduct ? product.stock : variant.stock,
-      stockAfter: (isSimpleProduct ? product.stock : variant.stock || 0) - quantity,
+      stockBefore: isSimpleProduct ? (product.stock || 0) : (variant.stock || 0),
+      stockAfter: isSimpleProduct ? (product.stock || 0) : (variant.stock || 0),
       orderNumber,
       reason,
       metadata: { source: "checkout" }
@@ -244,17 +221,20 @@ export const releaseStock = async ({ reservations, session, orderNumber, reason 
       continue;
     }
 
+    // Skip actual stock update
+    /*
     const variantPath = `variants.${variantIndex}.stock`;
-    const product = await Product.findById(productId)
-      .select(`variants.${variantIndex}.stock variants.${variantIndex}.label`)
-      .session(session);
-    const currentStock = Number(product?.variants?.[variantIndex]?.stock ?? 0);
-
     await Product.updateOne(
       { _id: productId },
       { $inc: { [variantPath]: quantity } },
       { session }
     );
+    */
+
+    const product = await Product.findById(productId)
+      .select(`variants.${variantIndex}.stock variants.${variantIndex}.label`)
+      .session(session);
+    const currentStock = Number(product?.variants?.[variantIndex]?.stock ?? 0);
 
     logEntries.push({
       productId,
@@ -263,7 +243,7 @@ export const releaseStock = async ({ reservations, session, orderNumber, reason 
       action: "RELEASE",
       quantity,
       stockBefore: currentStock,
-      stockAfter: currentStock + quantity,
+      stockAfter: currentStock,
       orderNumber,
       reason,
       metadata: { source: "release" }
@@ -295,9 +275,9 @@ export const getProductStock = async (productId, variantId = null) => {
     return {
       productId,
       type: "simple",
-      available: isProductActive ? Number(product.stock || 0) : 0,
+      available: isProductActive ? 999 : 0,
       reserved: 0,
-      total: Number(product.stock || 0),
+      total: isProductActive ? 999 : 0,
       isAvailable: isProductActive
     };
   }
@@ -320,9 +300,9 @@ export const getProductStock = async (productId, variantId = null) => {
       variantId: variant._id,
       variantLabel: variant.label,
       type: "variant",
-      available: isVariantAvailable ? Number(variant.stock || 0) : 0,
+      available: isVariantAvailable ? 999 : 0,
       reserved: 0,
-      total: Number(variant.stock || 0),
+      total: isVariantAvailable ? 999 : 0,
       isAvailable: isVariantAvailable
     };
   }
@@ -336,8 +316,8 @@ export const getProductStock = async (productId, variantId = null) => {
       return {
         variantId: v._id,
         label: v.label,
-        available: isVariantAvailable ? Number(v.stock || 0) : 0,
-        total: Number(v.stock || 0),
+        available: isVariantAvailable ? 999 : 0,
+        total: isVariantAvailable ? 999 : 0,
         isAvailable: isVariantAvailable
       };
     })
@@ -423,7 +403,8 @@ export const restoreStock = async ({ items, session, orderNumber, reason = "Stoc
       continue; // Skip if variant not found
     }
 
-    // Restore stock based on product type
+    // Skip actual stock restoration
+    /*
     if (isSimpleProduct) {
       const currentStock = Number(product.stock ?? 0);
       await Product.updateOne(
@@ -431,42 +412,26 @@ export const restoreStock = async ({ items, session, orderNumber, reason = "Stoc
         { $inc: { stock: quantity } },
         { session }
       );
-
-      logEntries.push({
-        productId,
-        variantId: null,
-        variantLabel: "Default",
-        action: "RESTORE",
-        quantity,
-        stockBefore: currentStock,
-        stockAfter: currentStock + quantity,
-        orderNumber,
-        reason,
-        metadata: { source: "restore" }
-      });
+      ...
     } else {
-      const variantPath = `variants.${variantIndex}.stock`;
-      const currentStock = Number(variant.stock ?? 0);
-      
-      await Product.updateOne(
-        { _id: productId },
-        { $inc: { [variantPath]: quantity } },
-        { session }
-      );
-
-      logEntries.push({
-        productId,
-        variantId: variant._id || null,
-        variantLabel: variant.label || "Default",
-        action: "RESTORE",
-        quantity,
-        stockBefore: currentStock,
-        stockAfter: currentStock + quantity,
-        orderNumber,
-        reason,
-        metadata: { source: "restore" }
-      });
+      ...
     }
+    */
+
+    const currentStock = isSimpleProduct ? Number(product.stock ?? 0) : Number(variant.stock ?? 0);
+
+    logEntries.push({
+      productId,
+      variantId: isSimpleProduct ? null : (variant._id || null),
+      variantLabel: variant.label || "Default",
+      action: "RESTORE",
+      quantity,
+      stockBefore: currentStock,
+      stockAfter: currentStock,
+      orderNumber,
+      reason,
+      metadata: { source: "restore" }
+    });
   }
 
   if (logEntries.length > 0) {

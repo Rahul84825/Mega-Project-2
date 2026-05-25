@@ -223,13 +223,13 @@ const AdminProductForm = () => {
           discountPercent: Number(v.discountPercent || 0),
           sellingPrice: calculateSellingPrice(v.mrp, v.discountPercent),
           finalPrice: calculateSellingPrice(v.mrp, v.discountPercent),
-          stock: Math.max(0, Math.floor(Number(v.stock || 0))),
+          stock: 999, // Numeric stock deprecated: default to high value
           isAvailable: Boolean(v.isAvailable)
         }))
       };
 
-      // Auto-calculate total stock from variants
-      payload.stock = payload.variants.reduce((sum, v) => sum + v.stock, 0);
+      // Set a high default total stock
+      payload.stock = 999 * payload.variants.length;
 
       if (isEditMode) await updateProduct(productFromState._id, payload);
       else await addProduct(payload);
@@ -339,7 +339,7 @@ const AdminProductForm = () => {
                 return (
                   <div key={v.id} className={`p-4 rounded-2xl border relative group transition-colors ${v.isAvailable ? 'bg-[var(--cream)]/30 border-[var(--surface-border)]' : 'bg-gray-50 border-gray-200'}`}>
                     <button onClick={() => removeVariant(v.id)} className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X size={12} /></button>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Label (e.g. 500g)</label>
                         <input value={v.label} onChange={e => updateVariant(v.id, "label", e.target.value)} className={`input-field h-9 text-xs ${variantErrors[`${v.id}.label`] ? 'border-red-500' : ''}`} disabled={!v.isAvailable} />
@@ -351,10 +351,6 @@ const AdminProductForm = () => {
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Discount (%)</label>
                         <input type="number" value={v.discountPercent} onChange={e => updateVariant(v.id, "discountPercent", e.target.value)} className="input-field h-9 text-xs" disabled={!v.isAvailable} />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Stock (Qty)</label>
-                        <input type="number" value={v.stock} onChange={e => updateVariant(v.id, "stock", e.target.value)} className="input-field h-9 text-xs" disabled={!v.isAvailable} />
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-[var(--surface-border)]/50">

@@ -19,6 +19,7 @@ export const normalizeProduct = (product) => {
     const mrp = Math.round(Number(variant?.mrp || 0));
     const sellingPrice = Math.round(Number(variant?.sellingPrice || mrp));
     const variantId = variant?._id || variant?.id || `${productId}_v${index}`;
+    const isAvailable = variant?.isAvailable !== undefined ? Boolean(variant.isAvailable) : true;
     
     return {
       ...variant,
@@ -26,8 +27,8 @@ export const normalizeProduct = (product) => {
       mrp,
       sellingPrice,
       finalPrice: sellingPrice,
-      stock: Number(variant?.stock || 0),
-      isAvailable: variant?.isAvailable !== undefined ? Boolean(variant.isAvailable) : true
+      stock: isAvailable ? 999 : 0, // Ignore DB stock, use 999 if available
+      isAvailable
     };
   });
 
@@ -35,15 +36,17 @@ export const normalizeProduct = (product) => {
     ? Math.min(...normalizedVariants.map(v => v.sellingPrice))
     : Math.round(Number(product?.price || product?.basePrice || 0));
 
+  const isActive = product?.isActive !== undefined ? Boolean(product.isActive) : true;
+
   return {
     ...product,
     _id: productId,
     id: productId,
-    isActive: product?.isActive !== undefined ? Boolean(product.isActive) : true,
+    isActive,
     variants: normalizedVariants,
     basePrice,
     price: basePrice,
-    stock: normalizedVariants.reduce((sum, v) => sum + v.stock, 0) || Number(product?.stock || 0),
+    stock: isActive ? 999 : 0, // Ignore DB stock, use 999 if active
     images: toArray(product?.images?.length ? product.images : product?.image)
   };
 };
