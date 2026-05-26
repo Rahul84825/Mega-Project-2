@@ -337,13 +337,13 @@ function CheckoutPage() {
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 {gstTotal > 0 && (
-                  <div className="flex justify-between text-emerald-400/80">
+                  <div className="flex justify-between text-[var(--saffron)]">
                     <span>GST Amount</span>
                     <span>{formatCurrency(gstTotal)}</span>
                   </div>
                 )}
                 {packingTotal > 0 && (
-                  <div className="flex justify-between text-emerald-400/80">
+                  <div className="flex justify-between text-[var(--saffron)]">
                     <span>Packing Charges</span>
                     <span>{formatCurrency(packingTotal)}</span>
                   </div>

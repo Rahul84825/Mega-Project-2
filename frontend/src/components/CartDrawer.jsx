@@ -9,7 +9,7 @@ function CartDrawer() {
   const { cart, isCartOpen, closeCart, dispatch } = useCart();
   const navigate = useNavigate();
 
-  const { subtotal, deliveryFee, gstTotal, total } = calculateTotals(cart);
+  const { subtotal, deliveryFee, gstTotal, packingTotal, total } = calculateTotals(cart);
 
   useEffect(() => {
     if (isCartOpen) document.body.style.overflow = "hidden";
@@ -26,12 +26,12 @@ function CartDrawer() {
   if (!isCartOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex justify-end">
+    <div className="fixed inset-0 z-[150] flex justify-end">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300" onClick={closeCart} />
       
       <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-500">
         {/* ── HEADER ── */}
-        <div className="p-6 border-b border-[var(--surface-border)] flex items-center justify-between bg-[var(--cream)]/30">
+        <div className="p-6 border-b border-[var(--surface-border)] flex items-center justify-between bg-white">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-[var(--burgundy)] text-white flex items-center justify-center">
               <ShoppingBag size={20} />
@@ -94,23 +94,18 @@ function CartDrawer() {
           <div className="p-6 bg-[var(--cream)] border-t border-[var(--surface-border)] shadow-[0_-8px_30px_rgba(0,0,0,0.05)]">
             <div className="space-y-2 mb-6">
               <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
-                <span>Items Subtotal (Excl. Tax)</span>
-                <span>{formatCurrency(calculateTotals(cart).netSubtotal)}</span>
+                <span>Items Subtotal</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
-              {calculateTotals(cart).gstTotal > 0 && (
-                <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
-                  <span>Estimated GST</span>
-                  <span>{formatCurrency(calculateTotals(cart).gstTotal)}</span>
-                </div>
-              )}
+              
               <div className="flex justify-between text-xs font-medium text-[var(--muted)]">
                 <span>Delivery</span>
-                <span>{calculateTotals(cart).deliveryFee === 0 ? 'FREE' : formatCurrency(calculateTotals(cart).deliveryFee)}</span>
+                <span>{deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee)}</span>
               </div>
               <div className="h-px bg-[var(--surface-border)] my-2" />
               <div className="flex justify-between text-xl font-medium text-[var(--charcoal)]">
                 <span>Total</span>
-                <span className="text-[var(--burgundy)]">{formatCurrency(calculateTotals(cart).total)}</span>
+                <span className="text-[var(--burgundy)]">{formatCurrency(subtotal + deliveryFee)}</span>
               </div>
               <p className="text-[10px] text-center text-[var(--muted)] italic mt-2">{TAX_MESSAGE}</p>
             </div>
