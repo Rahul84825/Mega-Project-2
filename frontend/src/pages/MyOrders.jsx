@@ -4,7 +4,8 @@ import { formatCurrency } from "shared/utils/pricing";
 import api from "../services/api";
 import { 
   Package, Clock, CheckCircle2, XCircle, 
-  ChevronRight, MapPin, Search, ShoppingBag
+  ChevronRight, MapPin, Search, ShoppingBag,
+  CreditCard, Truck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -130,19 +131,44 @@ const MyOrders = () => {
                     <div className="space-y-3">
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center gap-4">
-                          <img src={item.imageSnapshot} alt="" className="h-12 w-12 rounded-lg object-cover bg-[var(--surface-strong)]" />
+                          <img src={item.imageSnapshot || item.image} alt="" className="h-12 w-12 rounded-lg object-cover bg-[var(--surface-strong)]" />
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-[var(--charcoal)] truncate">{item.titleSnapshot}</div>
+                            <div className="text-xs font-medium text-[var(--charcoal)] truncate">{item.titleSnapshot || item.name}</div>
                             <div className="text-[10px] text-[var(--muted)]">
                               {item.selectedVariant?.label || "Regular"} × {item.quantity}
                             </div>
                           </div>
                           <div className="text-xs font-medium text-[var(--charcoal)]">
-                            {formatCurrency(item.finalAmount)}
+                            {formatCurrency(item.finalAmount || item.subtotal || (item.sellingPriceAtPurchase ? item.sellingPriceAtPurchase * item.quantity : (item.price || 0) * item.quantity))}
                           </div>
                         </div>
                       ))}
                     </div>
+
+                    {/* ── DELIVERY PARTNER INFO ── */}
+                    {order.rider?.name && (
+                      <div className="pt-4 border-t border-blue-50 mt-4 flex flex-wrap items-center justify-between gap-4 bg-blue-50/50 p-4 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                            <Truck size={18} />
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold uppercase tracking-widest text-blue-500 mb-0.5">Assigned Rider</div>
+                            <div className="text-xs font-bold text-blue-900">{order.rider.name} • {order.rider.phone}</div>
+                          </div>
+                        </div>
+                        {order.delivery?.trackingUrl && (
+                          <a 
+                            href={order.delivery.trackingUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20"
+                          >
+                            Track Live <ChevronRight size={12} />
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-6">
@@ -156,10 +182,21 @@ const MyOrders = () => {
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-[var(--surface-border)]">
-                      <div className="flex justify-between items-center text-sm">
+                    <div className="pt-4 border-t border-[var(--surface-border)] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CreditCard size={14} className="text-[var(--muted)]" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)]">
+                            {order.payment?.method || "Online"}
+                          </span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700">
+                          {order.payment?.status === "PAID" ? "Paid" : order.payment?.status || "Pending"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm pt-1">
                         <span className="font-medium text-[var(--charcoal)]">Total Amount</span>
-                        <span className="text-lg font-medium text-[var(--burgundy)]">
+                        <span className="text-lg font-bold text-[var(--burgundy)]">
                           {formatCurrency(order.totals?.grandTotal || order.total)}
                         </span>
                       </div>
