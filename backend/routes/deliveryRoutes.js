@@ -14,6 +14,17 @@ router.post("/webhook/:provider", async (req, res) => {
   const { provider } = req.params;
   const payload = req.body;
 
+  // ── SECURITY: Webhook Validation ──
+  if (provider === "borzo") {
+    const receivedToken = req.headers["x-dv-auth-token"];
+    const expectedToken = process.env.BORZO_CALLBACK_TOKEN;
+    
+    if (expectedToken && receivedToken !== expectedToken) {
+      logger.warn(`🛑 Unauthorized Borzo webhook attempt. Invalid token.`);
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+  }
+
   logger.info(`📦 Received ${provider} webhook`, { payload });
 
   try {
