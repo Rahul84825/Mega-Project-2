@@ -77,20 +77,20 @@ function Navbar() {
         <div className="bg-[var(--burgundy)] text-white py-2 px-4 text-center overflow-hidden whitespace-nowrap relative min-h-[40px] flex items-center group/promo z-[110]">
           <div className="inline-flex items-center gap-8 animate-marquee-slow pr-8">
             <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Sparkles size={12} className="text-[var(--gold)] animate-pulse" /> Free Delivery Above ₹999
+              <Sparkles size={12} className="text-[var(--gold)] animate-pulse" /> 10 % Off on First Order! Use Code: WELCOME10
             </span>
             <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Bell size={12} className="text-[var(--gold)] animate-bounce" /> Diwali Pre-Orders Now Open!
+              <Bell size={12} className="text-[var(--gold)] animate-bounce" /> Eat Less, Eat Best - Premium Sweets for Health-Conscious Foodies!
             </span>
             <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
             </span>
             {/* Duplicated for seamless loop */}
             <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Sparkles size={12} className="text-[var(--gold)] animate-pulse" /> Free Delivery Above ₹999
+              <Sparkles size={12} className="text-[var(--gold)] animate-pulse" /> 10 % Off on First Order! Use Code: WELCOME10
             </span>
             <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Bell size={12} className="text-[var(--gold)] animate-bounce" /> Diwali Pre-Orders Now Open!
+              <Bell size={12} className="text-[var(--gold)] animate-bounce" /> Eat Less, Eat Best - Premium Sweets for Health-Conscious Foodies!
             </span>
             <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
               <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
