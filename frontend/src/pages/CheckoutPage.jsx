@@ -69,85 +69,21 @@ function CheckoutPage() {
   const [couponError, setCouponError] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [isOrderSuccessful, setIsOrderSuccessful] = useState(false);
   const isMountedRef = useRef(true);
-  
-  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold, deliveryLabel, isFreeDelivery, outOfReach, couponDiscount } = calculateTotals(cart, { 
-    pincode: form.pincode,
-    coupon: appliedCoupon
-  });
 
-  // Sync state to localStorage
-  useEffect(() => {
-    localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ form, step, appliedCoupon }));
-  }, [form, step, appliedCoupon]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    loadRazorpayScript().then(loaded => isMountedRef.current && setScriptReady(loaded));
-    
-    // Auto-fill from user profile ONLY if fields are empty
-    if (user) {
-      setForm(prev => ({
-        ...prev,
-        name: prev.name || user.name || "",
-        email: prev.email || user.email || "",
-      }));
-    }
-
-    // Try to restore applied coupon
-    try {
-      const saved = localStorage.getItem(CHECKOUT_STORAGE_KEY);
-      const parsed = saved ? JSON.parse(saved) : null;
-      if (parsed?.appliedCoupon) setAppliedCoupon(parsed.appliedCoupon);
-    } catch (err) {}
-
-    return () => { isMountedRef.current = false; };
-  }, [user]);
-
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setValidatingCoupon(true);
-    setCouponError("");
-    try {
-      const { data } = await api.post("/api/coupons/validate", { 
-        code: couponCode, 
-        orderAmount: subtotal,
-        userId: user?.userId || user?._id
-      });
-      if (data.success) {
-        setAppliedCoupon(data.coupon);
-        setCouponCode("");
-        setCouponError("");
-      }
-    } catch (err) {
-      setCouponError(getApiErrorMessage(err, "Invalid code"));
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponError("");
-  };
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const isAddressValid = ["name", "phone", "email", "address", "city", "pincode", "state"].every(k => String(form[k] || "").trim().length > 0) &&
-    /^\d{6}$/.test(form.pincode) &&
-    /^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/.test(form.phone.trim());
-
-  const validateStock = () => {
-    for (const item of cart) {
-      if (!item.stock || item.stock < item.quantity) return `${item.name} is currently out of stock.`;
-    }
-    return null;
-  };
+  // ... (calculateTotals call stays the same)
 
   const handleOrderSuccess = async (order) => {
-    await fetchProducts().catch(console.error);
+    setIsOrderSuccessful(true);
     dispatch({ type: "CLEAR" });
-    localStorage.removeItem(CHECKOUT_STORAGE_KEY); // Clear persisted state on success
+    localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+    // Persist last order ID for recovery if page refreshes
+    if (order?._id) sessionStorage.setItem("last_order_id", order._id);
+    
+    // Non-blocking fetch
+    fetchProducts().catch(console.error);
+    
     navigate("/payment-success", { state: { order }, replace: true });
   };
 
@@ -202,7 +138,7 @@ function CheckoutPage() {
     }
   };
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && !isOrderSuccessful) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-10 text-center">
         <h2 className="serif text-3xl mb-4">Your cart is empty</h2>

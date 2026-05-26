@@ -7,12 +7,34 @@ import { socket } from "../services/socket";
 function PaymentSuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { dispatch } = useCart();
   const [order, setOrder] = useState(location.state?.order || null);
+  const [loading, setLoading] = useState(!order);
 
-  const orderId = order?._id || order?.id;
+  const orderId = order?._id || order?.id || sessionStorage.getItem("last_order_id");
 
   useEffect(() => {
+    // Safety check: clear cart again on success page mount
+    dispatch({ type: "CLEAR" });
+
     if (!orderId) return;
+
+    const fetchOrder = async () => {
+      try {
+        const { data } = await api.get(`/api/orders/${orderId}`);
+        if (data.success) setOrder(data.order);
+      } catch (err) {
+        console.error("Failed to recover order:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!order) {
+      fetchOrder();
+    } else {
+      setLoading(false);
+    }
 
     if (!socket.connected) socket.connect();
 
@@ -22,7 +44,16 @@ function PaymentSuccessPage() {
 
     socket.on("order:updated", handleUpdate);
     return () => { socket.off("order:updated", handleUpdate); };
-  }, [orderId]);
+  }, [orderId, order]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-10 bg-[var(--cream)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--burgundy)] border-t-transparent" />
+        <p className="mt-4 text-[var(--muted)] font-bold uppercase tracking-widest text-xs">Syncing Order Details...</p>
+      </div>
+    );
+  }
 
   if (!order) {
     return (

@@ -58,6 +58,7 @@ export const reserveStock = async ({
   session,
   orderNumber,
   reason = "Order reservation",
+  coupon = null,
   discountTotal = 0,
   shippingFee = null,
   pincode = "",
