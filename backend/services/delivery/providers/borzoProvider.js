@@ -1,3 +1,5 @@
+import { logger } from "../../../utils/logger.js";
+
 const getEnv = (key, fallback = "") => String(process.env[key] || fallback).trim();
 
 const buildConfig = () => {
@@ -5,6 +7,7 @@ const buildConfig = () => {
   const authToken = getEnv("BORZO_API_TOKEN");
 
   if (!authToken) {
+    logger.error("❌ BORZO_API_TOKEN is missing in environment variables");
     throw new Error("BORZO_API_TOKEN is required for Borzo integration");
   }
 
@@ -22,12 +25,24 @@ const buildHeaders = (config) => {
 };
 
 const request = async (url, options = {}) => {
-  const response = await fetch(url, options);
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch (networkError) {
+    logger.error(`❌ Borzo API Network Error: ${networkError.message}`, { url });
+    throw new Error(`Failed to connect to Borzo API: ${networkError.message}`);
+  }
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message = data?.errors?.[0]?.text || data?.message || `Borzo request failed with status ${response.status}`;
-    throw new Error(message);
+    const apiError = data?.errors?.[0]?.text || data?.message || `Status ${response.status}`;
+    logger.error(`❌ Borzo API Error Response:`, { 
+      status: response.status, 
+      error: apiError,
+      details: data
+    });
+    throw new Error(`Borzo API Error: ${apiError}`);
   }
 
   return data;

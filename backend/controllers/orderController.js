@@ -265,7 +265,11 @@ export const acceptOrder = async (req, res) => {
       
       // If delivery is not yet assigned, try assigning now
       if (!order.delivery?.providerOrderId) {
-        order = await assignDeliveryPartner(order._id);
+        try {
+          order = await assignDeliveryPartner(order._id);
+        } catch (assignError) {
+          logger.error(`❌ Manual assignment failed during accept retry for ${id}:`, assignError.message);
+        }
       }
       
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
@@ -282,7 +286,12 @@ export const acceptOrder = async (req, res) => {
     await order.save();
 
     // Assign delivery partner (Strictly Borzo now)
-    order = await assignDeliveryPartner(order._id);
+    try {
+      order = await assignDeliveryPartner(order._id);
+    } catch (assignError) {
+      logger.error(`❌ Auto-assignment failed during accept for ${id}:`, assignError.message);
+      // We proceed with the order acceptance even if delivery assignment fails
+    }
 
     // Schedule automated transition to READY
     if (Number.isFinite(etaMinutes)) {
@@ -433,8 +442,14 @@ export const markReadyForPickup = async (req, res) => {
     
     // Ensure delivery partner is assigned if not already
     if (!order.rider?.name) {
-      logger.info(`🚚 Auto-assigning partner for order ${id} during markReady`);
-      order = await assignDeliveryPartner(order._id);
+      try {
+        logger.info(`🚚 Auto-assigning partner for order ${id} during markReady`);
+        order = await assignDeliveryPartner(order._id);
+      } catch (assignError) {
+        logger.error(`❌ Delivery assignment failed for ${id}:`, assignError.message);
+        // We still save the status change even if assignment failed to prevent 500 crash
+        await order.save();
+      }
     } else {
       await order.save();
     }
