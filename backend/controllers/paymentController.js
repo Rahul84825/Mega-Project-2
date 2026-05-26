@@ -290,6 +290,7 @@ export const verifyPayment = async (req, res) => {
           coupon, // Pass coupon for discount calculation
           discountTotal: orderData?.totals?.discountTotal || 0,
           shippingFee: orderData?.totals?.shippingFee || 0,
+          pincode: orderData?.shippingAddress?.postalCode || orderData?.customer?.pincode || "",
           roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
         });
 

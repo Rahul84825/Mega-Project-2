@@ -72,7 +72,63 @@ function CheckoutPage() {
   const [isOrderSuccessful, setIsOrderSuccessful] = useState(false);
   const isMountedRef = useRef(true);
 
-  // ... (calculateTotals call stays the same)
+  // Derive pricing totals using the shared pricing engine
+  const { 
+    subtotal, 
+    total, 
+    deliveryFee, 
+    gstTotal, 
+    couponDiscount, 
+    isFreeDelivery, 
+    deliveryThreshold, 
+    deliveryLabel, 
+    outOfReach 
+  } = calculateTotals(cart, { 
+    coupon: appliedCoupon, 
+    pincode: form.pincode 
+  });
+
+  const isAddressValid = form.name && form.phone && form.address && form.city && form.pincode;
+
+  useEffect(() => {
+    loadRazorpayScript().then(setScriptReady);
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ form, step }));
+  }, [form, step]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    try {
+      const { data } = await api.post("/api/coupons/validate", { 
+        code: couponCode, 
+        subtotal 
+      });
+      if (data.success) {
+        setAppliedCoupon(data.coupon);
+        setCouponCode("");
+      } else {
+        setCouponError(data.message || "Invalid coupon");
+      }
+    } catch (err) {
+      setCouponError(getApiErrorMessage(err));
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+  };
 
   const handleOrderSuccess = async (order) => {
     setIsOrderSuccessful(true);
