@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2, Package, Truck, MapPin, Phone, Home, ArrowRight, AlertCircle } from "lucide-react";
 import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 import { socket } from "../services/socket";
+import { useCart } from "../context/CartContext";
+import api from "../services/api";
 
 function PaymentSuccessPage() {
   const navigate = useNavigate();
