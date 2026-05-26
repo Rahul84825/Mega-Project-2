@@ -3,6 +3,30 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// ── UTILS ──
+/**
+ * lazyRetry Utility
+ * Fixes "Failed to fetch dynamically imported module" errors after a new deployment.
+ * If a module fails to load (due to old cache), it forces a page refresh to get the latest build.
+ */
+const lazyRetry = (componentImport) => {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      console.error("Failed to load component, refreshing...", error);
+      // Check if this error happened recently to avoid infinite refresh loops
+      const hasRefreshed = sessionStorage.getItem("retry-refreshed") || "false";
+      if (hasRefreshed === "false") {
+        sessionStorage.setItem("retry-refreshed", "true");
+        window.location.reload();
+        return { default: () => null }; // Placeholder
+      }
+      throw error; // Re-throw if refresh already happened
+    }
+  });
+};
+
 // Core Components (always loaded)
 import CartDrawer from "./components/CartDrawer";
 import Navbar from "./components/Navbar";
@@ -27,26 +51,26 @@ import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import MyOrders from "./pages/MyOrders";
 
 // Policy Pages (lazy loaded)
-const ShippingPolicy = lazy(() => import("./pages/policies/ShippingPolicy"));
-const PrivacyPolicy = lazy(() => import("./pages/policies/PrivacyPolicy"));
-const ReturnsExchange = lazy(() => import("./pages/policies/ReturnsExchange"));
-const TermsConditions = lazy(() => import("./pages/policies/TermsConditions"));
+const ShippingPolicy = lazyRetry(() => import("./pages/policies/ShippingPolicy"));
+const PrivacyPolicy = lazyRetry(() => import("./pages/policies/PrivacyPolicy"));
+const ReturnsExchange = lazyRetry(() => import("./pages/policies/ReturnsExchange"));
+const TermsConditions = lazyRetry(() => import("./pages/policies/TermsConditions"));
 
 // Store Components (lazy loaded)
-const About = lazy(() => import("./components/About"));
-const Contact = lazy(() => import("./components/Contact"));
-const BuiltBy = lazy(() => import("./components/BuiltBy"));
+const About = lazyRetry(() => import("./components/About"));
+const Contact = lazyRetry(() => import("./components/Contact"));
+const BuiltBy = lazyRetry(() => import("./components/BuiltBy"));
 
 // Admin Components (lazy loaded - heavy bundle)
-const AdminLayout = lazy(() => import("./admin/AdminLayout"));
-const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
-const AdminCategories = lazy(() => import("./admin/AdminCategories"));
-const AdminProducts = lazy(() => import("./admin/AdminProducts"));
-const AdminProductForm = lazy(() => import("./admin/AdminProductForm"));
-const AdminOffers = lazy(() => import("./admin/AdminOffers"));
-const AdminOrders = lazy(() => import("./admin/AdminOrders"));
-const AdminCoupons = lazy(() => import("./admin/AdminCoupons"));
-const AdminHeroBannerManager = lazy(() => import("./admin/AdminHeroBannerManager"));
+const AdminLayout = lazyRetry(() => import("./admin/AdminLayout"));
+const AdminDashboard = lazyRetry(() => import("./admin/AdminDashboard"));
+const AdminCategories = lazyRetry(() => import("./admin/AdminCategories"));
+const AdminProducts = lazyRetry(() => import("./admin/AdminProducts"));
+const AdminProductForm = lazyRetry(() => import("./admin/AdminProductForm"));
+const AdminOffers = lazyRetry(() => import("./admin/AdminOffers"));
+const AdminOrders = lazyRetry(() => import("./admin/AdminOrders"));
+const AdminCoupons = lazyRetry(() => import("./admin/AdminCoupons"));
+const AdminHeroBannerManager = lazyRetry(() => import("./admin/AdminHeroBannerManager"));
 
 /**
  * Fallback loading component for lazy-loaded routes
