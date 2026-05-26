@@ -258,10 +258,16 @@ export const acceptOrder = async (req, res) => {
     }
 
     if (order.status === "PREPARING") {
-      // If already preparing but admin wants to update ETA
+      // If already preparing, update ETA and attempt delivery assignment if not already done
       order.preparation.etaMinutes = etaMinutes;
       order.preparation.readyBy = new Date(Date.now() + etaMinutes * 60 * 1000);
       await order.save();
+      
+      // If delivery is not yet assigned, try assigning now
+      if (!order.delivery?.providerOrderId) {
+        order = await assignDeliveryPartner(order._id);
+      }
+      
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
