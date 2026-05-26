@@ -1,4 +1,5 @@
 import Coupon from "../models/Coupon.js";
+import Order from "../models/Order.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -7,7 +8,7 @@ import { logger } from "../utils/logger.js";
  */
 export const validateCoupon = async (req, res, next) => {
   try {
-    const { code, orderAmount } = req.body;
+    const { code, orderAmount, userId } = req.body;
 
     if (!code) {
       return res.status(400).json({ success: false, message: "Coupon code is required" });
@@ -19,7 +20,20 @@ export const validateCoupon = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Invalid coupon code" });
     }
 
-    const validation = coupon.isValid(orderAmount);
+    // ── PER-USER USAGE CHECK ──
+    let userUsedCoupons = [];
+    if (userId) {
+      // Find all successful orders by this user that used this specific coupon
+      const ordersWithCoupon = await Order.find({
+        "customer.userId": userId,
+        "coupon.code": coupon.code,
+        status: { $ne: "REJECTED" } // Don't count rejected orders
+      }).select("coupon.code");
+      
+      userUsedCoupons = ordersWithCoupon.map(o => o.coupon.code);
+    }
+
+    const validation = coupon.isValid(orderAmount, userId, userUsedCoupons);
     if (!validation.valid) {
       return res.status(400).json({ success: false, message: validation.message });
     }

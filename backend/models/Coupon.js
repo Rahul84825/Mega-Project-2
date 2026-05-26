@@ -54,7 +54,7 @@ const couponSchema = new mongoose.Schema(
 );
 
 // Helper to check if coupon is valid
-couponSchema.methods.isValid = function (orderAmount = 0) {
+couponSchema.methods.isValid = function (orderAmount = 0, userId = null, userUsedCoupons = []) {
   if (!this.isActive) return { valid: false, message: "Coupon is inactive" };
   
   const now = new Date();
@@ -66,6 +66,11 @@ couponSchema.methods.isValid = function (orderAmount = 0) {
   
   if (orderAmount < this.minOrderAmount) {
     return { valid: false, message: `Minimum order amount of ₹${this.minOrderAmount} required` };
+  }
+
+  // Check if user has already used this coupon
+  if (userId && userUsedCoupons.includes(this.code)) {
+    return { valid: false, message: "You have already used this coupon once" };
   }
   
   return { valid: true };

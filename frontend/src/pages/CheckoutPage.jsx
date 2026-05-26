@@ -109,7 +109,11 @@ function CheckoutPage() {
     setValidatingCoupon(true);
     setCouponError("");
     try {
-      const { data } = await api.post("/api/coupons/validate", { code: couponCode, orderAmount: subtotal });
+      const { data } = await api.post("/api/coupons/validate", { 
+        code: couponCode, 
+        orderAmount: subtotal,
+        userId: user?.userId || user?._id
+      });
       if (data.success) {
         setAppliedCoupon(data.coupon);
         setCouponCode("");
