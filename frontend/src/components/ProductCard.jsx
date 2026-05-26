@@ -88,6 +88,15 @@ function ProductCard({ product }) {
           )}
         </div>
 
+        {/* Discount Badge */}
+        {!isOutOfStock && selectedVariant?.discountPercent > 0 && (
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20">
+            <div className="bg-[#f2994a] text-white px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-[0_4px_12px_-2px_rgba(242,153,74,0.4)] border border-white/20 animate-in fade-in zoom-in duration-500">
+              {selectedVariant.discountPercent}% OFF
+            </div>
+          </div>
+        )}
+
         {isOutOfStock && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px] pointer-events-none">
             <span className="bg-white/90 backdrop-blur-sm text-[var(--charcoal)] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl border border-gray-100 transform -rotate-3">Sold Out</span>
