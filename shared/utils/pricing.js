@@ -65,30 +65,48 @@ const PINCODE_DISTANCES = {
  * - Same Pincode (411014): Free above ₹200
  * - Distance > 5km: Free above ₹500
  * - Distance > 10km: Free above ₹1000
- * - Distance > 15km: Free above ₹1500
+ * - Distance > 15km: Last Orders Reach (Free above ₹1500)
+ * - Distance > 20km: OUT OF REACH (Contact Us)
  */
 export const getDeliveryConfig = (pincode = "", distance = null) => {
   const code = String(pincode).trim();
   
   // 1. Same Pincode check
   if (code === BASE_PINCODE) {
-    return { threshold: 200, charge: DEFAULT_DELIVERY_CHARGE, label: "Same Pincode (Viman Nagar)" };
+    return { threshold: 200, charge: DEFAULT_DELIVERY_CHARGE, label: "Same Pincode (Viman Nagar)", outOfReach: false };
   }
 
   // 2. Use distance if provided or found in mapping
   const effectiveDistance = distance !== null ? distance : (PINCODE_DISTANCES[code] || null);
 
   if (effectiveDistance !== null) {
-    if (effectiveDistance > 15) return { threshold: 1500, charge: DEFAULT_DELIVERY_CHARGE, label: `Long Distance (${effectiveDistance}km)` };
-    if (effectiveDistance > 10) return { threshold: 1000, charge: DEFAULT_DELIVERY_CHARGE, label: `Medium Distance (${effectiveDistance}km)` };
-    if (effectiveDistance > 5) return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Standard Distance (${effectiveDistance}km)` };
+    if (effectiveDistance > 20) {
+      return { 
+        threshold: Infinity, 
+        charge: 0, 
+        label: "Out of Reach (Contact Us)", 
+        outOfReach: true 
+      };
+    }
+    
+    if (effectiveDistance > 15) {
+      return { 
+        threshold: 1500, 
+        charge: DEFAULT_DELIVERY_CHARGE, 
+        label: `Last Orders Reach (${effectiveDistance}km)`, 
+        outOfReach: false 
+      };
+    }
+
+    if (effectiveDistance > 10) return { threshold: 1000, charge: DEFAULT_DELIVERY_CHARGE, label: `Medium Distance (${effectiveDistance}km)`, outOfReach: false };
+    if (effectiveDistance > 5) return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Standard Distance (${effectiveDistance}km)`, outOfReach: false };
     
     // Within 5km but different pincode
-    return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Local Delivery (${effectiveDistance}km)` };
+    return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Local Delivery (${effectiveDistance}km)`, outOfReach: false };
   }
 
-  // 3. Fallback / Unknown distance
-  return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: "Standard Delivery" };
+  // 3. Fallback / Unknown distance (Default to standard but not blocked)
+  return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: "Standard Delivery", outOfReach: false };
 };
 
 /**
@@ -156,7 +174,8 @@ export const calculateTotals = (items = [], options = {}) => {
 
     isFreeDelivery: shippingFee === 0 && netSubtotal > 0,
     deliveryThreshold: DELIVERY_THRESHOLD,
-    deliveryLabel: deliveryConfig.label
+    deliveryLabel: deliveryConfig.label,
+    outOfReach: deliveryConfig.outOfReach
   };
 };
 

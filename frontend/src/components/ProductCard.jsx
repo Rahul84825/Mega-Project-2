@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 import { ShoppingBag, Check } from "lucide-react";
+import { optimizeCloudinaryUrl } from "../utils/imageUtils";
 
 function ProductCard({ product }) {
   const navigate = useNavigate();
@@ -67,8 +68,9 @@ function ProductCard({ product }) {
       {/* ── IMAGE SECTION ── */}
       <div className="relative aspect-square overflow-hidden bg-[var(--surface-strong)]/30">
         <img 
-          src={product?.images?.[0] || product?.image} 
+          src={optimizeCloudinaryUrl(product?.images?.[0] || product?.image, 600)} 
           alt={product?.name}
+          loading="lazy"
           className={`w-full h-full object-cover transition-transform duration-1000 ease-out ${isOutOfStock ? 'opacity-50' : 'group-hover:scale-110'}`}
         />
         

@@ -22,7 +22,7 @@ export const buildAdminAlertTemplate = (order, customer) => {
               </tr>
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #E8D5B7; color: #3B2417;"><strong>Payment</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #E8D5B7; text-align: right; color: #3B2417;">${order.payment?.method || 'COD'}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #E8D5B7; text-align: right; color: #3B2417;">${order.payment?.method || 'RAZORPAY'}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; color: #3B2417;"><strong>Items</strong></td>

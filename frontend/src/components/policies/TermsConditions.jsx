@@ -17,7 +17,7 @@ const SECTIONS = [
     content: [
       "By placing an order, you confirm that the information provided is accurate and that you are authorized to use the selected payment method.",
       "We reserve the right to cancel or refuse any order if we suspect fraudulent activity, pricing errors, or stock unavailability.",
-      "Payment must be completed at the time of order placement for online payments. Cash on Delivery (COD) orders must be paid upon delivery.",
+      "Payment must be completed at the time of order placement for all orders.",
     ],
   },
   {

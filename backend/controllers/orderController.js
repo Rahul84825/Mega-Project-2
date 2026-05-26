@@ -106,7 +106,7 @@ export const placeOrder = async (req, res) => {
             shippingAddress: orderData.shippingAddress,
             items: itemSnapshots,
             payment: {
-              method: orderData?.payment?.method || orderData?.paymentMethod || "COD",
+              method: orderData?.payment?.method || orderData?.paymentMethod || "RAZORPAY",
               status: orderData?.payment?.status || "PENDING",
               gateway: orderData?.payment?.gateway || "",
               razorpayOrderId: orderData?.payment?.razorpayOrderId,
@@ -234,6 +234,10 @@ export const acceptOrder = async (req, res) => {
     }
 
     if (order.status === "PREPARING") {
+      // If already preparing but admin wants to update ETA
+      order.preparation.etaMinutes = etaMinutes;
+      order.preparation.readyBy = new Date(Date.now() + etaMinutes * 60 * 1000);
+      await order.save();
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
@@ -247,7 +251,7 @@ export const acceptOrder = async (req, res) => {
 
     await order.save();
 
-    // Assign delivery partner
+    // Assign delivery partner (Strictly Borzo now)
     order = await assignDeliveryPartner(order._id);
 
     // Schedule automated transition to READY
@@ -503,10 +507,6 @@ export const markDelivered = async (req, res) => {
 
     order.status = "DELIVERED";
     order.statusTimestamps.deliveredAt = new Date();
-    if (order.payment?.method === "COD" && order.payment?.status !== "PAID") {
-      order.payment.status = "PAID";
-      order.payment.paidAt = new Date();
-    }
 
     await order.save();
 
@@ -530,7 +530,13 @@ export const getOrdersByStatus = async (req, res) => {
     }
 
     const query = status ? { status } : {};
-    const orders = await Order.find(query).sort({ createdAt: -1 });
+    
+    // PRODUCTION FIX: Added .limit(50) and .lean() to prevent memory exhaustion
+    // as order volume grows. Admin dashboard only needs the latest 50 for the current view.
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
 
     return res.status(200).json({
       success: true,

@@ -246,6 +246,30 @@ const OrderDetailsModal = ({ order, open, onClose, onVerifyPickup, onMarkReady, 
                         <p className="text-xs font-medium text-blue-400 italic">Assigning partner...</p>
                       )}
                     </div>
+
+                    {delivery.provider && (
+                      <div className="pt-2 border-t border-blue-100/50">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-blue-400 mb-1.5">Delivery Status</p>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-blue-800 uppercase">{delivery.provider}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-wider border border-blue-200">
+                              {delivery.status || "Pending"}
+                            </span>
+                          </div>
+                          {delivery.trackingUrl && (
+                            <a 
+                              href={delivery.trackingUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1 bg-white p-2 rounded-lg border border-blue-100 shadow-sm"
+                            >
+                              <ChevronRight size={10} /> Track Live Delivery
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     {delivery.pickupOtp && status === "READY" && (
                       <div className="p-3 rounded-xl bg-white border border-blue-100 flex items-center justify-between shadow-sm">

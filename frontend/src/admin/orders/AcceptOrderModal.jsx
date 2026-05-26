@@ -20,6 +20,7 @@ const AcceptOrderModal = ({ open, onClose, onSubmit, order }) => {
   const handleSubmit = () => {
     const eta = customTime ? parseInt(customTime, 10) : selectedTime;
     if (isNaN(eta) || eta <= 0) return;
+    // provider selection removed, backend now hardcoded to borzo
     onSubmit(eta);
     setCustomTime("");
   };
@@ -39,14 +40,14 @@ const AcceptOrderModal = ({ open, onClose, onSubmit, order }) => {
           </button>
         </div>
 
-        <div className="px-8 py-8">
+        <div className="px-8 py-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {/* Info Card */}
-          <div className="mb-8 flex items-start gap-4 rounded-[24px] border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm">
+          <div className="mb-6 flex items-start gap-4 rounded-[24px] border border-emerald-100 bg-emerald-50/50 p-4 shadow-sm">
             <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
               <Clock className="h-6 w-6" />
             </div>
-            <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-              Select an estimated preparation time. The customer will receive a <span className="font-bold underline">Real-time update</span> with this ETA.
+            <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+              Select an estimated preparation time. The order will be automatically assigned to <span className="font-bold underline text-blue-700">Borzo Delivery</span>.
             </p>
           </div>
 
@@ -97,9 +98,11 @@ const AcceptOrderModal = ({ open, onClose, onSubmit, order }) => {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Footer Actions */}
-          <div className="mt-10 flex items-center gap-4">
+        {/* Footer Actions */}
+        <div className="p-8 border-t border-[#e6d3b3]/50 bg-[var(--cream)]/30">
+          <div className="flex items-center gap-4">
             <button onClick={onClose} className="flex-1 h-14 rounded-2xl border border-[#e6d3b3] text-sm font-bold text-[#7a5c3a] hover:bg-[#f5e6d3] transition-all">
               Cancel
             </button>

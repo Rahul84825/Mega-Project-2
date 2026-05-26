@@ -65,10 +65,9 @@ function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const isMountedRef = useRef(true);
   
-  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold, deliveryLabel, isFreeDelivery } = calculateTotals(cart, { pincode: form.pincode });
+  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold, deliveryLabel, isFreeDelivery, outOfReach } = calculateTotals(cart, { pincode: form.pincode });
 
   // Sync state to localStorage
   useEffect(() => {
@@ -109,42 +108,6 @@ function CheckoutPage() {
     dispatch({ type: "CLEAR" });
     localStorage.removeItem(CHECKOUT_STORAGE_KEY); // Clear persisted state on success
     navigate("/payment-success", { state: { order }, replace: true });
-  };
-
-  const handleCODOrder = async () => {
-    const stockError = validateStock();
-    if (stockError) return setErrorMessage(stockError);
-
-    setProcessing(true);
-    setErrorMessage("");
-
-    try {
-      const orderPayload = {
-        amount: total,
-        customer: { name: form.name, email: form.email, phone: form.phone, userId: user?.userId || user?._id },
-        shippingAddress: { line1: form.address, city: form.city, state: form.state, postalCode: form.pincode, country: "IN" },
-        items: cart.map(item => ({
-          productId: item.productId,
-          variantId: item.variantId || "",
-          variantLabel: item.variantLabel || "Default",
-          name: item.name,
-          price: Number(item.price),
-          quantity: item.quantity,
-          image: item.image,
-          gstRate: item.gstRate || 0
-        })),
-        totals: { itemsSubtotal: subtotal, shippingFee: deliveryFee, gstTotal, grandTotal: total, currency: "INR" },
-        payment: { method: "COD", status: "PENDING" }
-      };
-
-      const { data } = await api.post("/api/orders", orderPayload);
-      if (data?.success) handleOrderSuccess(data.order);
-      else throw new Error(data?.message || "Order failed");
-    } catch (err) {
-      setErrorMessage(getApiErrorMessage(err, "Failed to place order"));
-    } finally {
-      if (isMountedRef.current) setProcessing(false);
-    }
   };
 
   const handleOnlinePayment = async () => {
@@ -243,12 +206,20 @@ function CheckoutPage() {
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
                     <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="400001" />
                   </div>
+                  
+                  {outOfReach && (
+                    <div className="md:col-span-2 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 text-xs font-medium animate-in fade-in slide-in-from-top-2">
+                      ⚠️ {deliveryLabel}. We are currently unable to deliver to this location automatically. 
+                      <span className="block mt-1 font-bold">Please contact us at +91 98819 88751 to place this order manually.</span>
+                    </div>
+                  )}
+
                   <button 
-                    disabled={!isAddressValid}
+                    disabled={!isAddressValid || outOfReach}
                     onClick={() => setStep(2)}
                     className="md:col-span-2 btn-primary h-12 mt-4 disabled:opacity-50"
                   >
-                    Review Order & Pay →
+                    {outOfReach ? "Location Out of Reach" : "Review Order & Pay →"}
                   </button>
                 </div>
               )}
@@ -271,21 +242,19 @@ function CheckoutPage() {
 
                 <div className="space-y-3 mb-8">
                   {[
-                    { id: 'razorpay', label: 'Online Payment', desc: 'UPI, Cards, Net Banking', icon: '💳' },
-                    { id: 'cod', label: 'Cash on Delivery', desc: 'Pay when items arrive', icon: '🚚' }
+                    { id: 'razorpay', label: 'Online Payment', desc: 'UPI, Cards, Net Banking', icon: '💳' }
                   ].map(method => (
                     <label 
                       key={method.id}
-                      className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === method.id ? 'border-[var(--saffron)] bg-[var(--surface-strong)]/30' : 'border-[var(--surface-border)] hover:border-[var(--gold)]'}`}
+                      className="flex items-center p-4 rounded-xl border-2 border-[var(--saffron)] bg-[var(--surface-strong)]/30 transition-all cursor-default"
                     >
-                      <input type="radio" name="pay" checked={paymentMethod === method.id} onChange={() => setPaymentMethod(method.id)} className="hidden" />
                       <div className="text-2xl mr-4">{method.icon}</div>
                       <div className="flex-1">
                         <div className="font-medium text-[var(--charcoal)]">{method.label}</div>
                         <div className="text-[11px] text-[var(--muted)]">{method.desc}</div>
                       </div>
-                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === method.id ? 'border-[var(--burgundy)]' : 'border-gray-300'}`}>
-                        {paymentMethod === method.id && <div className="h-2.5 w-2.5 rounded-full bg-[var(--burgundy)]" />}
+                      <div className="h-5 w-5 rounded-full border-2 flex items-center justify-center border-[var(--burgundy)]">
+                        <div className="h-2.5 w-2.5 rounded-full bg-[var(--burgundy)]" />
                       </div>
                     </label>
                   ))}
@@ -295,7 +264,7 @@ function CheckoutPage() {
 
                 <button 
                   disabled={processing}
-                  onClick={paymentMethod === 'cod' ? handleCODOrder : handleOnlinePayment}
+                  onClick={handleOnlinePayment}
                   className="w-full btn-primary h-12 shadow-lg"
                 >
                   {processing ? 'Processing...' : `Place Order (${formatCurrency(total)})`}

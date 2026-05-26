@@ -460,8 +460,8 @@ export function ProductProvider({ children }) {
     return o;
   }, []);
 
-  const acceptOrder = useCallback(async (orderId, etaMinutes) => {
-    const { data } = await api.patch(`/api/orders/${orderId}/accept`, { etaMinutes });
+  const acceptOrder = useCallback(async (orderId, etaMinutes, provider = null) => {
+    const { data } = await api.patch(`/api/orders/${orderId}/accept`, { etaMinutes, provider });
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 

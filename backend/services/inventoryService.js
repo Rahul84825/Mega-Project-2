@@ -209,6 +209,10 @@ export const reserveStock = async ({
     distance 
   });
 
+  if (totals.outOfReach) {
+    throw new InventoryError(`Location (${pincode}) is out of reach for delivery. Please contact us for manual assistance.`, 400, "OUT_OF_REACH");
+  }
+
   return {
     itemSnapshots,
     totals

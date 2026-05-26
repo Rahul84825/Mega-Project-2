@@ -4,7 +4,7 @@ import { formatCurrency } from "shared/utils/pricing";
 const OrderDetailsExpanded = ({ order, isExpanded, onToggle }) => {
   const items = Array.isArray(order.items) ? order.items : [];
   const totals = order.totals || {};
-  const paymentMethod = order.payment?.method || order.paymentMethod || "COD";
+  const paymentMethod = order.payment?.method || order.paymentMethod || "RAZORPAY";
   const notes = order.notes || order.orderNotes || "";
 
   if (!isExpanded) {

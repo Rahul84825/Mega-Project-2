@@ -11,7 +11,7 @@ export const buildOrderPlacedTemplate = (order, customer) => {
     </tr>
   `).join('');
 
-  const paymentMethodDisplay = order.payment.method === 'COD' ? 'Cash on Delivery' : order.payment.method;
+  const paymentMethodDisplay = order.payment.method;
 
   return `
     <div style="font-family: 'Georgia', serif; background-color: #FFFaf3; padding: 40px 20px; color: #3B2417;">

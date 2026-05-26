@@ -50,7 +50,6 @@ export const PAYMENT_STATUS_META = {
 };
 
 export const PAYMENT_METHOD_META = {
-  COD: { label: "Cash on Delivery", cls: "bg-amber-100 text-amber-900" },
   UPI: { label: "UPI", cls: "bg-emerald-100 text-emerald-900" },
   CARD: { label: "Card", cls: "bg-blue-100 text-blue-900" },
   NETBANKING: { label: "Netbanking", cls: "bg-indigo-100 text-indigo-900" },
@@ -64,4 +63,4 @@ export const resolvePaymentStatus = (order) =>
   String(order?.payment?.status || order?.paymentStatus || "PENDING").toUpperCase();
 
 export const resolvePaymentMethod = (order) =>
-  String(order?.payment?.method || order?.paymentMethod || "COD").toUpperCase();
+  String(order?.payment?.method || order?.paymentMethod || "RAZORPAY").toUpperCase();

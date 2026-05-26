@@ -1,19 +1,15 @@
-import { createDunzoProvider } from "./providers/dunzoProvider.js";
-import { createPorterProvider } from "./providers/porterProvider.js";
-import { createShadowfaxProvider } from "./providers/shadowfaxProvider.js";
+import { createBorzoProvider } from "./providers/borzoProvider.js";
 
 const PROVIDERS = {
-  dunzo: createDunzoProvider,
-  porter: createPorterProvider,
-  shadowfax: createShadowfaxProvider
+  borzo: createBorzoProvider
 };
 
-export const getDeliveryProvider = (providerName = "") => {
-  const key = String(providerName || "").toLowerCase().trim();
+export const getDeliveryProvider = (providerName = "borzo") => {
+  const key = "borzo"; // Force borzo
   const factory = PROVIDERS[key];
 
   if (!factory) {
-    throw new Error(`Unsupported delivery provider: ${providerName || "unknown"}`);
+    throw new Error(`Borzo provider not found`);
   }
 
   return factory();

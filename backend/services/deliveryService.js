@@ -1,52 +1,73 @@
 import { logger } from "../utils/logger.js";
 import { getIo } from "../socket.js";
 import Order from "../models/Order.js";
+import { createDeliveryTask, getTrackingDetails } from "./delivery/index.js";
 
 /**
- * MOCK LOGISTICS SERVICE (Simulating Shiprocket, Dunzo, Shadowfax, etc.)
- * Replace the internals of these functions with actual API calls to your chosen provider.
+ * ASSIGN DELIVERY PARTNER
+ * This function is called when an order is accepted.
+ * It uses the unified delivery provider system to create a real task.
  */
-
-// Simulates generating a 4-digit OTP
-const generateOTP = () => Math.floor(1000 + Math.random() * 9000).toString();
-
-// Simulates finding a nearby rider
-const mockRiderProfiles = [
-  { name: "Rahul Kumar", phone: "+91 9876543210", vehicleNumber: "MH 12 AB 1234" },
-  { name: "Amit Singh", phone: "+91 8765432109", vehicleNumber: "MH 12 CD 5678" },
-  { name: "Suresh Patil", phone: "+91 7654321098", vehicleNumber: "MH 12 EF 9012" }
-];
-
 export const assignDeliveryPartner = async (orderId) => {
   try {
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
 
-    // Here you would make an API call to your delivery partner:
-    // const response = await axios.post('https://api.shiprocket.in/v1/external/orders/create/adHoc', { ...orderData }, { headers });
-    // const providerOrderId = response.data.order_id;
-    
-    // Simulating response
-    const pickupOtp = generateOTP();
-    const assignedRider = mockRiderProfiles[Math.floor(Math.random() * mockRiderProfiles.length)];
+    const provider = "borzo";
+
+    // Prepare standardized payload for delivery providers
+    const payload = {
+      orderNumber: order.orderNumber,
+      pickup: {
+        address: "Mithai World, Viman Nagar, Pune", // Should be from config
+        phone: "+91 98819 88751",
+        name: "Mithai World"
+      },
+      dropoff: {
+        address: `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}`,
+        phone: order.customer.phone,
+        name: order.customer.name
+      },
+      items: order.items.map(item => ({
+        name: item.titleSnapshot || item.name,
+        quantity: item.quantity
+      }))
+    };
+
+    logger.info(`🚚 Requesting ${provider} delivery for Order ${order.orderNumber}...`);
+
+    const task = await createDeliveryTask(payload, { provider });
 
     order.delivery = {
       ...(order.delivery || {}),
-      provider: "Shadowfax Mock",
-      providerOrderId: `SFX-${Date.now()}`,
-      trackingId: `TRK-${Math.floor(Math.random() * 1000000)}`,
+      provider: provider,
+      providerOrderId: task.taskId,
+      trackingId: task.taskId,
+      trackingUrl: task.trackingUrl,
       status: "ASSIGNED",
       assignedAt: new Date(),
-      pickupOtp: pickupOtp
+      pickupOtp: task.pickupOtp || ""
     };
 
-    order.rider = assignedRider;
+    if (task.rider?.name) {
+      order.rider = {
+        name: task.rider.name,
+        phone: task.rider.phone,
+        vehicleNumber: task.rider.vehicleNumber || ""
+      };
+    }
+
     await order.save();
 
-    logger.info(`🚚 Delivery Partner Assigned for Order ${order.orderNumber}: Rider ${assignedRider.name}`);
+    const io = getIo();
+    if (io) io.emit("order:updated", order.toObject());
+
+    logger.info(`✅ ${provider} Delivery Assigned: ${task.taskId}`);
     return order;
   } catch (error) {
-    logger.error("Failed to assign delivery partner:", error);
+    logger.error("❌ Failed to assign delivery partner:", error);
+    // Don't crash the order flow, but log it
+    // In production, you might want to notify an admin
     throw error;
   }
 };
