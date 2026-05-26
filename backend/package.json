@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node scripts/seedAdmin.js",
-    "db:seed": "node seed/masterSeeder.js"
+    "seed": "node scripts/seedAdmin.js"
   },
   "keywords": [
     "mern",

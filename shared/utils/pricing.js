@@ -48,16 +48,73 @@ const BASE_PINCODE = "411014";
 // Mock distance mapping from BASE_PINCODE to other Pune pincodes (for demo purposes)
 const PINCODE_DISTANCES = {
   "411014": 0,    // Viman Nagar
+
+  // Nearby Areas (1–5km)
   "411006": 3,    // Yerwada / Kalyani Nagar
   "411032": 4,    // Yerwada
-  "411001": 7,    // Camp / MG Road
-  "411011": 9,    // Kasba Peth
+  "411047": 2,    // Lohegaon
+  "411015": 2,    // Vishrantwadi
+  "411032": 4,    // Dhanori
+  "411036": 5,    // Kalyani Nagar
+  "411001": 5,    // Camp / MG Road
+  "411027": 5,    // Pimple Saudagar
+  "411048": 5,    // NIBM
+  "411013": 5,    // Hadapsar
+
+  // Standard Distance (6–10km)
+  "411011": 7,    // Kasba Peth
+  "411017": 8,    // Pimpri
+  "411018": 9,    // Chinchwad
+  "411028": 8,    // Hadapsar / Magarpatta
+  "411040": 8,    // Wanowrie
+  "411042": 8,    // Swargate
+  "411016": 9,    // Shivajinagar
+  "411020": 9,    // Aundh
+  "411021": 10,   // Pashan
+  "411004": 9,    // Deccan
+  "411005": 8,    // Shivajinagar
+  "411037": 9,    // Bibwewadi
+  "411022": 10,   // Bavdhan
+  "411026": 10,   // Nigdi
+  "411039": 10,   // Bhosari
+  "411045": 10,   // Baner
+
+  // Medium/Far Distance (11–15km)
   "411002": 11,   // Swargate
+  "411030": 11,   // Sinhagad Road
+  "411033": 12,   // Akurdi
+  "411035": 13,   // Chinchwad
   "411038": 13,   // Kothrud
-  "411045": 16,   // Baner
-  "411057": 22,   // Hinjewadi
-  "411028": 12,   // Hadapsar
-  "411013": 8     // Hadapsar
+  "411041": 14,   // Dhayari
+  "411043": 14,   // Dhankawadi
+  "411046": 15,   // Ambegaon
+  "411051": 14,   // Anand Nagar
+  "411052": 15,   // Karve Nagar
+  "411058": 15,   // Warje
+  "411019": 14,   // Chinchwad
+  "411044": 15,   // Talegaon
+
+  // Last Reach Areas (16–20km)
+  "411023": 16,   // NDA / Sinhagad side
+  "411024": 17,   // Khadakwasla
+  "411057": 18,   // Hinjewadi
+  "411061": 17,   // Pimple Gurav
+  "411062": 18,   // Thergaon
+  "411060": 19,   // Kondhwa
+  "411059": 18,   // Wakad
+  "412105": 20,   // Chakan
+  "412307": 19,   // Wagholi
+  "412308": 20,   // Manjari
+  "412101": 20,   // Talegaon Dabhade
+
+  // Out of Reach (>20km)
+  "412114": 22,   // Dehu Road
+  "412115": 24,   // Pirangut
+  "412109": 25,   // Moshi
+  "412106": 26,   // Alandi
+  "412110": 27,   // Rajgurunagar
+  "412216": 28,   // Narhe outskirts
+  "412205": 30    // Rural Pune belt
 };
 
 /**
