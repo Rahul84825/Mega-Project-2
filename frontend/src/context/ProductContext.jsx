@@ -470,8 +470,8 @@ export function ProductProvider({ children }) {
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 
-  const verifyPickupOtp = useCallback(async (orderId, otp) => {
-    const { data } = await api.post(`/api/orders/${orderId}/verify-pickup`, { otp });
+  const markOrderPickedUp = useCallback(async (orderId) => {
+    const { data } = await api.patch(`/api/orders/${orderId}/picked-up`);
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 
@@ -544,7 +544,7 @@ export function ProductProvider({ children }) {
     toggleCategoryFeatured,
     acceptOrder,
     rejectOrder,
-    verifyPickupOtp,
+    markOrderPickedUp,
     markOrderReady,
     markOrderDelivered,
     updateOrderState,

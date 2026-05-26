@@ -18,6 +18,7 @@ const AdminOrders = () => {
     acceptOrder,
     rejectOrder,
     markOrderReady,
+    markOrderPickedUp,
     markOrderDelivered,
   } = useProducts();
 
@@ -141,7 +142,7 @@ const AdminOrders = () => {
               onSelect={() => setSelectedId(order._id)}
               onAccept={(o) => setAcceptModal({ open: true, order: o })}
               onReject={(o) => setRejectModal({ open: true, order: o })}
-              onVerifyPickup={(o) => handleAction(o._id, () => markPickedUp(o._id))}
+              onVerifyPickup={(o) => handleAction(o._id, () => markOrderPickedUp(o._id))}
               onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
               onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
               isBusy={busyOrderId === order._id}
@@ -154,7 +155,7 @@ const AdminOrders = () => {
         open={!!selectedId}
         order={selectedOrder}
         onClose={() => setSelectedId(null)}
-        onVerifyPickup={(o) => handleAction(o._id, () => markPickedUp(o._id))}
+        onVerifyPickup={(o) => handleAction(o._id, () => markOrderPickedUp(o._id))}
         onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
         onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
       />
