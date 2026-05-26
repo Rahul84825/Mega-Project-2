@@ -154,11 +154,15 @@ const uploadBufferToCloudinary = (buffer, folder = "mithai-world/products") => {
 export const getProducts = async (req, res, next) => {
   try {
     // PAGINATION: Extract limit and page from query parameters
-    // INCREASED DEFAULT LIMIT: Changed from 20 to 1000 to prevent 'disappearing' products 
-    // in the admin panel which doesn't yet support pagination UI.
-    const limit = Math.min(Math.max(Number(req.query.limit) || 1000, 1), 2000); 
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const skip = (page - 1) * limit;
+    // SAFE FIX: Disable mandatory pagination by default if no params are provided.
+    // This prevents products from "disappearing" in the Admin Panel which doesn't support pagination UI.
+    const providedLimit = req.query.limit ? Number(req.query.limit) : null;
+    const providedPage = req.query.page ? Number(req.query.page) : null;
+    
+    const isPaginated = providedLimit !== null || providedPage !== null;
+    const limit = isPaginated ? Math.min(Math.max(providedLimit || 20, 1), 1000) : 0; // 0 = No limit in Mongoose
+    const page = Math.max(providedPage || 1, 1);
+    const skip = limit > 0 ? (page - 1) * limit : 0;
 
     // OPTIMIZATION: Use lean() to exclude unnecessary fields for list view
     const products = await Product.find()
@@ -172,8 +176,8 @@ export const getProducts = async (req, res, next) => {
     const totalCount = await Product.countDocuments();
 
     // Calculate pagination info
-    const totalPages = Math.ceil(totalCount / limit);
-    const hasNextPage = page < totalPages;
+    const totalPages = limit > 0 ? Math.ceil(totalCount / limit) : 1;
+    const hasNextPage = limit > 0 ? page < totalPages : false;
     const hasPrevPage = page > 1;
 
     return res.status(200).json({
@@ -181,7 +185,7 @@ export const getProducts = async (req, res, next) => {
       products: products.map(normalizeProductForResponse),
       pagination: {
         page,
-        limit,
+        limit: limit || totalCount,
         totalCount,
         totalPages,
         hasNextPage,
