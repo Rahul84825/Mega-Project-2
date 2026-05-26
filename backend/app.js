@@ -16,6 +16,7 @@ import debugRoutes from "./routes/debugRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
+import couponRoutes from "./routes/couponRoutes.js";
 import User from "./models/User.js";
 import { adminOnly, protect } from "./middleware/authMiddleware.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
@@ -260,6 +261,9 @@ app.use("/api/reports", reportRoutes);
 
 // Delivery routes (webhooks)
 app.use("/api/delivery", deliveryRoutes);
+
+// Coupon routes
+app.use("/api/coupons", couponRoutes);
 
 /**
  * ERROR HANDLING

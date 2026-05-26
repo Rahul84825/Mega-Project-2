@@ -135,11 +135,17 @@ const orderSchema = new mongoose.Schema(
     totals: {
       itemsSubtotal: { type: Number, required: true },
       gstTotal: { type: Number, required: true },
+      couponDiscount: { type: Number, default: 0 },
       discountTotal: { type: Number, default: 0 },
       shippingFee: { type: Number, default: 0 },
       roundingAdjustment: { type: Number, default: 0 },
       grandTotal: { type: Number, required: true },
       currency: { type: String, default: "INR" }
+    },
+    coupon: {
+      code: { type: String, uppercase: true, trim: true },
+      discountType: { type: String, enum: ["PERCENTAGE", "FLAT"] },
+      discountValue: { type: Number }
     },
     rejectionReason: { type: String, trim: true, default: "" },
     notes: { type: String, trim: true, default: "" },

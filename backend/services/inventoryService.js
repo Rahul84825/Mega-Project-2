@@ -203,6 +203,7 @@ export const reserveStock = async ({
   }
 
   const totals = calculateTotals(itemSnapshots, { 
+    coupon,
     manualDiscount: discountTotal, 
     manualShipping: shippingFee, 
     pincode, 

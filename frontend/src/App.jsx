@@ -45,6 +45,7 @@ const AdminProducts = lazy(() => import("./admin/AdminProducts"));
 const AdminProductForm = lazy(() => import("./admin/AdminProductForm"));
 const AdminOffers = lazy(() => import("./admin/AdminOffers"));
 const AdminOrders = lazy(() => import("./admin/AdminOrders"));
+const AdminCoupons = lazy(() => import("./admin/AdminCoupons"));
 const AdminHeroBannerManager = lazy(() => import("./admin/AdminHeroBannerManager"));
 
 /**
@@ -262,6 +263,7 @@ function App() {
               <Route path="add-product" element={<AdminProductForm />} />
               <Route path="products/edit/:id" element={<Navigate to="/admin/add-product" replace />} />
               <Route path="categories" element={<AdminCategories />} />
+              <Route path="coupons" element={<AdminCoupons />} />
               <Route path="offers" element={<AdminOffers />} />
               <Route path="hero-banners" element={<AdminHeroBannerManager />} />
               <Route path="brands" element={<Navigate to="/admin/products" replace />} />

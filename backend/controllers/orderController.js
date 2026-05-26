@@ -2,6 +2,7 @@ import crypto from "crypto";
 import mongoose from "mongoose";
 import Razorpay from "razorpay";
 import Order, { ORDER_STATUSES } from "../models/Order.js";
+import Coupon from "../models/Coupon.js";
 import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
 import { InventoryError, reserveStock, restoreStock } from "../services/inventoryService.js";
@@ -82,17 +83,35 @@ export const placeOrder = async (req, res) => {
     const orderId = generateOrderId();
     let createdOrder;
 
+    // ── COUPON VALIDATION ──
+    let coupon = null;
+    if (orderData.couponCode) {
+      const foundCoupon = await Coupon.findOne({ code: orderData.couponCode.toUpperCase().trim() });
+      if (foundCoupon) {
+        const validation = foundCoupon.isValid(orderData.totals?.itemsSubtotal || 0);
+        if (validation.valid) {
+          coupon = foundCoupon;
+        }
+      }
+    }
+
     await session.withTransaction(async () => {
       const { itemSnapshots, totals } = await reserveStock({
         items: orderData.items,
         session,
         orderNumber,
         reason: "Order placement",
+        coupon, // Pass coupon for discount calculation
         discountTotal: orderData?.totals?.discountTotal,
         shippingFee: orderData?.totals?.shippingFee,
         pincode: orderData?.shippingAddress?.postalCode || "",
         roundingAdjustment: orderData?.totals?.roundingAdjustment
       });
+
+      if (coupon) {
+        // Increment coupon usage
+        await Coupon.updateOne({ _id: coupon._id }, { $inc: { usedCount: 1 } }, { session });
+      }
 
       const [orderDoc] = await Order.create(
         [
@@ -124,6 +143,11 @@ export const placeOrder = async (req, res) => {
               ...totals,
               currency: orderData?.totals?.currency || "INR"
             },
+            coupon: coupon ? {
+              code: coupon.code,
+              discountType: coupon.discountType,
+              discountValue: coupon.discountValue
+            } : undefined,
             notes: orderData?.notes || "",
             metadata: orderData?.metadata || {}
           }

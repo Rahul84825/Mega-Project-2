@@ -145,7 +145,22 @@ const OrderDetailsModal = ({ order, open, onClose, onVerifyPickup, onMarkReady, 
                         {(order?.totals?.shippingFee || order.deliveryFee) > 0 ? formatCurrency(order?.totals?.shippingFee || order.deliveryFee) : "FREE"}
                       </span>
                     </div>
-                    {Number(order?.totals?.discountTotal || 0) > 0 && (
+
+                    {order.coupon?.code && (
+                      <div className="flex justify-between text-xs font-medium text-blue-600">
+                        <span>Coupon ({order.coupon.code})</span>
+                        <span>-{formatCurrency(order?.totals?.couponDiscount || 0)}</span>
+                      </div>
+                    )}
+
+                    {Number(order?.totals?.discountTotal || 0) > Number(order?.totals?.couponDiscount || 0) && (
+                      <div className="flex justify-between text-xs font-medium text-emerald-600">
+                        <span>Other Discounts</span>
+                        <span>-{formatCurrency(Number(order?.totals?.discountTotal || 0) - Number(order?.totals?.couponDiscount || 0))}</span>
+                      </div>
+                    )}
+
+                    {Number(order?.totals?.discountTotal || 0) > 0 && !order.coupon?.code && (
                       <div className="flex justify-between text-xs font-medium text-emerald-600">
                         <span>Discount Applied</span>
                         <span>-{formatCurrency(order?.totals?.discountTotal || 0)}</span>

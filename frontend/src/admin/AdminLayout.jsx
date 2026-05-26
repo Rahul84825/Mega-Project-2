@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Package, PlusCircle, Tag,
+  LayoutDashboard, Package, PlusCircle, Tag, Ticket,
   ShoppingBag, Store, LogOut, ChevronLeft, Menu, Percent, Image as ImageIcon, Sparkles
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: "/admin/products",    label: "Products",    icon: Package,     end: true },
   { to: "/admin/add-product", label: "Add Product", icon: PlusCircle },
   { to: "/admin/categories", label: "Categories",  icon: Tag },
+  { to: "/admin/coupons",    label: "Coupons",     icon: Ticket },
   { to: "/admin/offers",     label: "Offers & Deals", icon: Percent },
   { to: "/admin/hero-banners", label: "Hero Banners", icon: ImageIcon },
 ];

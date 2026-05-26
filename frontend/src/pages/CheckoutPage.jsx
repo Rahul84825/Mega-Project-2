@@ -65,14 +65,20 @@ function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const isMountedRef = useRef(true);
   
-  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold, deliveryLabel, isFreeDelivery, outOfReach } = calculateTotals(cart, { pincode: form.pincode });
+  const { subtotal, deliveryFee, gstTotal, total, deliveryThreshold, deliveryLabel, isFreeDelivery, outOfReach, couponDiscount } = calculateTotals(cart, { 
+    pincode: form.pincode,
+    coupon: appliedCoupon
+  });
 
   // Sync state to localStorage
   useEffect(() => {
-    localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ form, step }));
-  }, [form, step]);
+    localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ form, step, appliedCoupon }));
+  }, [form, step, appliedCoupon]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -87,8 +93,37 @@ function CheckoutPage() {
       }));
     }
 
+    // Try to restore applied coupon
+    try {
+      const saved = localStorage.getItem(CHECKOUT_STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed?.appliedCoupon) setAppliedCoupon(parsed.appliedCoupon);
+    } catch (err) {}
+
     return () => { isMountedRef.current = false; };
   }, [user]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setErrorMessage("");
+    try {
+      const { data } = await api.post("/api/coupons/validate", { code: couponCode, orderAmount: subtotal });
+      if (data.success) {
+        setAppliedCoupon(data.coupon);
+        setCouponCode("");
+      }
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err, "Invalid coupon code"));
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setErrorMessage("");
+  };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -136,7 +171,14 @@ function CheckoutPage() {
                 shippingAddress: { line1: form.address, city: form.city, state: form.state, postalCode: form.pincode, country: "IN" },
                 items: cart.map(i => ({ ...i, productId: i.productId })),
                 amount: total,
-                totals: { itemsSubtotal: subtotal, shippingFee: deliveryFee, gstTotal, grandTotal: total, currency: "INR" }
+                totals: { 
+                  itemsSubtotal: subtotal, 
+                  shippingFee: deliveryFee, 
+                  gstTotal, 
+                  grandTotal: total, 
+                  currency: "INR",
+                  couponCode: appliedCoupon?.code
+                }
               }
             });
             if (verifyData.success) handleOrderSuccess(verifyData.order);
@@ -300,7 +342,47 @@ function CheckoutPage() {
                     <span>{formatCurrency(gstTotal)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center py-2 border-y border-white/5 my-2">
+                
+                {/* ── COUPON SECTION ── */}
+                <div className="py-4 border-y border-white/5 my-2 space-y-3">
+                  {!appliedCoupon ? (
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={couponCode} 
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="OFFER CODE"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] uppercase tracking-widest outline-none focus:border-[var(--saffron)] transition-colors"
+                      />
+                      <button 
+                        onClick={handleApplyCoupon}
+                        disabled={validatingCoupon || !couponCode.trim()}
+                        className="bg-[var(--saffron)] text-[var(--charcoal)] px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-white transition-colors"
+                      >
+                        {validatingCoupon ? "..." : "Apply"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center justify-between animate-in zoom-in-95 duration-300">
+                      <div>
+                        <div className="text-[10px] font-black text-emerald-400 tracking-[0.2em] uppercase">Applied: {appliedCoupon.code}</div>
+                        <div className="text-[9px] text-emerald-400/70 font-medium">Extra savings unlocked!</div>
+                      </div>
+                      <button onClick={handleRemoveCoupon} className="text-white/40 hover:text-white transition-colors">
+                        <MessageSquare size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-400 font-bold">
+                      <span>Coupon Discount</span>
+                      <span>-{formatCurrency(couponDiscount)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-white/5 mb-2">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] text-white/40 uppercase tracking-wider flex items-center gap-1">
                       <Truck size={10} /> {deliveryLabel}

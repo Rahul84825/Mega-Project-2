@@ -3,6 +3,7 @@ import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import Coupon from "../models/Coupon.js";
 import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
 import generateOrderId from "../utils/orderIdGenerator.js";
@@ -268,15 +269,33 @@ export const verifyPayment = async (req, res) => {
     // Execute stock reservation AND order creation inside the same transaction
     await session.withTransaction(async () => {
       try {
+        // ── COUPON VALIDATION ──
+        let coupon = null;
+        const couponCode = orderData?.couponCode || orderData?.totals?.couponCode;
+        if (couponCode) {
+          const foundCoupon = await Coupon.findOne({ code: String(couponCode).toUpperCase().trim() });
+          if (foundCoupon) {
+            const validation = foundCoupon.isValid(orderData?.totals?.itemsSubtotal || 0);
+            if (validation.valid) {
+              coupon = foundCoupon;
+            }
+          }
+        }
+
         const { itemSnapshots, totals } = await reserveStock({
           items: orderData?.items || [],
           session,
           orderNumber: `RZP-${Date.now()}`,
           reason: "Razorpay payment verified",
+          coupon, // Pass coupon for discount calculation
           discountTotal: orderData?.totals?.discountTotal || 0,
           shippingFee: orderData?.totals?.shippingFee || 0,
           roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
         });
+
+        if (coupon) {
+          await Coupon.updateOne({ _id: coupon._id }, { $inc: { usedCount: 1 } }, { session });
+        }
 
         // Create order in database within the transaction
         const [orderDoc] = await Order.create([{
@@ -314,6 +333,11 @@ export const verifyPayment = async (req, res) => {
             gstTotal: totals.gstTotal || 0,
             currency: razorpayOrder.currency || "INR"
           },
+          coupon: coupon ? {
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue
+          } : undefined,
           metadata: {
             razorpayOrderStatus: razorpayOrder.status,
             ...orderData?.metadata

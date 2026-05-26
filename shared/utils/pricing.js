@@ -171,11 +171,11 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
  * Items must have: { price: number, quantity: number, gstRate: number }
  * 
  * @param {Array} items - The items in the cart or order.
- * @param {Object} options - { manualDiscount, manualShipping, pincode, distance }
+ * @param {Object} options - { coupon, manualDiscount, manualShipping, pincode, distance }
  * @returns {Object} { itemsSubtotal, shippingFee, discountTotal, grandTotal, gstTotal, netSubtotal }
  */
 export const calculateTotals = (items = [], options = {}) => {
-  const { manualDiscount = 0, manualShipping = null, pincode = "", distance = null } = options;
+  const { coupon = null, manualDiscount = 0, manualShipping = null, pincode = "", distance = null } = options;
   
   if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0, netSubtotal: 0 };
 
@@ -197,7 +197,20 @@ export const calculateTotals = (items = [], options = {}) => {
     }
   });
 
-  const discountTotal = normalizeNumber(manualDiscount);
+  // Calculate Coupon Discount
+  let couponDiscount = 0;
+  if (coupon && netSubtotal > 0) {
+    if (coupon.discountType === "PERCENTAGE") {
+      couponDiscount = (netSubtotal * normalizeNumber(coupon.discountValue)) / 100;
+      if (coupon.maxDiscount) {
+        couponDiscount = Math.min(couponDiscount, normalizeNumber(coupon.maxDiscount));
+      }
+    } else {
+      couponDiscount = normalizeNumber(coupon.discountValue);
+    }
+  }
+
+  const discountTotal = normalizeNumber(manualDiscount) + couponDiscount;
   
   // Dynamic Delivery Logic
   const deliveryConfig = getDeliveryConfig(pincode, distance);
@@ -220,6 +233,7 @@ export const calculateTotals = (items = [], options = {}) => {
     netSubtotal: Math.round(netSubtotal),
     gstTotal: Math.round(gstTotal),
     shippingFee: Math.round(shippingFee),
+    couponDiscount: Math.round(couponDiscount),
     discountTotal: Math.round(discountTotal),
     grandTotal: Math.round(grandTotal),
     
