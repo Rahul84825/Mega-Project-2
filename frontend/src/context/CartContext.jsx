@@ -37,7 +37,8 @@ function cartReducer(state, action) {
           image: payload.image,
           quantity: incomingQty,
           stock: payload.stock,
-          gstRate: Number(payload.gstRate || 0)
+          gstRate: Number(payload.gstRate || 0),
+          packingCharges: Number(payload.packingCharges || 0)
         },
       ];
     }

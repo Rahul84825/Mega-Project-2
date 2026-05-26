@@ -81,7 +81,7 @@ export const reserveStock = async ({
     }
 
     const product = await Product.findById(productId)
-      .select("name image gstPercent variants stock")
+      .select("name image gstPercent packingCharges variants stock")
       .session(session);
 
     if (!product) {
@@ -158,6 +158,7 @@ export const reserveStock = async ({
       },
       gstRate: gstRate,
       gstAmount: Math.round(gstAmount),
+      packingCharges: Number(product.packingCharges || 0),
       mrpAtPurchase: pricing.mrp,
       sellingPriceAtPurchase: pricing.sellingPrice,
       quantity,

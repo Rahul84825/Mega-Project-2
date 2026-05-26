@@ -14,6 +14,7 @@ const EMPTY_FORM_BASE = {
   images: [],
   tags: "",
   gstPercent: "0",
+  packingCharges: "0",
   isSignature: false,
   isSnack: false,
   isMalaiBarfi: false,
@@ -68,6 +69,7 @@ const AdminProductForm = () => {
         images: productFromState.images || (productFromState.image ? [productFromState.image] : []),
         tags: (productFromState.tags || []).join(", "),
         gstPercent: String(productFromState.gstPercent || "0"),
+        packingCharges: String(productFromState.packingCharges || "0"),
         isSignature: Boolean(productFromState.isSignature),
         isSnack: Boolean(productFromState.isSnack),
         isMalaiBarfi: Boolean(productFromState.isMalaiBarfi),
@@ -209,6 +211,7 @@ const AdminProductForm = () => {
         category: form.category,
         description: form.description.trim(),
         gstPercent: Number(form.gstPercent || 0),
+        packingCharges: Number(form.packingCharges || 0),
         isSignature: Boolean(form.isSignature),
         isSnack: Boolean(form.isSnack),
         isMalaiBarfi: Boolean(form.isMalaiBarfi),
@@ -315,9 +318,14 @@ const AdminProductForm = () => {
                 <input type="number" value={form.gstPercent} onChange={e => set("gstPercent", e.target.value)} className="input-field" />
               </div>
               <div>
-                <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Tags (Optional)</label>
-                <input value={form.tags} onChange={e => set("tags", e.target.value)} className="input-field" placeholder="e.g. sugarfree, healthy" />
+                <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Packing Charges (₹)</label>
+                <input type="number" value={form.packingCharges} onChange={e => set("packingCharges", e.target.value)} className="input-field" placeholder="e.g. 10" />
               </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Tags (Optional)</label>
+              <input value={form.tags} onChange={e => set("tags", e.target.value)} className="input-field" placeholder="e.g. sugarfree, healthy" />
             </div>
 
             <div>
@@ -369,7 +377,7 @@ const AdminProductForm = () => {
                          <span className="text-[var(--muted)] italic">{TAX_MESSAGE}</span>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                          <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
                             <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">Net Selling</p>
                             <p className="text-xs font-bold text-[var(--charcoal)]">
@@ -382,10 +390,16 @@ const AdminProductForm = () => {
                                + {formatCurrency(Math.round((sp * Number(form.gstPercent || 0)) / 100))}
                             </p>
                          </div>
+                         <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
+                            <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">Packing</p>
+                            <p className="text-xs font-bold text-emerald-600">
+                               + {formatCurrency(Number(form.packingCharges || 0))}
+                            </p>
+                         </div>
                          <div className="bg-[var(--burgundy)]/5 p-2 rounded-lg border border-[var(--burgundy)]/20">
                             <p className="text-[8px] font-bold text-[var(--burgundy)] uppercase tracking-tighter mb-0.5">Total Price</p>
                             <p className="text-xs font-bold text-[var(--burgundy)]">
-                               {formatCurrency(sp + Math.round((sp * Number(form.gstPercent || 0)) / 100))}
+                               {formatCurrency(sp + Math.round((sp * Number(form.gstPercent || 0)) / 100) + Number(form.packingCharges || 0))}
                             </p>
                          </div>
                       </div>

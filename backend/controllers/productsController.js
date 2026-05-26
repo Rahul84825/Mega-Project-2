@@ -92,12 +92,14 @@ const normalizeProductForResponse = (product) => {
   if (plain._id) plain._id = String(plain._id);
   
   const gstPercent = clampGstPercent(plain.gstPercent);
+  const packingCharges = normalizeNumber(plain.packingCharges, 0);
   const variants = Array.isArray(plain.variants) ? plain.variants : [];
 
   return {
     ...plain,
     _id: String(plain._id),
     gstPercent,
+    packingCharges,
     variants: variants.map((variant, index) => {
       const mrp = Math.max(0, Math.round(normalizeNumber(variant?.mrp, 0)));
       const sellingPriceFallback = normalizeNumber(variant?.sellingPrice ?? variant?.price, 0);
@@ -239,6 +241,7 @@ export const createProduct = async (req, res, next) => {
       tags,
       variants,
       gstPercent,
+      packingCharges,
       isHero,
       isSignature,
       isSnack,
@@ -311,6 +314,7 @@ export const createProduct = async (req, res, next) => {
     const product = await Product.create({
       name,
       gstPercent: resolvedGstPercent,
+      packingCharges: normalizeNumber(packingCharges, 0),
       category: linkedCategory.slug,
       stock: resolvedStock,
       image: resolvedImages[0] || uploadedImageUrl,

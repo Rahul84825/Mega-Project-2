@@ -85,7 +85,8 @@ function ProductDetailPage() {
         image: product.images?.[0] || product.image,
         quantity,
         stock: currentStock,
-        gstRate: product.gstPercent || 0
+        gstRate: product.gstPercent || 0,
+        packingCharges: product.packingCharges || 0
       }
     });
     openCart();
@@ -153,9 +154,6 @@ function ProductDetailPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-[var(--muted)] italic font-medium">{TAX_MESSAGE}</span>
-                  {product.gstPercent > 0 && (
-                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">+ {product.gstPercent}% GST EXTRA</span>
-                  )}
                 </div>
               </div>
             </div>

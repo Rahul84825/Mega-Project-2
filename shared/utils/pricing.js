@@ -177,18 +177,21 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
 export const calculateTotals = (items = [], options = {}) => {
   const { coupon = null, manualDiscount = 0, manualShipping = null, pincode = "", distance = null } = options;
   
-  if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0, netSubtotal: 0 };
+  if (!Array.isArray(items)) return { itemsSubtotal: 0, shippingFee: 0, discountTotal: 0, grandTotal: 0, gstTotal: 0, packingTotal: 0, netSubtotal: 0 };
 
   let netSubtotal = 0; // Sum of selling prices (Before GST)
   let gstTotal = 0;
+  let packingTotal = 0;
 
   items.forEach((item) => {
     const price = normalizeNumber(item?.price || item?.sellingPrice || item?.sellingPriceAtPurchase || 0);
     const qty = normalizeNumber(item?.quantity || 1);
     const rate = normalizeNumber(item?.gstRate || item?.gstPercent || 0);
+    const packing = normalizeNumber(item?.packingCharges || 0);
     
     const lineNetTotal = price * qty;
     netSubtotal += lineNetTotal;
+    packingTotal += (packing * qty);
 
     // Calculate exclusive GST (Added ON TOP)
     if (rate > 0) {
@@ -226,12 +229,13 @@ export const calculateTotals = (items = [], options = {}) => {
     }
   }
 
-  // Calculate final total (Exclusive GST + Delivery)
-  const grandTotal = Math.max(0, netSubtotal + gstTotal + shippingFee - discountTotal);
+  // Calculate final total (Exclusive GST + Packing + Delivery)
+  const grandTotal = Math.max(0, netSubtotal + gstTotal + packingTotal + shippingFee - discountTotal);
 
   return {
     netSubtotal: Math.round(netSubtotal),
     gstTotal: Math.round(gstTotal),
+    packingTotal: Math.round(packingTotal),
     shippingFee: Math.round(shippingFee),
     couponDiscount: Math.round(couponDiscount),
     discountTotal: Math.round(discountTotal),

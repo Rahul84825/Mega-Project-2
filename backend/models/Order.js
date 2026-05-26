@@ -56,6 +56,7 @@ const orderItemSchema = new mongoose.Schema(
     mrpAtPurchase: { type: Number, required: true },
     sellingPriceAtPurchase: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 1 },
+    packingCharges: { type: Number, default: 0 },
     subtotal: { type: Number, required: true },
     finalAmount: { type: Number, required: true },
     stockSnapshot: {
@@ -135,6 +136,7 @@ const orderSchema = new mongoose.Schema(
     totals: {
       itemsSubtotal: { type: Number, required: true },
       gstTotal: { type: Number, required: true },
+      packingTotal: { type: Number, default: 0 },
       couponDiscount: { type: Number, default: 0 },
       discountTotal: { type: Number, default: 0 },
       shippingFee: { type: Number, default: 0 },

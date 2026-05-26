@@ -78,6 +78,7 @@ function CheckoutPage() {
     total, 
     deliveryFee, 
     gstTotal, 
+    packingTotal,
     couponDiscount, 
     isFreeDelivery, 
     deliveryThreshold, 
@@ -173,6 +174,7 @@ function CheckoutPage() {
                   itemsSubtotal: subtotal, 
                   shippingFee: deliveryFee, 
                   gstTotal, 
+                  packingTotal,
                   grandTotal: total, 
                   currency: "INR",
                   couponCode: appliedCoupon?.code
@@ -338,6 +340,12 @@ function CheckoutPage() {
                   <div className="flex justify-between text-emerald-400/80">
                     <span>GST Amount</span>
                     <span>{formatCurrency(gstTotal)}</span>
+                  </div>
+                )}
+                {packingTotal > 0 && (
+                  <div className="flex justify-between text-emerald-400/80">
+                    <span>Packing Charges</span>
+                    <span>{formatCurrency(packingTotal)}</span>
                   </div>
                 )}
                 
