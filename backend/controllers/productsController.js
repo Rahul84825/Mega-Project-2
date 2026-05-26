@@ -154,7 +154,9 @@ const uploadBufferToCloudinary = (buffer, folder = "mithai-world/products") => {
 export const getProducts = async (req, res, next) => {
   try {
     // PAGINATION: Extract limit and page from query parameters
-    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100); // Max 100 items per request
+    // INCREASED DEFAULT LIMIT: Changed from 20 to 1000 to prevent 'disappearing' products 
+    // in the admin panel which doesn't yet support pagination UI.
+    const limit = Math.min(Math.max(Number(req.query.limit) || 1000, 1), 2000); 
     const page = Math.max(Number(req.query.page) || 1, 1);
     const skip = (page - 1) * limit;
 
