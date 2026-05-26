@@ -298,51 +298,6 @@ export const acceptOrder = async (req, res) => {
   }
 };
 
-export const verifyPickupOtp = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { otp } = req.body;
-
-    let order = await Order.findById(id);
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
-
-    if (order.status !== "READY") {
-      return res.status(400).json({ success: false, message: "Order is not ready for pickup" });
-    }
-
-    // If no OTP exists, auto-assign a partner now (handles edge cases where assignment failed earlier)
-    if (!order.delivery?.pickupOtp) {
-      logger.info(`🔄 Auto-assigning partner for order ${id} during verification`);
-      order = await assignDeliveryPartner(order._id);
-    }
-
-    if (!order.delivery?.pickupOtp || order.delivery.pickupOtp !== String(otp).trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid pickup OTP. Please check the assigned rider's details." 
-      });
-    }
-
-    order.status = "PICKED_UP";
-    order.statusTimestamps.pickedUpAt = new Date();
-    
-    // Update delivery status
-    order.delivery.status = "PICKED_UP";
-    
-    await order.save();
-
-    emitOrderEvent("orderPickedUp", sanitizeOrder(order));
-    sendOrderOutForDeliveryEmail(order).catch(err => logger.error("Failed to send out for delivery email", err));
-    
-    return res.status(200).json({ success: true, order: sanitizeOrder(order) });
-  } catch (error) {
-    logger.error("Failed to verify pickup OTP:", error);
-    return res.status(500).json({ success: false, message: error.message || "Server Error" });
-  }
-};
-
 export const rejectOrder = async (req, res) => {
   const { id } = req.params;
   const rejectionReason = String(req.body?.reason || "").trim();

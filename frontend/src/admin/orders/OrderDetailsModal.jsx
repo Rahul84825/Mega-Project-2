@@ -320,7 +320,7 @@ const OrderDetailsModal = ({ order, open, onClose, onVerifyPickup, onMarkReady, 
                   onClick={() => { onClose(); onVerifyPickup(order); }}
                   className="h-12 px-6 rounded-2xl bg-blue-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
                 >
-                  <ShieldCheck size={16} /> Verify Pickup
+                  <Truck size={16} /> Handover to Borzo
                 </button>
               )}
               {status === "PREPARING" && (

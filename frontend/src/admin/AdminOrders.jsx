@@ -8,7 +8,6 @@ import OrderCard from "./orders/OrderCard";
 import OrderTabs from "./orders/OrderTabs";
 import RejectReasonModal from "./orders/RejectReasonModal";
 import AcceptOrderModal from "./orders/AcceptOrderModal";
-import VerifyPickupModal from "./orders/VerifyPickupModal";
 import OrderDetailsModal from "./orders/OrderDetailsModal";
 import { ORDER_TABS, resolveStatus } from "./orders/orderUtils";
 
@@ -18,7 +17,6 @@ const AdminOrders = () => {
     fetchOrders,
     acceptOrder,
     rejectOrder,
-    verifyPickupOtp,
     markOrderReady,
     markOrderDelivered,
   } = useProducts();
@@ -29,7 +27,6 @@ const AdminOrders = () => {
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [rejectModal, setRejectModal] = useState({ open: false, order: null });
   const [acceptModal, setAcceptModal] = useState({ open: false, order: null });
-  const [verifyModal, setVerifyModal] = useState({ open: false, order: null });
 
   useEffect(() => {
     fetchOrders();
@@ -96,13 +93,6 @@ const AdminOrders = () => {
     setRejectModal({ open: false, order: null });
   };
 
-  const handleVerifyPickupSubmit = (otp) => {
-    if (!verifyModal.order) return;
-    const orderId = verifyModal.order._id;
-    handleAction(orderId, () => verifyPickupOtp(orderId, otp));
-    setVerifyModal({ open: false, order: null });
-  };
-
   return (
     <div className="space-y-6 page-enter">
       {/* ── HEADER ── */}
@@ -151,7 +141,7 @@ const AdminOrders = () => {
               onSelect={() => setSelectedId(order._id)}
               onAccept={(o) => setAcceptModal({ open: true, order: o })}
               onReject={(o) => setRejectModal({ open: true, order: o })}
-              onVerifyPickup={(o) => setVerifyModal({ open: true, order: o })}
+              onVerifyPickup={(o) => handleAction(o._id, () => markPickedUp(o._id))}
               onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
               onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
               isBusy={busyOrderId === order._id}
@@ -164,7 +154,7 @@ const AdminOrders = () => {
         open={!!selectedId}
         order={selectedOrder}
         onClose={() => setSelectedId(null)}
-        onVerifyPickup={(o) => setVerifyModal({ open: true, order: o })}
+        onVerifyPickup={(o) => handleAction(o._id, () => markPickedUp(o._id))}
         onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
         onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
       />
@@ -181,13 +171,6 @@ const AdminOrders = () => {
         order={rejectModal.order}
         onClose={() => setRejectModal({ open: false, order: null })}
         onSubmit={handleRejectSubmit}
-      />
-
-      <VerifyPickupModal
-        open={verifyModal.open}
-        order={verifyModal.order}
-        onClose={() => setVerifyModal({ open: false, order: null })}
-        onSubmit={handleVerifyPickupSubmit}
       />
     </div>
   );
