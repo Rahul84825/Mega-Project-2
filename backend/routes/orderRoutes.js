@@ -9,8 +9,7 @@ import {
 	markReadyForPickup,
 	placeOrder,
 	rejectOrder,
-	getMyOrders,
-	verifyPickupOtp
+	getMyOrders
 } from "../controllers/orderController.js";
 import { adminOnly, protect, optionalProtect } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validateRequest.js";
@@ -22,7 +21,6 @@ router.get("/", protect, adminOnly, getOrdersByStatus);
 router.get("/my-orders", protect, getMyOrders);
 router.get("/:id", protect, adminOnly, getSingleOrder);
 router.post("/", optionalProtect, orderCreateValidation, validateRequest, placeOrder);
-router.post("/:id/verify-pickup", protect, adminOnly, verifyPickupOtp);
 router.patch("/:id/accept", protect, adminOnly, acceptOrder);
 router.patch("/:id/reject", protect, adminOnly, rejectOrder);
 router.patch("/:id/preparing", protect, adminOnly, markPreparing);
