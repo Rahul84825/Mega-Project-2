@@ -66,6 +66,7 @@ function CheckoutPage() {
   const [scriptReady, setScriptReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const isMountedRef = useRef(true);
@@ -106,15 +107,16 @@ function CheckoutPage() {
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     setValidatingCoupon(true);
-    setErrorMessage("");
+    setCouponError("");
     try {
       const { data } = await api.post("/api/coupons/validate", { code: couponCode, orderAmount: subtotal });
       if (data.success) {
         setAppliedCoupon(data.coupon);
         setCouponCode("");
+        setCouponError("");
       }
     } catch (err) {
-      setErrorMessage(getApiErrorMessage(err, "Invalid coupon code"));
+      setCouponError(getApiErrorMessage(err, "Invalid code"));
     } finally {
       setValidatingCoupon(false);
     }
@@ -122,7 +124,7 @@ function CheckoutPage() {
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
-    setErrorMessage("");
+    setCouponError("");
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -371,6 +373,12 @@ function CheckoutPage() {
                       <button onClick={handleRemoveCoupon} className="text-white/40 hover:text-white transition-colors">
                         <MessageSquare size={14} />
                       </button>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <div className="text-[10px] font-bold text-red-400 px-1 animate-in fade-in slide-in-from-top-1 duration-300">
+                      ⚠️ {couponError}
                     </div>
                   )}
 
