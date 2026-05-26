@@ -19,12 +19,12 @@ export const assignDeliveryPartner = async (orderId) => {
     const payload = {
       orderNumber: order.orderNumber,
       pickup: {
-        address: "Mithai World, Viman Nagar, Pune", // Should be from config
-        phone: "+91 98819 88751",
+        address: "Mithai World, Viman Nagar, Pune, Maharashtra 411014, India", // More specific for geocoding
+        phone: "9881988751",
         name: "Mithai World"
       },
       dropoff: {
-        address: `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}`,
+        address: `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.state || "Maharashtra"} ${order.shippingAddress.postalCode || ""}, India`,
         phone: order.customer.phone,
         name: order.customer.name
       },

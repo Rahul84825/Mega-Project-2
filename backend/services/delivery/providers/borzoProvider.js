@@ -1,3 +1,4 @@
+import axios from "axios";
 import { logger } from "../../../utils/logger.js";
 
 const getEnv = (key, fallback = "") => String(process.env[key] || fallback).trim();
@@ -25,37 +26,50 @@ const buildHeaders = (config) => {
 };
 
 const request = async (url, options = {}) => {
-  let response;
-  
+  const method = (options.method || "GET").toLowerCase();
+  const body = options.body ? JSON.parse(options.body) : undefined;
+
   // LOGGING: Full outgoing request
-  logger.info(`🌐 Borzo API Request: ${options.method} ${url}`, {
+  logger.info(`🌐 Borzo API Request: ${method.toUpperCase()} ${url}`, {
     headers: options.headers,
-    body: options.body ? JSON.parse(options.body) : null
+    body: body
   });
 
   try {
-    response = await fetch(url, options);
-  } catch (networkError) {
-    logger.error(`❌ Borzo API Network Error: ${networkError.message}`, { url });
-    throw new Error(`Failed to connect to Borzo API: ${networkError.message}`);
-  }
+    const response = await axios({
+      url,
+      method,
+      headers: options.headers,
+      data: body,
+      timeout: 15000 // 15 second timeout for delivery APIs
+    });
 
-  const data = await response.json().catch(() => ({}));
+    const data = response.data;
 
-  // LOGGING: Full API response
-  logger.info(`📥 Borzo API Response: ${response.status}`, { data });
+    // LOGGING: Full API response
+    logger.info(`📥 Borzo API Response: ${response.status}`, { data });
 
-  if (!response.ok) {
-    const apiError = data?.errors?.[0]?.text || data?.message || `Status ${response.status}`;
-    logger.error(`❌ Borzo API Error Response:`, { 
-      status: response.status, 
+    // Borzo India v1.6 sometimes returns 200 OK even for validation errors
+    if (data && data.is_successful === false) {
+      const apiError = data?.errors?.[0]?.text || data?.message || "Validation failed";
+      logger.error(`❌ Borzo Validation Error:`, { details: data });
+      throw new Error(`Borzo API Error: ${apiError}`);
+    }
+
+    return data;
+  } catch (error) {
+    const status = error.response?.status;
+    const responseData = error.response?.data;
+    const apiError = responseData?.errors?.[0]?.text || responseData?.message || error.message;
+
+    logger.error(`❌ Borzo API Call Failed:`, { 
+      status, 
       error: apiError,
-      details: data
+      details: responseData,
+      url: url
     });
     throw new Error(`Borzo API Error: ${apiError}`);
   }
-
-  return data;
 };
 
 const normalizeTask = (data = {}) => {
@@ -98,6 +112,7 @@ export const createBorzoProvider = () => {
       const body = {
         type: "standard",
         matter: `Mithai Order ${payload.orderNumber}`,
+        client_order_id: payload.orderNumber, // Added for dashboard tracking
         points: [
           {
             address: payload.pickup.address,
