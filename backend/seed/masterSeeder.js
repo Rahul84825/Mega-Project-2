@@ -19,11 +19,11 @@ const seedDatabase = async () => {
     console.log("✅ Connected to MongoDB");
 
     // 1. Clear existing data
-    console.log("🧹 Clearing old data...");
-    await Category.deleteMany({});
-    await Product.deleteMany({});
-    await Offer.deleteMany({});
-    console.log("✅ Collections cleared");
+    console.log("🧹 Skipping clearing of old data to prevent accidental deletion...");
+    // await Category.deleteMany({});
+    // await Product.deleteMany({});
+    // await Offer.deleteMany({});
+    console.log("✅ Collections preserved");
 
     // 2. Seed Categories
     console.log("📁 Seeding categories...");
