@@ -3,7 +3,7 @@ import { logger } from "../../../utils/logger.js";
 const getEnv = (key, fallback = "") => String(process.env[key] || fallback).trim();
 
 const buildConfig = () => {
-  const baseUrl = getEnv("BORZO_BASE_URL", "https://robot.borzodelivery.com/api/business/1.1");
+  const baseUrl = getEnv("BORZO_BASE_URL", "https://robot-in.borzodelivery.com/api/business/1.6");
   const authToken = getEnv("BORZO_API_TOKEN");
 
   if (!authToken) {
@@ -26,6 +26,13 @@ const buildHeaders = (config) => {
 
 const request = async (url, options = {}) => {
   let response;
+  
+  // LOGGING: Full outgoing request
+  logger.info(`🌐 Borzo API Request: ${options.method} ${url}`, {
+    headers: options.headers,
+    body: options.body ? JSON.parse(options.body) : null
+  });
+
   try {
     response = await fetch(url, options);
   } catch (networkError) {
@@ -34,6 +41,9 @@ const request = async (url, options = {}) => {
   }
 
   const data = await response.json().catch(() => ({}));
+
+  // LOGGING: Full API response
+  logger.info(`📥 Borzo API Response: ${response.status}`, { data });
 
   if (!response.ok) {
     const apiError = data?.errors?.[0]?.text || data?.message || `Status ${response.status}`;
@@ -63,40 +73,52 @@ const normalizeTask = (data = {}) => {
   };
 };
 
+// Helper: Sanitize phone numbers for Borzo India (Exactly 10 digits preferred)
+const sanitizePhone = (phone) => {
+  if (!phone) return "";
+  const digits = String(phone).replace(/\D/g, "");
+  // Borzo India localized API typically expects 10-digit mobile numbers
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+};
+
 export const createBorzoProvider = () => {
   const config = buildConfig();
 
   return {
     async createDeliveryTask(payload) {
       // payload usually contains orderNumber, pickup, dropoff, items, etc.
-      // Borzo format:
+      // Borzo India v1.6 format:
       // {
+      //   "type": "standard",
       //   "matter": "...",
       //   "points": [ { "address": "...", "contact_person": {...} }, ... ]
       // }
 
       const body = {
-        matter: `Order ${payload.orderNumber}`,
+        type: "standard",
+        matter: `Mithai Order ${payload.orderNumber}`,
         points: [
           {
             address: payload.pickup.address,
             contact_person: {
-              phone: payload.pickup.phone,
-              name: payload.pickup.name || "Store"
+              phone: sanitizePhone(payload.pickup.phone),
+              name: payload.pickup.name || "Mithai World"
             },
-            note: payload.pickup.note || ""
+            note: payload.pickup.note || "Pickup from Mithai World store"
           },
           {
             address: payload.dropoff.address,
             contact_person: {
-              phone: payload.dropoff.phone,
+              phone: sanitizePhone(payload.dropoff.phone),
               name: payload.dropoff.name || "Customer"
             },
             note: payload.dropoff.note || ""
           }
         ],
-        vehicle_type_id: payload.vehicleTypeId || 8, // 8 is usually motorcycle
-        is_route_optimizer_enabled: true
+        vehicle_type_id: payload.vehicleTypeId || 8, // 8 is Motorbike in India
+        is_route_optimizer_enabled: true,
+        total_weight_kg: 1
       };
 
       const data = await request(`${config.baseUrl}/create-order`, {
@@ -142,9 +164,10 @@ export const createBorzoProvider = () => {
       const status = order.status;
       
       let event = "unknown";
+      // Borzo India Statuses: new, available (searching), active (assigned), completed, canceled, delayed
       if (status === "new") event = "order_created";
-      if (status === "available") event = "courier_assigned";
-      if (status === "active") event = "picked_up";
+      if (status === "available") event = "searching_courier"; 
+      if (status === "active") event = "courier_assigned"; // Map active to assigned
       if (status === "completed") event = "delivered";
       if (status === "canceled") event = "canceled";
       if (status === "delayed") event = "failed_delivery";
