@@ -1,10 +1,10 @@
 import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger.js';
-import { buildOrderPlacedTemplate } from '../templates/orderPlacedTemplate.js';
-import { buildOrderStatusTemplate } from '../templates/orderStatusTemplate.js';
-import { buildPaymentTemplate } from '../templates/paymentTemplate.js';
-import { buildAdminAlertTemplate } from '../templates/adminAlertTemplate.js';
-import { buildAdminContactAlert, buildCustomerContactAck } from '../templates/contactTemplate.js';
+import { buildOrderPlacedTemplate } from './templates/orderPlacedTemplate.js';
+import { buildOrderStatusTemplate } from './templates/orderStatusTemplate.js';
+import { buildPaymentTemplate } from './templates/paymentTemplate.js';
+import { buildAdminAlertTemplate } from './templates/adminAlertTemplate.js';
+import { buildAdminContactAlert, buildCustomerContactAck } from './templates/contactTemplate.js';
 
 let transporter = null;
 
