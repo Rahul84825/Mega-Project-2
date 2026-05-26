@@ -9,11 +9,16 @@ import { createDeliveryTask, getTrackingDetails } from "./delivery/index.js";
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
+  logger.info(`🔍 DEBUG: assignDeliveryPartner called for ID: ${orderId}`);
   try {
     const order = await Order.findById(orderId);
-    if (!order) throw new Error("Order not found");
+    if (!order) {
+      logger.error(`🔍 DEBUG: Order ${orderId} NOT FOUND in database`);
+      throw new Error("Order not found");
+    }
 
     const provider = "borzo";
+    logger.info(`🔍 DEBUG: Provider is ${provider}. Preparing payload...`);
 
     // Prepare standardized payload for delivery providers
     const payload = {
@@ -34,9 +39,16 @@ export const assignDeliveryPartner = async (orderId) => {
       }))
     };
 
-    logger.info(`🚚 Requesting ${provider} delivery for Order ${order.orderNumber}...`);
+    logger.info(`🚚 Requesting ${provider} delivery for Order ${order.orderNumber}...`, { payload });
 
     const task = await createDeliveryTask(payload, { provider });
+    
+    if (!task || !task.taskId) {
+      logger.error(`🔍 DEBUG: No taskId returned from ${provider} provider`, { task });
+      throw new Error(`${provider} failed to return a task ID`);
+    }
+
+    logger.info(`🔍 DEBUG: Task created successfully. Task ID: ${task.taskId}`);
 
     order.delivery = {
       ...(order.delivery || {}),
@@ -50,6 +62,7 @@ export const assignDeliveryPartner = async (orderId) => {
     };
 
     if (task.rider?.name) {
+      logger.info(`🔍 DEBUG: Rider info received: ${task.rider.name}`);
       order.rider = {
         name: task.rider.name,
         phone: task.rider.phone,
@@ -65,9 +78,11 @@ export const assignDeliveryPartner = async (orderId) => {
     logger.info(`✅ ${provider} Delivery Assigned: ${task.taskId}`);
     return order;
   } catch (error) {
-    logger.error("❌ Failed to assign delivery partner:", error);
-    // Don't crash the order flow, but log it
-    // In production, you might want to notify an admin
+    logger.error("❌ Failed to assign delivery partner:", {
+      message: error.message,
+      stack: error.stack,
+      orderId
+    });
     throw error;
   }
 };

@@ -287,9 +287,13 @@ export const acceptOrder = async (req, res) => {
 
     // Assign delivery partner (Strictly Borzo now)
     try {
+      logger.info(`🔍 DEBUG: Triggering assignDeliveryPartner for order ${order._id}`);
       order = await assignDeliveryPartner(order._id);
     } catch (assignError) {
-      logger.error(`❌ Auto-assignment failed during accept for ${id}:`, assignError.message);
+      logger.error(`❌ Auto-assignment failed during accept for ${id}:`, {
+        error: assignError.message,
+        orderId: id
+      });
       // We proceed with the order acceptance even if delivery assignment fails
     }
 
@@ -467,7 +471,7 @@ export const markReadyForPickup = async (req, res) => {
 export const markPickedUp = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
@@ -475,6 +479,16 @@ export const markPickedUp = async (req, res) => {
 
     if (order.status === "PICKED_UP") {
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    }
+
+    // Safety: Ensure delivery partner is assigned if not already
+    if (!order.rider?.name) {
+      try {
+        logger.info(`🔍 DEBUG: Manual trigger of assignDeliveryPartner for order ${id} during markPickedUp`);
+        order = await assignDeliveryPartner(order._id);
+      } catch (assignError) {
+        logger.error(`❌ Manual assignment failed during pick-up for ${id}:`, assignError.message);
+      }
     }
 
     order.status = "PICKED_UP";
