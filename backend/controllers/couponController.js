@@ -75,13 +75,17 @@ export const createCoupon = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Coupon code already exists" });
     }
 
+    // Ensure expiry is at the end of the selected day
+    const expiryDate = new Date(expiresAt);
+    expiryDate.setHours(23, 59, 59, 999);
+
     const coupon = await Coupon.create({
       code: code.toUpperCase().trim(),
       discountType,
       discountValue,
       minOrderAmount,
       maxDiscount,
-      expiresAt: new Date(expiresAt),
+      expiresAt: expiryDate,
       usageLimit,
       description
     });
