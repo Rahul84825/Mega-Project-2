@@ -182,8 +182,32 @@ const MyOrders = () => {
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-[var(--surface-border)] space-y-3">
-                      <div className="flex items-center justify-between">
+                    <div className="pt-4 border-t border-[var(--surface-border)] space-y-2">
+                      <div className="flex justify-between text-[10px] font-medium text-[var(--muted)]">
+                        <span>Items Subtotal</span>
+                        <span>{formatCurrency(order.totals?.itemsSubtotal || order.subtotal || 0)}</span>
+                      </div>
+                      
+                      {order.totals?.gstTotal > 0 && (
+                        <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
+                          <span>GST Amount</span>
+                          <span>{formatCurrency(order.totals.gstTotal)}</span>
+                        </div>
+                      )}
+
+                      {order.totals?.packingTotal > 0 && (
+                        <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
+                          <span>Packing Charges</span>
+                          <span>{formatCurrency(order.totals.packingTotal)}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-[10px] font-medium text-[var(--muted)]">
+                        <span>Delivery</span>
+                        <span>{(order.totals?.shippingFee || order.deliveryFee) > 0 ? formatCurrency(order.totals?.shippingFee || order.deliveryFee) : 'FREE'}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-dashed border-[var(--surface-border)]">
                         <div className="flex items-center gap-2">
                           <CreditCard size={14} className="text-[var(--muted)]" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)]">

@@ -463,6 +463,10 @@ export const updateProduct = async (req, res, next) => {
       payload.gstPercent = Math.round((clampGstPercent(payload.gstPercent) + Number.EPSILON) * 100) / 100;
     }
 
+    if (payload.packingCharges !== undefined) {
+      payload.packingCharges = normalizeNumber(payload.packingCharges, 0);
+    }
+
     if (payload.images !== undefined || payload.image !== undefined) {
       payload.images = normalizeImages(payload.image ?? currentProduct.image, payload.images ?? currentProduct.images);
       payload.image = payload.images[0] || payload.image || currentProduct.image;

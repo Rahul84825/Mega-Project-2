@@ -145,8 +145,14 @@ function PaymentSuccessPage() {
               </div>
               {(order.totals?.gstTotal || order.gstTotal) > 0 && (
                 <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
-                  <span>GST (Included)</span>
+                  <span>GST Amount</span>
                   <span>{formatCurrency(order.totals?.gstTotal || order.gstTotal)}</span>
+                </div>
+              )}
+              {(order.totals?.packingTotal || order.packingTotal) > 0 && (
+                <div className="flex justify-between text-[10px] font-medium text-emerald-600/80">
+                  <span>Packing Charges</span>
+                  <span>{formatCurrency(order.totals?.packingTotal || order.packingTotal)}</span>
                 </div>
               )}
               <div className="h-px bg-[var(--surface-border)] my-2" />

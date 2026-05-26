@@ -74,21 +74,17 @@ const AdminProducts = () => {
 
   const getDisplayPricing = (product) => {
     const variants = Array.isArray(product?.variants) ? product.variants : [];
-    const gstRate = Number(product?.gstPercent || 0);
-
+    
     if (!variants.length) {
       const netPrice = Number(product?.price || product?.basePrice || 0);
-      const gstAmount = (netPrice * gstRate) / 100;
       return { 
-        finalPrice: Math.round(netPrice + gstAmount), 
+        finalPrice: Math.round(netPrice), 
         mrp: Number(product?.mrp || 0) 
       };
     }
 
     const prices = variants.map(v => {
-      const netPrice = Number(v.sellingPrice || 0);
-      const gstAmount = (netPrice * gstRate) / 100;
-      return Math.round(netPrice + gstAmount);
+      return Math.round(Number(v.sellingPrice || 0));
     }).filter(p => p > 0);
 
     const mrps = variants.map(v => Number(v.mrp || 0)).filter(p => p > 0);

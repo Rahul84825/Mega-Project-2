@@ -41,7 +41,8 @@ function ProductCard({ product }) {
         price: variant.sellingPrice,
         image: product.images?.[0] || product.image,
         stock: variant.stock,
-        gstRate: product.gstPercent || 0
+        gstRate: product.gstPercent || 0,
+        packingCharges: product.packingCharges || 0
       }
     });
 
@@ -148,9 +149,6 @@ function ProductCard({ product }) {
                 <span className="text-[8px] sm:text-[9px] font-bold text-[var(--muted)] opacity-60 uppercase tracking-tighter">/ {selectedVariant.label}</span>
               )}
             </div>
-            {!isOutOfStock && product.gstPercent > 0 && (
-              <span className="text-[7px] sm:text-[8px] text-emerald-600 font-black tracking-widest mt-0.5 animate-pulse">+ {product.gstPercent}% GST EXTRA</span>
-            )}
           </div>
           
           <button 
