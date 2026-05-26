@@ -76,11 +76,6 @@ function ProductCard({ product }) {
         
         {/* Badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1.5 items-start">
-          {categoryName && (
-            <span className="bg-white/90 backdrop-blur-md px-2 sm:px-3 py-1 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] text-[var(--burgundy)] shadow-sm border border-[var(--surface-border)]/50">
-              {categoryName}
-            </span>
-          )}
           {!isOutOfStock && isLowStock && (
             <span className="bg-rose-500 text-white px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest shadow-sm animate-pulse">
               Low Stock
