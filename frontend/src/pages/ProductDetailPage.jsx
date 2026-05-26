@@ -68,6 +68,7 @@ function ProductDetailPage() {
   if (!product) return <div className="min-h-[60vh] flex items-center justify-center bg-[var(--cream)] serif text-2xl font-medium">Sweet not found.</div>;
 
   const currentPrice = selectedVariant?.sellingPrice || product.basePrice || 0;
+  const currentMrp = selectedVariant?.mrp || product.mrp || 0;
   const currentStock = selectedVariant?.stock || product.stock || 0;
   const isOutOfStock = currentStock <= 0;
   const isLowStock = currentStock > 0 && currentStock <= 5;
@@ -130,17 +131,22 @@ function ProductDetailPage() {
               </div>
               <h1 className={`serif text-4xl md:text-5xl lg:text-6xl mb-4 leading-tight font-medium ${isOutOfStock ? 'text-[var(--muted)]' : ''}`}>{product.name}</h1>
               <div className="flex items-baseline gap-4 mt-2 flex-wrap">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className={`text-3xl font-bold ${isOutOfStock ? 'text-[var(--muted)]' : 'text-[var(--charcoal)]'}`}>
                     {formatCurrency(currentPrice)}
                   </span>
+                  {!isOutOfStock && currentMrp > currentPrice && (
+                    <span className="text-lg font-medium text-[var(--muted)] line-through opacity-60 decoration-[var(--muted)]">
+                      {formatCurrency(currentMrp)}
+                    </span>
+                  )}
                   {!isOutOfStock && selectedVariant?.discountPercent > 0 && (
                     <span className="bg-[#f2994a] text-white px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">
                       {selectedVariant.discountPercent}% OFF
                     </span>
                   )}
                   {selectedVariant && (
-                    <span className="text-sm font-medium text-[var(--muted)] align-middle uppercase tracking-widest">
+                    <span className="text-sm font-medium text-[var(--muted)] align-middle uppercase tracking-widest ml-1">
                       / {selectedVariant.label}
                     </span>
                   )}
