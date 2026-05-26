@@ -51,9 +51,14 @@ const request = async (url, options = {}) => {
 
     // Borzo India v1.6 sometimes returns 200 OK even for validation errors
     if (data && data.is_successful === false) {
-      const apiError = data?.errors?.[0]?.text || data?.message || "Validation failed";
-      logger.error(`❌ Borzo Validation Error:`, { details: data });
-      throw new Error(`Borzo API Error: ${apiError}`);
+      const apiError = data?.errors?.[0] || data?.message || "Validation failed";
+      const paramErrors = data?.parameter_errors ? JSON.stringify(data.parameter_errors) : "None";
+      logger.error(`❌ Borzo Validation Error:`, { 
+        error: apiError,
+        paramErrors: data.parameter_errors,
+        details: data 
+      });
+      throw new Error(`Borzo API Error: ${apiError}. Details: ${paramErrors}`);
     }
 
     return data;
