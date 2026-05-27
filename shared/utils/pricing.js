@@ -118,26 +118,21 @@ const PINCODE_DISTANCES = {
 };
 
 /**
- * Rules for free delivery based on distance/pincode
- * - Same Pincode (411014): Free above ₹200
- * - Distance > 5km: Free above ₹500
- * - Distance > 10km: Free above ₹1000
- * - Distance > 15km: Last Orders Reach (Free above ₹1500)
- * - Distance > 20km: OUT OF REACH (Contact Us)
+ * Rules for delivery eligibility and fees based on distance/pincode
+ * NEW BUSINESS RULES:
+ * 0-5 km   → ₹40
+ * 5-10 km  → ₹60
+ * 10-15 km → ₹80
+ * > 15 km  → OUT OF REACH
  */
 export const getDeliveryConfig = (pincode = "", distance = null) => {
   const code = String(pincode).trim();
   
-  // 1. Same Pincode check
-  if (code === BASE_PINCODE) {
-    return { threshold: 200, charge: DEFAULT_DELIVERY_CHARGE, label: "Same Pincode (Viman Nagar)", outOfReach: false };
-  }
-
-  // 2. Use distance if provided or found in mapping
-  const effectiveDistance = distance !== null ? distance : (PINCODE_DISTANCES[code] || null);
-
-  if (effectiveDistance !== null) {
-    if (effectiveDistance > 20) {
+  // 1. If distance is provided (Dynamic Geocoding)
+  if (distance !== null && distance !== undefined) {
+    const dist = Number(distance);
+    
+    if (dist > 15) {
       return { 
         threshold: Infinity, 
         charge: 0, 
@@ -145,25 +140,30 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
         outOfReach: true 
       };
     }
-    
-    if (effectiveDistance > 15) {
-      return { 
-        threshold: 1500, 
-        charge: DEFAULT_DELIVERY_CHARGE, 
-        label: `Last Orders Reach (${effectiveDistance}km)`, 
-        outOfReach: false 
-      };
-    }
 
-    if (effectiveDistance > 10) return { threshold: 1000, charge: DEFAULT_DELIVERY_CHARGE, label: `Medium Distance (${effectiveDistance}km)`, outOfReach: false };
-    if (effectiveDistance > 5) return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Standard Distance (${effectiveDistance}km)`, outOfReach: false };
-    
-    // Within 5km but different pincode
-    return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: `Local Delivery (${effectiveDistance}km)`, outOfReach: false };
+    if (dist <= 5) return { threshold: Infinity, charge: 40, label: `Local Delivery (${dist.toFixed(1)}km)`, outOfReach: false };
+    if (dist <= 10) return { threshold: Infinity, charge: 60, label: `Standard Distance (${dist.toFixed(1)}km)`, outOfReach: false };
+    if (dist <= 15) return { threshold: Infinity, charge: 80, label: `Medium Distance (${dist.toFixed(1)}km)`, outOfReach: false };
   }
 
-  // 3. Fallback / Unknown distance (Default to standard but not blocked)
-  return { threshold: 500, charge: DEFAULT_DELIVERY_CHARGE, label: "Standard Delivery", outOfReach: false };
+  // 2. Same Pincode check (Fallback if distance not calculated yet)
+  if (code === BASE_PINCODE) {
+    return { threshold: 200, charge: 40, label: "Same Pincode (Viman Nagar)", outOfReach: false };
+  }
+
+  // 3. Static Pincode Distance mapping (Legacy Fallback)
+  const mappedDistance = PINCODE_DISTANCES[code];
+  if (mappedDistance !== undefined) {
+    if (mappedDistance > 15) {
+      return { threshold: Infinity, charge: 0, label: "Out of Reach (Contact Us)", outOfReach: true };
+    }
+    if (mappedDistance <= 5) return { threshold: 500, charge: 40, label: "Local Delivery", outOfReach: false };
+    if (mappedDistance <= 10) return { threshold: 500, charge: 60, label: "Standard Distance", outOfReach: false };
+    return { threshold: 500, charge: 80, label: "Medium Distance", outOfReach: false };
+  }
+
+  // 4. Default / Unknown
+  return { threshold: 500, charge: 60, label: "Standard Delivery", outOfReach: false };
 };
 
 /**

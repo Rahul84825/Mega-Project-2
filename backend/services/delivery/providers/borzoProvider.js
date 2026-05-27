@@ -3,6 +3,8 @@ import { logger } from "../../../utils/logger.js";
 
 const getEnv = (key, fallback = "") => String(process.env[key] || fallback).trim();
 
+console.log("BORZO PROVIDER HIT");
+
 const buildConfig = () => {
   const baseUrl = getEnv("BORZO_BASE_URL", "https://robot-in.borzodelivery.com/api/business/1.6");
   const authToken = getEnv("BORZO_API_TOKEN");
@@ -27,33 +29,51 @@ const buildHeaders = (config) => {
 
 const request = async (url, options = {}) => {
   const method = (options.method || "GET").toLowerCase();
-  const body = options.body ? JSON.parse(options.body) : undefined;
+  
+  // Safe body parsing for logging
+  let logBody = options.body;
+  if (typeof options.body === "string" && options.body.length > 0) {
+    try {
+      logBody = JSON.parse(options.body);
+    } catch (e) {
+      logBody = "[Non-JSON Body]";
+    }
+  }
 
-  // LOGGING: Full outgoing request
-  logger.info(`🌐 Borzo API Request: ${method.toUpperCase()} ${url}`, {
-    headers: options.headers,
-    body: body
+  // ── LOGGING: Outgoing Request ──
+  logger.info(`🌐 [BORZO] API Request: ${method.toUpperCase()} ${url}`, {
+    headers: {
+      ...options.headers,
+      "X-DV-Auth-Token": options.headers?.["X-DV-Auth-Token"] ? "***HIDDEN***" : "MISSING"
+    },
+    body: logBody
   });
 
   try {
+    logger.info(`📡 [BORZO] Executing axios call...`);
     const response = await axios({
       url,
       method,
       headers: options.headers,
-      data: body,
-      timeout: 15000 // 15 second timeout for delivery APIs
+      data: options.body, // Pass raw body (usually stringified JSON)
+      timeout: 15000
     });
 
     const data = response.data;
 
-    // LOGGING: Full API response
-    logger.info(`📥 Borzo API Response: ${response.status}`, { data });
+    // ── LOGGING: API Response ──
+    logger.info(`📥 [BORZO] API Response: ${response.status}`, { 
+      isSuccessful: data?.is_successful,
+      orderId: data?.order?.order_id,
+      errors: data?.errors
+    });
 
-    // Borzo India v1.6 sometimes returns 200 OK even for validation errors
     if (data && data.is_successful === false) {
-      const apiError = data?.errors?.[0] || data?.message || "Validation failed";
-      const paramErrors = data?.parameter_errors ? JSON.stringify(data.parameter_errors) : "None";
-      logger.error(`❌ Borzo Validation Error:`, { 
+      const apiError = Array.isArray(data.errors) ? data.errors.join("; ") : (data.message || "Validation failed");
+      const paramErrors = data.parameter_errors ? JSON.stringify(data.parameter_errors) : "None";
+      
+      // ── LOGGING: API Validation Error ──
+      logger.error(`❌ [BORZO] API Validation Error:`, { 
         error: apiError,
         paramErrors: data.parameter_errors,
         details: data 
@@ -63,17 +83,34 @@ const request = async (url, options = {}) => {
 
     return data;
   } catch (error) {
+    // If it's a Borzo API error we just threw, re-throw it
+    if (error.message.includes("Borzo API Error")) throw error;
+
     const status = error.response?.status;
     const responseData = error.response?.data;
-    const apiError = responseData?.errors?.[0]?.text || responseData?.message || error.message;
+    
+    let apiError = error.message;
+    if (responseData) {
+      if (Array.isArray(responseData.errors)) {
+        apiError = responseData.errors.map(e => typeof e === 'string' ? e : (e.text || JSON.stringify(e))).join("; ");
+      } else if (responseData.message) {
+        apiError = responseData.message;
+      }
+    }
 
-    logger.error(`❌ Borzo API Call Failed:`, { 
+    // ── LOGGING: Network, Authentication, or Server Error ──
+    let errorType = "Network/HTTP Failure";
+    if (status === 401 || status === 403) errorType = "Authentication Error";
+    else if (status >= 500) errorType = "Server Error";
+    else if (status >= 400) errorType = "API Client Error";
+
+    logger.error(`❌ [BORZO] ${errorType}:`, { 
       status, 
       error: apiError,
       details: responseData,
       url: url
     });
-    throw new Error(`Borzo API Error: ${apiError}`);
+    throw new Error(`Borzo ${errorType}: ${apiError}`);
   }
 };
 
@@ -95,8 +132,15 @@ const normalizeTask = (data = {}) => {
 // Helper: Sanitize phone numbers for Borzo India (Exactly 10 digits preferred)
 const sanitizePhone = (phone) => {
   if (!phone) return "";
+  // Remove all non-digits
   const digits = String(phone).replace(/\D/g, "");
+  
   // Borzo India localized API typically expects 10-digit mobile numbers
+  // If starts with 91 and has 12 digits, strip 91
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return digits.slice(2);
+  }
+  
   if (digits.length > 10) return digits.slice(-10);
   return digits;
 };
@@ -106,18 +150,19 @@ export const createBorzoProvider = () => {
 
   return {
     async createDeliveryTask(payload) {
-      // payload usually contains orderNumber, pickup, dropoff, items, etc.
-      // Borzo India v1.6 format:
-      // {
-      //   "type": "standard",
-      //   "matter": "...",
-      //   "points": [ { "address": "...", "contact_person": {...} }, ... ]
-      // }
+      logger.info(`🛠️ [BORZO] Building payload for Order ${payload.orderNumber}`);
+
+      // Borzo India v1.6 format requirements:
+      // - total_weight_kg: must be numeric
+      
+      const rawWeight = payload.totalWeightKg;
+      // Ensure numeric conversion and 3-decimal precision for hyperlocal accuracy (e.g. 100g = 0.100)
+      const finalWeight = Number(parseFloat(rawWeight || 1).toFixed(3));
+      const vehicleTypeId = payload.vehicleTypeId || 8;
 
       const body = {
         type: "standard",
         matter: `Mithai Order ${payload.orderNumber}`,
-        client_order_id: payload.orderNumber, // Added for dashboard tracking
         points: [
           {
             address: payload.pickup.address,
@@ -136,10 +181,18 @@ export const createBorzoProvider = () => {
             note: payload.dropoff.note || ""
           }
         ],
-        vehicle_type_id: payload.vehicleTypeId || 8, // 8 is Motorbike in India
+        vehicle_type_id: vehicleTypeId, 
         is_route_optimizer_enabled: true,
-        total_weight_kg: 1
+        total_weight_kg: finalWeight
       };
+
+      logger.info(`📤 [BORZO] FINAL PAYLOAD VERIFICATION:`, { 
+        orderNumber: payload.orderNumber,
+        rawWeightIn: rawWeight,
+        formattedWeightSent: body.total_weight_kg,
+        weightType: typeof body.total_weight_kg,
+        vehicleTypeId: body.vehicle_type_id
+      });
 
       const data = await request(`${config.baseUrl}/create-order`, {
         method: "POST",
@@ -147,7 +200,47 @@ export const createBorzoProvider = () => {
         body: JSON.stringify(body)
       });
 
-      return normalizeTask(data);
+      const task = normalizeTask(data);
+      logger.info(`✅ [BORZO] Task Created: ${task.taskId}, Status: ${task.status}`);
+      return task;
+    },
+
+    async calculateDeliveryFee(payload) {
+      // payload contains pickup and dropoff addresses
+      const rawWeight = payload.totalWeightKg;
+      const finalWeight = Number(parseFloat(rawWeight || 1).toFixed(3));
+      const vehicleTypeId = payload.vehicleTypeId || 8;
+
+      const body = {
+        type: "standard",
+        points: [
+          { address: payload.pickup.address },
+          { address: payload.dropoff.address }
+        ],
+        vehicle_type_id: vehicleTypeId,
+        total_weight_kg: finalWeight
+      };
+
+      logger.info(`📤 [BORZO] Calculating Fee with verified weight:`, { 
+        weight: body.total_weight_kg, 
+        weightType: typeof body.total_weight_kg 
+      });
+
+      const data = await request(`${config.baseUrl}/calculate-order`, {
+        method: "POST",
+        headers: buildHeaders(config),
+        body: JSON.stringify(body)
+      });
+
+      if (data && data.is_successful) {
+        logger.info(`📥 [BORZO] Fee Calculated: ${data.order.payment_amount} ${data.order.currency || "INR"}`);
+        return {
+          fee: parseFloat(data.order.payment_amount),
+          currency: data.order.currency || "INR",
+          provider: "borzo"
+        };
+      }
+      throw new Error("Failed to calculate Borzo delivery fee");
     },
 
     async cancelDeliveryTask(taskId, payload = {}) {
@@ -179,15 +272,24 @@ export const createBorzoProvider = () => {
     },
 
     parseWebhook(payload) {
-      // Borzo webhook format: { order: { order_id, status, ... } }
+      // Borzo webhook format: { order: { order_id, status, points: [...], ... } }
       const order = payload.order || {};
       const status = order.status;
+      const points = order.points || [];
       
       let event = "unknown";
       // Borzo India Statuses: new, available (searching), active (assigned), completed, canceled, delayed
       if (status === "new") event = "order_created";
       if (status === "available") event = "searching_courier"; 
-      if (status === "active") event = "courier_assigned"; // Map active to assigned
+      
+      if (status === "active") {
+        event = "courier_assigned";
+        // If the first point (pickup) is completed, it means it's picked up
+        if (points.length > 0 && points[0].completed_datetime) {
+          event = "picked_up";
+        }
+      }
+      
       if (status === "completed") event = "delivered";
       if (status === "canceled") event = "canceled";
       if (status === "delayed") event = "failed_delivery";

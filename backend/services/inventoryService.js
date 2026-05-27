@@ -2,6 +2,7 @@ import Product from "../models/Product.js";
 import InventoryLog from "../models/InventoryLog.js";
 import { getIo } from "../socket.js";
 import { getVariantPricingSnapshot, calculateTotals } from "../../shared/utils/pricing.js";
+import { validateDeliveryRadius } from "./locationService.js";
 
 export class InventoryError extends Error {
   constructor(message, status = 400, code = "INVENTORY_ERROR") {
@@ -213,7 +214,15 @@ export const reserveStock = async ({
   });
 
   if (totals.outOfReach) {
-    throw new InventoryError(`Location (${pincode}) is out of reach for delivery. Please contact us for manual assistance.`, 400, "OUT_OF_REACH");
+    logger.warn(`🛑 [RADIUS PROTECTION] Order ${orderNumber} rejected in reserveStock. Pincode: ${pincode}, Distance: ${distance}km`);
+    throw new InventoryError(`Location (${pincode}) is out of reach for delivery. We deliver within 15km only.`, 400, "OUT_OF_REACH");
+  }
+
+  // ── FINAL BACKEND GEO-VALIDATION ──
+  // If coordinates were passed (from frontend check), re-verify them strictly
+  if (distance === null && pincode) {
+    // If we only have pincode, we trust the PINCODE_DISTANCES mapping in shared utils for now
+    // but the calculateTotals already handled this via totals.outOfReach
   }
 
   return {

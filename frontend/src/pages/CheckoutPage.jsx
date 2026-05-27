@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
+import { useDebounce } from "../hooks/useDebounce";
 import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
-import api, { getApiErrorMessage } from "../services/api";
+import api, { getApiErrorMessage, checkDeliveryAvailability } from "../services/api";
 import StoreMap from "../components/common/StoreMap";
 import LocationCard from "../components/common/LocationCard";
-import { Phone, MessageSquare, MapPin, Truck } from "lucide-react";
+import { Phone, MessageSquare, MapPin, Truck, MapPinOff, Loader2 } from "lucide-react";
 
 let razorpayScriptPromise;
 
@@ -70,9 +71,15 @@ function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [isOrderSuccessful, setIsOrderSuccessful] = useState(false);
+
+  // ── NEW: Delivery Availability States ──
+  const [deliveryInfo, setDeliveryInfo] = useState(null);
+  const [isValidatingPincode, setIsValidatingPincode] = useState(false);
+  const [pincodeError, setPincodeError] = useState("");
+
   const isMountedRef = useRef(true);
 
-  // Derive pricing totals using the shared pricing engine
+  // Derive pricing totals using the shared pricing engine with backend override
   const { 
     subtotal, 
     total, 
@@ -83,13 +90,23 @@ function CheckoutPage() {
     isFreeDelivery, 
     deliveryThreshold, 
     deliveryLabel, 
-    outOfReach 
+    outOfReach: localOutOfReach 
   } = calculateTotals(cart, { 
     coupon: appliedCoupon, 
-    pincode: form.pincode 
+    pincode: form.pincode,
+    // OVERRIDE: Use backend-calculated fee if we have a successful availability check
+    manualShipping: deliveryInfo?.deliveryAvailable ? deliveryInfo.deliveryFee : null
   });
 
-  const isAddressValid = form.name && form.phone && form.address && form.city && form.pincode;
+  // Effective availability based on backend check and error state
+  const isAvailable = useMemo(() => {
+    if (form.pincode.length < 6) return true; // Don't block while typing
+    if (pincodeError) return false;
+    if (deliveryInfo) return deliveryInfo.deliveryAvailable;
+    return true; // Default to true until validation completes
+  }, [pincodeError, deliveryInfo, form.pincode]);
+
+  const isAddressValid = form.name && form.phone && form.address && form.city && form.pincode.length === 6 && isAvailable;
 
   useEffect(() => {
     loadRazorpayScript().then(setScriptReady);
@@ -100,8 +117,51 @@ function CheckoutPage() {
     localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ form, step }));
   }, [form, step]);
 
+  // ── EFFECT: Validate Pincode via Backend ──
+  useEffect(() => {
+    async function validatePincode() {
+      const pc = String(form.pincode).trim();
+      
+      // Only trigger on exact 6 digits
+      if (pc.length !== 6) {
+        setDeliveryInfo(null);
+        setPincodeError("");
+        return;
+      }
+
+      setIsValidatingPincode(true);
+      setPincodeError("");
+      
+      try {
+        const data = await checkDeliveryAvailability(pc);
+        if (data.success) {
+          setDeliveryInfo(data);
+          if (data.deliveryAvailable) {
+            // Auto-fill City from authoritative backend data
+            setForm(prev => ({ ...prev, city: data.city || "Pune" }));
+          } else {
+            setPincodeError(data.message || "Delivery unavailable for this pincode.");
+          }
+        }
+      } catch (err) {
+        setPincodeError(getApiErrorMessage(err, "Could not validate pincode."));
+        setDeliveryInfo(null);
+      } finally {
+        setIsValidatingPincode(false);
+      }
+    }
+
+    validatePincode();
+  }, [form.pincode]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Pincode restriction: Numbers only, max 6
+    if (name === "pincode") {
+      const val = value.replace(/\D/g, "").slice(0, 6);
+      setForm(prev => ({ ...prev, [name]: val }));
+      return;
+    }
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -146,6 +206,7 @@ function CheckoutPage() {
 
   const handleOnlinePayment = async () => {
     if (!scriptReady) return setErrorMessage("Payment gateway loading...");
+    if (!isAvailable) return setErrorMessage("Delivery not available for this location");
     
     setProcessing(true);
     try {
@@ -167,7 +228,15 @@ function CheckoutPage() {
               razorpay_signature: res.razorpay_signature,
               orderData: {
                 customer: { ...form, userId: user?.userId || user?._id },
-                shippingAddress: { line1: form.address, city: form.city, state: form.state, postalCode: form.pincode, country: "IN" },
+                shippingAddress: { 
+                  line1: form.address, 
+                  city: form.city, 
+                  state: form.state, 
+                  postalCode: form.pincode, 
+                  country: "IN",
+                  // Save coordinates if we have them from the backend check
+                  geo: deliveryInfo?.geo || null
+                },
                 items: cart.map(i => ({ ...i, productId: i.productId })),
                 amount: total,
                 totals: { 
@@ -178,6 +247,10 @@ function CheckoutPage() {
                   grandTotal: total, 
                   currency: "INR",
                   couponCode: appliedCoupon?.code
+                },
+                metadata: {
+                  distanceKm: deliveryInfo?.distanceKm || 0,
+                  geocodedAddress: deliveryInfo?.formattedAddress || ""
                 }
               }
             });
@@ -236,32 +309,56 @@ function CheckoutPage() {
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Email</label>
                     <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="john@example.com" />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2 relative">
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Full Address</label>
                     <input name="address" value={form.address} onChange={handleChange} className="input-field" placeholder="Flat, Street, Area" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">City</label>
-                    <input name="city" value={form.city} onChange={handleChange} className="input-field" placeholder="Mumbai" />
+                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
+                    <div className="relative">
+                      <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="411014" />
+                      {isValidatingPincode && (
+                        <div className="absolute right-4 bottom-3 text-[var(--burgundy)]">
+                          <Loader2 size={18} className="animate-spin" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
-                    <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="400001" />
+                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">City</label>
+                    <input name="city" value={form.city} onChange={handleChange} className="input-field" placeholder="Pune" readOnly />
                   </div>
                   
-                  {outOfReach && (
+                  {pincodeError && (
                     <div className="md:col-span-2 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 text-xs font-medium animate-in fade-in slide-in-from-top-2">
-                      ⚠️ {deliveryLabel}. We are currently unable to deliver to this location automatically. 
-                      <span className="block mt-1 font-bold">Please contact us at +91 98819 88751 to place this order manually.</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPinOff size={16} />
+                        <span className="font-bold uppercase tracking-tight">Delivery Unavailable</span>
+                      </div>
+                      {pincodeError}. We are currently unable to deliver to this pincode automatically. 
+                      <span className="block mt-1 font-bold">Please contact us at +91 98819 88751 for manual assistance.</span>
+                    </div>
+                  )}
+
+                  {!pincodeError && deliveryInfo?.deliveryAvailable && (
+                    <div className="md:col-span-2 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 animate-in fade-in">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin size={16} className="text-emerald-500" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Delivery Available</span>
+                      </div>
+                      <div className="text-xs font-medium">
+                        Area: <span className="font-bold">{deliveryInfo.area}</span> <br />
+                        Est. Delivery: <span className="font-bold">{deliveryInfo.eta}</span>
+                      </div>
                     </div>
                   )}
 
                   <button 
-                    disabled={!isAddressValid || outOfReach}
+                    disabled={!isAddressValid || isValidatingPincode}
                     onClick={() => setStep(2)}
                     className="md:col-span-2 btn-primary h-12 mt-4 disabled:opacity-50"
                   >
-                    {outOfReach ? "Location Out of Reach" : "Review Order & Pay →"}
+                    {!isAvailable ? "Delivery Unavailable" : isValidatingPincode ? "Validating Pincode..." : "Review Order & Pay →"}
                   </button>
                 </div>
               )}

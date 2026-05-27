@@ -1,10 +1,23 @@
 import { Router } from "express";
 import { handleDeliveryWebhook } from "../services/delivery/index.js";
+import { calculateDelivery, checkAvailability } from "../controllers/deliveryController.js";
 import Order from "../models/Order.js";
 import { logger } from "../utils/logger.js";
 import { getIo } from "../socket.js";
 
 const router = Router();
+
+/**
+ * CHECK AVAILABILITY: /api/delivery/check-availability
+ * Check radius and internal delivery fee
+ */
+router.post("/check-availability", checkAvailability);
+
+/**
+ * CALCULATE: /api/delivery/calculate
+ * Calculate dynamic delivery fee from provider
+ */
+router.post("/calculate", calculateDelivery);
 
 /**
  * WEBHOOK: /api/delivery/webhook/:provider
@@ -46,6 +59,8 @@ router.post("/webhook/:provider", async (req, res) => {
     // 3. Update order status based on webhook event
     let statusChanged = false;
 
+    logger.info(`🔄 Processing webhook event: ${update.event} for order ${order.orderNumber}`);
+
     // Map delivery events to internal order statuses
     switch (update.event) {
       case "courier_assigned":
@@ -56,33 +71,48 @@ router.post("/webhook/:provider", async (req, res) => {
             vehicleNumber: update.rider.vehicleNumber || order.rider.vehicleNumber
           };
         }
-        order.delivery.status = "ASSIGNED";
-        statusChanged = true;
+        if (order.delivery.status !== "ASSIGNED") {
+          order.delivery.status = "ASSIGNED";
+          order.delivery.assignedAt = order.delivery.assignedAt || new Date();
+          statusChanged = true;
+        }
         break;
 
       case "picked_up":
-        order.status = "PICKED_UP";
-        order.statusTimestamps.pickedUpAt = new Date();
-        order.delivery.status = "PICKED_UP";
-        statusChanged = true;
+        if (order.status !== "PICKED_UP") {
+          order.status = "PICKED_UP";
+          order.statusTimestamps.pickedUpAt = order.statusTimestamps.pickedUpAt || new Date();
+          order.delivery.status = "PICKED_UP";
+          statusChanged = true;
+          logger.info(`🚚 Order ${order.orderNumber} is now PICKED_UP via webhook`);
+        }
         break;
 
       case "delivered":
-        order.status = "DELIVERED";
-        order.statusTimestamps.deliveredAt = new Date();
-        order.delivery.status = "DELIVERED";
-        statusChanged = true;
+        if (order.status !== "DELIVERED") {
+          order.status = "DELIVERED";
+          order.statusTimestamps.deliveredAt = order.statusTimestamps.deliveredAt || new Date();
+          order.delivery.status = "DELIVERED";
+          statusChanged = true;
+          logger.info(`🏁 Order ${order.orderNumber} is now DELIVERED via webhook`);
+        }
         break;
 
       case "canceled":
-        order.delivery.status = "CANCELLED";
-        // Note: We might not want to cancel the whole order automatically
-        statusChanged = true;
+        if (order.delivery.status !== "CANCELLED") {
+          order.delivery.status = "CANCELLED";
+          // Note: We might not want to cancel the whole order automatically
+          statusChanged = true;
+          logger.warn(`⚠️ Delivery for order ${order.orderNumber} was CANCELLED via webhook`);
+        }
         break;
 
       case "failed_delivery":
-        order.delivery.status = "FAILED";
-        statusChanged = true;
+        if (order.delivery.status !== "FAILED") {
+          order.delivery.status = "FAILED";
+          statusChanged = true;
+          logger.error(`❌ Delivery for order ${order.orderNumber} FAILED via webhook`);
+        }
         break;
     }
 
@@ -95,7 +125,9 @@ router.post("/webhook/:provider", async (req, res) => {
         io.emit("order:updated", order.toObject());
       }
       
-      logger.info(`✅ Order ${order.orderNumber} updated via ${provider} webhook: ${update.event}`);
+      logger.info(`✅ Order ${order.orderNumber} state updated successfully via ${provider} webhook`);
+    } else {
+      logger.info(`ℹ️ Webhook event ${update.event} for order ${order.orderNumber} resulted in no state change (idempotent)`);
     }
 
     return res.status(200).json({ success: true });

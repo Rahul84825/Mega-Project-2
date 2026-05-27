@@ -204,4 +204,9 @@ export const resendDeliveryOTP = async (payload, config = {}) => {
   return data;
 };
 
+export const checkDeliveryAvailability = async (pincode, config = {}) => {
+  const { data } = await api.post("/api/delivery/check-availability", { pincode }, withTimeout(config));
+  return data;
+};
+
 export default api;

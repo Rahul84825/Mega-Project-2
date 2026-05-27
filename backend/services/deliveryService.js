@@ -2,6 +2,23 @@ import { logger } from "../utils/logger.js";
 import { getIo } from "../socket.js";
 import Order from "../models/Order.js";
 import { createDeliveryTask, getTrackingDetails } from "./delivery/index.js";
+import { validateDeliveryRadius } from "./locationService.js";
+import { getZoneByPincode } from "../config/pincodeZones.js";
+
+/**
+ * Helper: Parse weight string (e.g., "500g", "1kg") to kg
+ */
+const parseWeightToKg = (weightStr, quantity = 1) => {
+  if (!weightStr) return 0.1 * quantity; // Default 100g per item
+  const str = String(weightStr).toLowerCase().trim();
+  const numeric = parseFloat(str.replace(/[^0-9.]/g, ""));
+  if (isNaN(numeric)) return 0.1 * quantity;
+
+  if (str.includes("kg")) return numeric * quantity;
+  if (str.includes("g")) return (numeric / 1000) * quantity;
+  
+  return (numeric / 1000) * quantity; // Assume grams if no unit
+};
 
 /**
  * ASSIGN DELIVERY PARTNER
@@ -17,14 +34,49 @@ export const assignDeliveryPartner = async (orderId) => {
       throw new Error("Order not found");
     }
 
+    // ── PHASE 1: PINCODE RE-VALIDATION (Replacing Radius) ──
+    // Even if frontend passed, we re-verify before spending money on Borzo
+    const pincode = order.shippingAddress?.postalCode;
+    
+    if (pincode && String(pincode).length === 6) {
+      const zone = getZoneByPincode(pincode);
+      if (!zone || !zone.available) {
+        const errorMsg = `Pincode ${pincode} is not in allowed delivery zones.`;
+        logger.error(`🛑 [BORZO PROTECTION] Blocking task creation for Order ${order.orderNumber}. Reason: ${errorMsg}`);
+        order.delivery.status = "FAILED";
+        order.delivery.error = errorMsg;
+        await order.save();
+        throw new Error(errorMsg);
+      }
+      logger.info(`✅ [BORZO PROTECTION] Pincode ${pincode} validated for Order ${order.orderNumber}. Area: ${zone.area}`);
+    } else {
+      const errorMsg = "Invalid or missing pincode for delivery assignment.";
+      logger.error(`🛑 [BORZO PROTECTION] Blocking task creation for Order ${order.orderNumber}. Reason: ${errorMsg}`);
+      order.delivery.status = "FAILED";
+      order.delivery.error = errorMsg;
+      await order.save();
+      throw new Error(errorMsg);
+    }
+
     const provider = "borzo";
     logger.info(`🔍 DEBUG: Provider is ${provider}. Preparing payload...`);
+
+    // Calculate total weight with enhanced precision logging
+    const totalWeightKg = order.items.reduce((sum, item) => {
+      const itemWeight = parseWeightToKg(item.selectedVariant?.weight, item.quantity);
+      logger.info(`⚖️ Item: ${item.titleSnapshot || item.name}, Weight: ${item.selectedVariant?.weight}, Calculated: ${itemWeight}kg`);
+      return sum + itemWeight;
+    }, 0);
+
+    const finalWeight = Math.max(0.1, totalWeightKg);
+    logger.info(`⚖️ Total Order Weight: ${totalWeightKg}kg, Final Payload Weight: ${finalWeight}kg`);
 
     // Prepare standardized payload for delivery providers
     const payload = {
       orderNumber: order.orderNumber,
+      totalWeightKg: finalWeight,
       pickup: {
-        address: "Mithai World, Viman Nagar, Pune, Maharashtra 411014, India", // More specific for geocoding
+        address: "Mithai World, Viman Nagar, Pune, Maharashtra 411014, India",
         phone: "9881988751",
         name: "Mithai World"
       },
@@ -89,9 +141,6 @@ export const assignDeliveryPartner = async (orderId) => {
 
 /**
  * Automates the transition from PREPARING to READY.
- * In a real-world scenario, you might use a message queue (like BullMQ, RabbitMQ, AWS SQS) 
- * to handle this asynchronously even if the server restarts. 
- * For simplicity here, we use setTimeout.
  */
 export const scheduleOrderReady = (orderId, etaMinutes) => {
   const ms = etaMinutes * 60 * 1000;
@@ -117,5 +166,5 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
     } catch (err) {
       logger.error(`Error in automated READY transition for order ${orderId}:`, err);
     }
-  }, ms); // In a true production app, testing this might require small `ms` values (e.g., 5-10 secs instead of mins)
+  }, ms);
 };

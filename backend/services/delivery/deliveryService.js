@@ -19,6 +19,14 @@ export const getTrackingDetails = async (taskId, options = {}) => {
   return provider.getTrackingDetails(taskId, options);
 };
 
+export const calculateDeliveryFee = async (payload, options = {}) => {
+  const provider = getDeliveryProvider(getProviderName(options.provider));
+  if (typeof provider.calculateDeliveryFee !== "function") {
+    throw new Error(`calculateDeliveryFee not implemented for provider: ${getProviderName(options.provider)}`);
+  }
+  return provider.calculateDeliveryFee(payload, options);
+};
+
 export const handleDeliveryWebhook = async (payload, options = {}) => {
   const provider = getDeliveryProvider(getProviderName(options.provider));
   if (typeof provider.parseWebhook !== "function") {
