@@ -9,6 +9,9 @@ const buildConfig = () => {
   const baseUrl = getEnv("BORZO_BASE_URL", "https://robot-in.borzodelivery.com/api/business/1.6");
   const authToken = getEnv("BORZO_API_TOKEN");
 
+  console.log("BORZO TOKEN EXISTS:", !!authToken);
+  console.log("BORZO BASE URL:", baseUrl);
+
   if (!authToken) {
     logger.error("❌ BORZO_API_TOKEN is missing in environment variables");
     throw new Error("BORZO_API_TOKEN is required for Borzo integration");

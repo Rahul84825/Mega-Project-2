@@ -47,7 +47,8 @@ const buildFormattedAddress = (addr) => {
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
-  console.log("ASSIGN DELIVERY HIT");
+  console.log("===== BORZO FLOW START =====");
+  console.log("CALLING assignDeliveryPartner()");
   logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId}`);
   
   try {
@@ -59,7 +60,8 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     console.log("ORDER ID:", order._id);
-    console.log("DELIVERY OBJECT:", JSON.stringify(order.delivery, null, 2));
+    console.log("ORDER STATUS:", order.status);
+    console.log("DELIVERY DATA:", JSON.stringify(order.delivery, null, 2));
     console.log("providerOrderId:", order.delivery?.providerOrderId);
     console.log("DELIVERY STATUS:", order.delivery?.status);
 

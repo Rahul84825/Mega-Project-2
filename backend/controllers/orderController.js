@@ -438,8 +438,10 @@ export const markReadyForPickup = async (req, res) => {
       order = await assignDeliveryPartner(order._id);
       console.log("STEP 5 - DELIVERY RESPONSE RECEIVED");
     } catch (assignError) {
+      console.log("BORZO TASK CREATION FAILED");
+      console.log(assignError.response?.data || assignError.message);
       logger.error(`❌ [MARK READY] FAILED - Delivery assignment failed:`, assignError.message);
-      // Order is still READY, just delivery failed to create. Admin can retry.
+      throw assignError; // DO NOT SWALLOW ERRORS
     }
 
     emitOrderEvent("order:updated", sanitizeOrder(order));
