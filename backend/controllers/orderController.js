@@ -411,6 +411,7 @@ export const markPreparing = async (req, res) => {
 
 export const markReadyForPickup = async (req, res) => {
   const { id } = req.params;
+  console.log("STEP 1 - MARK READY CLICKED");
   logger.info(`🛎️ [MARK READY] STEP 1 - MARK READY CLICKED for Order: ${id}`);
 
   try {
@@ -423,14 +424,19 @@ export const markReadyForPickup = async (req, res) => {
     order.status = "READY";
     order.preparation.readyBy = new Date();
     order.statusTimestamps.readyForPickupAt = new Date();
+    console.log("STEP 2 - STATUS UPDATED");
+    
     await order.save();
+    console.log("STEP 3 - ORDER SAVED");
     logger.info(`✅ [MARK READY] STEP 2 - ORDER STATUS UPDATED to READY for Order: ${order.orderNumber}`);
 
     // ── STEP 3: OTP GENERATED (Inside assignDeliveryPartner) ──
     // ── STEP 4-7: ASSIGN DELIVERY CALLED ──
     try {
+      console.log("STEP 4 - CALLING ASSIGN DELIVERY");
       logger.info(`🚚 [MARK READY] STEP 4 - TRIGGERING assignDeliveryPartner for Order: ${order.orderNumber}`);
       order = await assignDeliveryPartner(order._id);
+      console.log("STEP 5 - DELIVERY RESPONSE RECEIVED");
     } catch (assignError) {
       logger.error(`❌ [MARK READY] FAILED - Delivery assignment failed:`, assignError.message);
       // Order is still READY, just delivery failed to create. Admin can retry.

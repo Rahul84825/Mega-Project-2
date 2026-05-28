@@ -47,21 +47,32 @@ const buildFormattedAddress = (addr) => {
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
+  console.log("ASSIGN DELIVERY HIT");
   logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId}`);
   
   try {
     const order = await Order.findById(orderId);
     if (!order) {
+      console.log("ORDER NOT FOUND");
       logger.error(`❌ [MARK READY] FAILED - Order ${orderId} not found`);
       throw new Error("Order not found");
     }
 
+    console.log("ORDER ID:", order._id);
+    console.log("DELIVERY OBJECT:", JSON.stringify(order.delivery, null, 2));
+    console.log("providerOrderId:", order.delivery?.providerOrderId);
+    console.log("DELIVERY STATUS:", order.delivery?.status);
+
     // ── STRICT IDEMPOTENCY PROTECTION (FIXED) ──
-    // We ONLY block if a real providerTaskId already exists.
-    if (order.delivery?.providerOrderId) {
+    // ONLY block duplicate creation if an ACTUAL provider task ID exists.
+    // Check for non-empty string to avoid blocking on initialized empty values.
+    if (order.delivery?.providerOrderId && order.delivery.providerOrderId.trim() !== "") {
+      console.log("DUPLICATE DETECTED - BLOCKING");
       logger.warn(`⚠️ [MARK READY] SKIPPED - Delivery task already exists (${order.delivery.providerOrderId}) for Order ${order.orderNumber}`);
       return order;
     }
+
+    console.log("CALLING BORZO NOW");
 
     // ── PHASE 1: PINCODE VALIDATION ──
     const pincode = order.shippingAddress?.postalCode;
@@ -113,6 +124,8 @@ export const assignDeliveryPartner = async (orderId) => {
     logger.info(`📡 [MARK READY] STEP 5 - BORZO API REQUEST for Order ${order.orderNumber}`);
     const task = await createDeliveryTask(payload, { provider });
     
+    console.log("BORZO RESPONSE RECEIVED", JSON.stringify(task, null, 2));
+
     // ── STEP 6: BORZO RESPONSE RECEIVED ──
     if (!task || !task.taskId) {
       logger.error(`❌ [MARK READY] STEP 6 - FAILED. No taskId returned from Borzo`);
@@ -145,6 +158,7 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     await order.save();
+    console.log("ORDER SAVED TO DB");
     logger.info(`💾 [MARK READY] STEP 7 - DELIVERY SAVED with OTP: ${pickupOtp}`);
 
     const io = getIo();
@@ -152,6 +166,7 @@ export const assignDeliveryPartner = async (orderId) => {
 
     return order;
   } catch (error) {
+    console.log("ASSIGN DELIVERY FAILED:", error.message);
     logger.error("❌ [MARK READY] FAILED at assignDeliveryPartner:", {
       message: error.message,
       orderId
