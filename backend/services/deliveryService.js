@@ -31,61 +31,47 @@ const parseWeightToKg = (weightStr, quantity = 1) => {
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
-  logger.info(`🔍 DEBUG: assignDeliveryPartner called for ID: ${orderId}`);
+  logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId}`);
+  
   try {
     const order = await Order.findById(orderId);
     if (!order) {
-      logger.error(`🔍 DEBUG: Order ${orderId} NOT FOUND in database`);
+      logger.error(`❌ [MARK READY] FAILED - Order ${orderId} not found`);
       throw new Error("Order not found");
     }
 
-    // ── STRICT IDEMPOTENCY PROTECTION ──
+    // ── STRICT IDEMPOTENCY PROTECTION (FIXED) ──
+    // We ONLY block if a real providerTaskId already exists.
     if (order.delivery?.providerOrderId) {
-      logger.warn(`⚠️ Delivery task already exists for Order ${order.orderNumber}. Skipping duplicate creation.`);
-      return order;
-    }
-    if (order.delivery?.status && order.delivery.status !== "PENDING" && order.delivery.status !== "FAILED") {
-      logger.warn(`⚠️ Delivery already in progress for Order ${order.orderNumber}. Status: ${order.delivery.status}. Skipping.`);
+      logger.warn(`⚠️ [MARK READY] SKIPPED - Delivery task already exists (${order.delivery.providerOrderId}) for Order ${order.orderNumber}`);
       return order;
     }
 
-    // ── PHASE 1: PINCODE RE-VALIDATION (Replacing Radius) ──
-    // Even if frontend passed, we re-verify before spending money on Borzo
+    // ── PHASE 1: PINCODE VALIDATION ──
     const pincode = order.shippingAddress?.postalCode;
-    
-    if (pincode && String(pincode).length === 6) {
-      const zone = getZoneByPincode(pincode);
-      if (!zone || !zone.available) {
-        const errorMsg = `Pincode ${pincode} is not in allowed delivery zones.`;
-        logger.error(`🛑 [BORZO PROTECTION] Blocking task creation for Order ${order.orderNumber}. Reason: ${errorMsg}`);
-        order.delivery.status = "FAILED";
-        order.delivery.error = errorMsg;
-        await order.save();
-        throw new Error(errorMsg);
-      }
-      logger.info(`✅ [BORZO PROTECTION] Pincode ${pincode} validated for Order ${order.orderNumber}. Area: ${zone.area}`);
-    } else {
-      const errorMsg = "Invalid or missing pincode for delivery assignment.";
-      logger.error(`🛑 [BORZO PROTECTION] Blocking task creation for Order ${order.orderNumber}. Reason: ${errorMsg}`);
-      order.delivery.status = "FAILED";
-      order.delivery.error = errorMsg;
+    if (!pincode || String(pincode).length !== 6) {
+      throw new Error("Invalid or missing pincode for delivery assignment.");
+    }
+
+    const zone = getZoneByPincode(pincode);
+    if (!zone || !zone.available) {
+      const errorMsg = `Pincode ${pincode} is not in allowed delivery zones.`;
+      logger.error(`🛑 [BORZO PROTECTION] Blocking task creation. Reason: ${errorMsg}`);
+      order.delivery = { ...order.delivery, status: "FAILED", error: errorMsg };
       await order.save();
       throw new Error(errorMsg);
     }
 
     const provider = "borzo";
-    logger.info(`🔍 DEBUG: Provider is ${provider}. Preparing payload...`);
 
-    // Calculate total weight with enhanced precision logging
+    // ── PHASE 2: WEIGHT CALCULATION ──
     const totalWeightKg = order.items.reduce((sum, item) => {
       const itemWeight = parseWeightToKg(item.selectedVariant?.weight, item.quantity);
       return sum + itemWeight;
     }, 0);
-
     const finalWeight = Math.max(0.1, totalWeightKg);
-    logger.info(`⚖️ Total Order Weight: ${totalWeightKg}kg, Final Payload Weight: ${finalWeight}kg`);
 
-    // Prepare standardized payload for delivery providers
+    // ── PHASE 3: PAYLOAD PREPARATION ──
     const payload = {
       orderNumber: order.orderNumber,
       totalWeightKg: finalWeight,
@@ -105,19 +91,21 @@ export const assignDeliveryPartner = async (orderId) => {
       }))
     };
 
-    logger.info(`🚚 Requesting ${provider} delivery for Order ${order.orderNumber}...`);
-
+    // ── STEP 5: BORZO API REQUEST ──
+    logger.info(`📡 [MARK READY] STEP 5 - BORZO API REQUEST for Order ${order.orderNumber}`);
     const task = await createDeliveryTask(payload, { provider });
     
+    // ── STEP 6: BORZO RESPONSE RECEIVED ──
     if (!task || !task.taskId) {
-      logger.error(`🔍 DEBUG: No taskId returned from ${provider} provider`);
-      throw new Error(`${provider} failed to return a task ID`);
+      logger.error(`❌ [MARK READY] STEP 6 - FAILED. No taskId returned from Borzo`);
+      throw new Error("Borzo failed to return a task ID");
     }
+    logger.info(`✅ [MARK READY] STEP 6 - BORZO RESPONSE RECEIVED. Task ID: ${task.taskId}`);
 
-    logger.info(`🔍 DEBUG: Task created successfully. Task ID: ${task.taskId}`);
-
-    // Generate secure 4-digit pickup OTP if provider didn't return one
-    const pickupOtp = task.pickupOtp || Math.floor(1000 + Math.random() * 9000).toString();
+    // ── STEP 7: DELIVERY SAVED ──
+    // Generate simple 4-digit pickup OTP for verbal confirmation
+    const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    logger.info(`✅ [MARK READY] STEP 3 - OTP GENERATED: ${pickupOtp}`);
 
     order.delivery = {
       ...(order.delivery || {}),
@@ -131,7 +119,6 @@ export const assignDeliveryPartner = async (orderId) => {
     };
 
     if (task.rider?.name) {
-      logger.info(`🔍 DEBUG: Rider info received: ${task.rider.name}`);
       order.rider = {
         name: task.rider.name,
         phone: task.rider.phone,
@@ -140,14 +127,14 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     await order.save();
+    logger.info(`💾 [MARK READY] STEP 7 - DELIVERY SAVED with OTP: ${pickupOtp}`);
 
     const io = getIo();
     if (io) io.emit("order:updated", order.toObject());
 
-    logger.info(`✅ ${provider} Delivery Assigned: ${task.taskId} with OTP: ${pickupOtp}`);
     return order;
   } catch (error) {
-    logger.error("❌ Failed to assign delivery partner:", {
+    logger.error("❌ [MARK READY] FAILED at assignDeliveryPartner:", {
       message: error.message,
       orderId
     });

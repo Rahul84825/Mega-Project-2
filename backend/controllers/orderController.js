@@ -410,36 +410,36 @@ export const markPreparing = async (req, res) => {
 };
 
 export const markReadyForPickup = async (req, res) => {
-  try {
-    const { id } = req.params;
-    let order = await Order.findById(id);
+  const { id } = req.params;
+  logger.info(`🛎️ [MARK READY] STEP 1 - MARK READY CLICKED for Order: ${id}`);
 
+  try {
+    let order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (order.status !== "PREPARING") {
-      return res.status(400).json({ success: false, message: `Cannot mark ready from ${order.status}` });
-    }
-
+    // ── STEP 2: ORDER STATUS UPDATED ──
     order.status = "READY";
     order.preparation.readyBy = new Date();
     order.statusTimestamps.readyForPickupAt = new Date();
-    
-    await order.save(); // Save status first
+    await order.save();
+    logger.info(`✅ [MARK READY] STEP 2 - ORDER STATUS UPDATED to READY for Order: ${order.orderNumber}`);
 
-    // ── CREATE BORZO TASK ONLY NOW ──
+    // ── STEP 3: OTP GENERATED (Inside assignDeliveryPartner) ──
+    // ── STEP 4-7: ASSIGN DELIVERY CALLED ──
     try {
-      logger.info(`🚚 Auto-assigning partner for order ${id} during markReady`);
+      logger.info(`🚚 [MARK READY] STEP 4 - TRIGGERING assignDeliveryPartner for Order: ${order.orderNumber}`);
       order = await assignDeliveryPartner(order._id);
     } catch (assignError) {
-      logger.error(`❌ Delivery assignment failed for ${id}:`, assignError.message);
-      // Order is still READY, admin can retry assignment later if needed
+      logger.error(`❌ [MARK READY] FAILED - Delivery assignment failed:`, assignError.message);
+      // Order is still READY, just delivery failed to create. Admin can retry.
     }
 
-    emitOrderEvent("orderReady", sanitizeOrder(order));
+    emitOrderEvent("order:updated", sanitizeOrder(order));
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
+    logger.error(`❌ [MARK READY] CRITICAL ERROR:`, error);
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to mark order ready"
@@ -450,37 +450,22 @@ export const markReadyForPickup = async (req, res) => {
 export const markPickedUp = async (req, res) => {
   try {
     const { id } = req.params;
-    const { otp } = req.body;
     let order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (order.status === "PICKED_UP" || order.status === "DELIVERED") {
-      return res.status(400).json({ success: false, message: "Order already picked up or delivered" });
-    }
-
-    if (order.status !== "READY") {
-      return res.status(400).json({ success: false, message: `Cannot pick up order in ${order.status} state. Must be READY.` });
-    }
-
-    // ── OTP VERIFICATION ──
-    if (order.delivery?.pickupOtp) {
-      if (!otp) {
-        return res.status(400).json({ success: false, message: "OTP is required for pickup verification" });
-      }
-      if (String(otp).trim() !== String(order.delivery.pickupOtp).trim()) {
-        return res.status(400).json({ success: false, message: "Invalid OTP" });
-      }
-    }
-
+    // SIMPLIFIED: No OTP validation in API. Handover is verbal.
+    // This serves as a manual override if webhook fails.
     order.status = "PICKED_UP";
     order.statusTimestamps.pickedUpAt = new Date();
-    order.delivery.status = "PICKED_UP"; // Sync delivery status
+    if (order.delivery) {
+      order.delivery.status = "PICKED_UP";
+    }
     await order.save();
 
-    emitOrderEvent("orderPickedUp", sanitizeOrder(order));
+    emitOrderEvent("order:updated", sanitizeOrder(order));
     sendOrderOutForDeliveryEmail(order).catch(err => logger.error("Failed to send out for delivery email", err));
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {

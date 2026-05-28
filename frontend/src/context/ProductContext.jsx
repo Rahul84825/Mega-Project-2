@@ -470,8 +470,8 @@ export function ProductProvider({ children }) {
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 
-  const markOrderPickedUp = useCallback(async (orderId, otp) => {
-    const { data } = await api.patch(`/api/orders/${orderId}/picked-up`, { otp });
+  const markOrderPickedUp = useCallback(async (orderId) => {
+    const { data } = await api.patch(`/api/orders/${orderId}/picked-up`);
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 

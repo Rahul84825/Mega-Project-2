@@ -16,7 +16,7 @@ import {
 } from "./orderUtils";
 import OrderTimer from "./OrderTimer";
 
-const OrderDetailsModal = ({ order, open, onClose, onVerifyPickup, onMarkReady, onMarkDelivered }) => {
+const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMarkDelivered }) => {
   if (!open || !order) return null;
 
   const status = resolveStatus(order);
@@ -249,10 +249,10 @@ const OrderDetailsModal = ({ order, open, onClose, onVerifyPickup, onMarkReady, 
           <div className="flex items-center gap-4">
             {status === "READY" && (
               <button 
-                onClick={() => { onClose(); onVerifyPickup(order); }}
+                onClick={() => { onClose(); onHandover(order); }}
                 className="h-12 px-8 rounded-2xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2"
               >
-                <Truck size={16} /> Handover to Rider
+                <Truck size={16} /> Confirm Handover
               </button>
             )}
             {status === "PREPARING" && (

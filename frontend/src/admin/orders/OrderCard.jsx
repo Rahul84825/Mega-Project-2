@@ -20,7 +20,7 @@ const OrderCard = ({
   onSelect, 
   onAccept, 
   onReject,
-  onVerifyPickup,
+  onHandover,
   onMarkReady, 
   onMarkDelivered, 
   isBusy 
@@ -259,12 +259,12 @@ const OrderCard = ({
 
           {status === "READY" && (
             <button 
-              onClick={(e) => { e.stopPropagation(); onVerifyPickup(order); }}
+              onClick={(e) => { e.stopPropagation(); onHandover(order); }}
               disabled={isBusy}
               className="w-full h-12 rounded-xl bg-blue-600 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isBusy ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
-              Handover to Borzo
+              Confirm Handover
             </button>
           )}
 
