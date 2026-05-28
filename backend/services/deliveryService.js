@@ -26,6 +26,22 @@ const parseWeightToKg = (weightStr, quantity = 1) => {
 };
 
 /**
+ * Helper: Build a robust address string for delivery providers
+ */
+const buildFormattedAddress = (addr) => {
+  const parts = [
+    addr.line1,
+    addr.line2,
+    addr.landmark ? `Near ${addr.landmark}` : "",
+    addr.city,
+    addr.state || "Maharashtra",
+    addr.postalCode,
+    "India"
+  ];
+  return parts.filter(Boolean).join(", ");
+};
+
+/**
  * ASSIGN DELIVERY PARTNER
  * This function is called ONLY when an order is marked READY.
  * It uses the unified delivery provider system to create a real task.
@@ -78,12 +94,14 @@ export const assignDeliveryPartner = async (orderId) => {
       pickup: {
         address: "Mithai World, Viman Nagar, Pune, Maharashtra 411014, India",
         phone: "9881988751",
-        name: "Mithai World"
+        name: "Mithai World",
+        geo: { lat: 18.5679, lng: 73.9143 } // Mithai World exact location
       },
       dropoff: {
-        address: `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.state || "Maharashtra"} ${order.shippingAddress.postalCode || ""}, India`,
+        address: buildFormattedAddress(order.shippingAddress),
         phone: order.customer.phone,
-        name: order.customer.name
+        name: order.customer.name,
+        geo: order.shippingAddress.geo || null
       },
       items: order.items.map(item => ({
         name: item.titleSnapshot || item.name,

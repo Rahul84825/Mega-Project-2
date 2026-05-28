@@ -168,6 +168,8 @@ export const createBorzoProvider = () => {
         points: [
           {
             address: payload.pickup.address,
+            latitude: payload.pickup.geo?.lat || null,
+            longitude: payload.pickup.geo?.lng || null,
             contact_person: {
               phone: sanitizePhone(payload.pickup.phone),
               name: payload.pickup.name || "Mithai World"
@@ -176,6 +178,8 @@ export const createBorzoProvider = () => {
           },
           {
             address: payload.dropoff.address,
+            latitude: payload.dropoff.geo?.lat || null,
+            longitude: payload.dropoff.geo?.lng || null,
             contact_person: {
               phone: sanitizePhone(payload.dropoff.phone),
               name: payload.dropoff.name || "Customer"
@@ -190,10 +194,8 @@ export const createBorzoProvider = () => {
 
       logger.info(`📤 [BORZO] FINAL PAYLOAD VERIFICATION:`, { 
         orderNumber: payload.orderNumber,
-        rawWeightIn: rawWeight,
         formattedWeightSent: body.total_weight_kg,
-        weightType: typeof body.total_weight_kg,
-        vehicleTypeId: body.vehicle_type_id
+        points: body.points.map(p => ({ addr: p.address, lat: p.latitude, lng: p.longitude }))
       });
 
       const data = await request(`${config.baseUrl}/create-order`, {
@@ -217,8 +219,16 @@ export const createBorzoProvider = () => {
       const body = {
         type: "standard",
         points: [
-          { address: payload.pickup.address },
-          { address: payload.dropoff.address }
+          { 
+            address: payload.pickup.address,
+            latitude: payload.pickup.geo?.lat || null,
+            longitude: payload.pickup.geo?.lng || null
+          },
+          { 
+            address: payload.dropoff.address,
+            latitude: payload.dropoff.geo?.lat || null,
+            longitude: payload.dropoff.geo?.lng || null
+          }
         ],
         vehicle_type_id: vehicleTypeId,
         total_weight_kg: finalWeight
@@ -277,21 +287,25 @@ export const createBorzoProvider = () => {
     parseWebhook(payload) {
       // Borzo webhook format: { order: { order_id, status, points: [...], ... } }
       const order = payload.order || {};
-      const status = String(order.status || "").toLowerCase();
+      const rawStatus = String(order.status || "").toLowerCase();
       const points = order.points || [];
       
       let event = "unknown";
       
-      // Borzo India Statuses: new, available (searching), active (assigned), completed, canceled, delayed
-      // Detailed mapping for robust lifecycle synchronization
-      switch (status) {
+      /**
+       * ── CENTRALIZED BORZO STATUS MAP ──
+       * Correctly maps all possible Borzo India statuses to internal lifecycle events.
+       */
+      switch (rawStatus) {
         case "new":
           event = "order_created";
           break;
         case "available":
+        case "searching_courier":
           event = "searching_courier";
           break;
         case "active":
+        case "courier_assigned":
           event = "courier_assigned";
           // If the first point (pickup) is completed, it means it's picked up
           if (points.length > 0 && points[0].completed_datetime) {
@@ -299,23 +313,30 @@ export const createBorzoProvider = () => {
           }
           break;
         case "completed":
+        case "finished":
+        case "delivered":
+        case "delivery_completed":
+        case "delivery completed":
           event = "delivered";
           break;
         case "canceled":
+        case "cancelled":
           event = "canceled";
           break;
         case "delayed":
+        case "failed":
+        case "failed_delivery":
           event = "failed_delivery";
           break;
         default:
-          event = `borzo_${status}`; // Fallback for unknown statuses
+          event = `borzo_${rawStatus}`; // Fallback
       }
 
       return {
         provider: "borzo",
         event,
         taskId: String(order.order_id || ""),
-        status: status,
+        status: rawStatus,
         rider: {
           name: order.courier?.name || "",
           phone: order.courier?.phone || "",
