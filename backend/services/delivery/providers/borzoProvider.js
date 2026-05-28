@@ -6,8 +6,17 @@ const getEnv = (key, fallback = "") => String(process.env[key] || fallback).trim
 console.log("BORZO PROVIDER HIT");
 
 const buildConfig = () => {
-  const baseUrl = getEnv("BORZO_BASE_URL", "https://robot-in.borzodelivery.com/api/business/1.6");
+  let baseUrl = getEnv("BORZO_BASE_URL", "https://robotapitest-in.borzodelivery.com/api/business/1.6");
   const authToken = getEnv("BORZO_API_TOKEN");
+
+  // ── URL NORMALIZATION: Fix common hostname typos for India ──
+  // Borzo India (Wefast) requires -in (production) or -apitest-in (test) subdomains.
+  // If the user provided the global 'robot.borzodelivery.com' but is in the India context,
+  // we automatically correct it to prevent ENOTFOUND errors.
+  if (baseUrl.includes("robot.borzodelivery.com")) {
+    console.log("⚠️ [BORZO] Normalizing global URL to India-specific subdomain (-in)");
+    baseUrl = baseUrl.replace("robot.borzodelivery.com", "robot-in.borzodelivery.com");
+  }
 
   console.log("BORZO TOKEN EXISTS:", !!authToken);
   console.log("BORZO BASE URL:", baseUrl);
