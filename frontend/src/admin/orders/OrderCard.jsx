@@ -126,20 +126,20 @@ const OrderCard = ({
 
       {/* ── RIDER INFO (IF ASSIGNED) ── */}
       {order.rider?.name && (
-        <div className="px-4 py-3 mx-4 mb-4 rounded-xl bg-blue-50 border border-blue-100 flex flex-wrap items-center justify-between gap-4 shadow-inner">
+        <div className="px-4 py-3 mx-4 mb-4 rounded-xl bg-[#fffaf3] border border-[#e6d3b3] flex flex-wrap items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-white border border-[#f0e0c4] flex items-center justify-center text-[#8b4513] shadow-sm">
               <Truck size={18} />
             </div>
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-widest text-blue-500 mb-0.5">Assigned Rider</div>
-              <div className="text-xs font-bold text-blue-900">{order.rider.name} • {order.rider.phone}</div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a] mb-0.5">Assigned Rider</div>
+              <div className="text-xs font-bold text-[#2d1b0e]">{order.rider.name} • {order.rider.phone}</div>
             </div>
           </div>
           {order.delivery?.pickupOtp && status === "READY" && (
-            <div className="text-right bg-white px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">
-              <div className="text-[9px] font-bold uppercase tracking-widest text-blue-500">Pickup OTP</div>
-              <div className="text-sm font-black text-blue-900 tracking-widest">{order.delivery.pickupOtp}</div>
+            <div className="text-right bg-white px-3 py-1.5 rounded-lg border border-[#e6d3b3] shadow-sm">
+              <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a]">Pickup OTP</div>
+              <div className="text-sm font-black text-[#2d1b0e] tracking-widest">{order.delivery.pickupOtp}</div>
             </div>
           )}
         </div>

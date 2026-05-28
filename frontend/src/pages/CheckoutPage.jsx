@@ -47,9 +47,18 @@ function CheckoutPage() {
     try {
       const saved = localStorage.getItem(CHECKOUT_STORAGE_KEY);
       const parsed = saved ? JSON.parse(saved) : null;
-      return parsed?.form || { name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" };
+      const lastPincode = localStorage.getItem("mithai-world-last-pincode") || "";
+      
+      const baseForm = parsed?.form || { name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" };
+      
+      // Prioritize pincode from shared storage if it exists and form pincode is empty
+      if (lastPincode && !baseForm.pincode) {
+        baseForm.pincode = lastPincode;
+      }
+      
+      return baseForm;
     } catch {
-      return { name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" };
+      return { name: "", phone: "", email: "", address: "", city: "", pincode: localStorage.getItem("mithai-world-last-pincode") || "", state: "Maharashtra" };
     }
   });
 

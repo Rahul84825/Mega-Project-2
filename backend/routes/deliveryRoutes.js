@@ -63,6 +63,14 @@ router.post("/webhook/:provider", async (req, res) => {
 
     // Map delivery events to internal order statuses
     switch (update.event) {
+      case "searching_courier":
+        if (order.delivery.status !== "SEARCHING_FOR_RIDER") {
+          order.delivery.status = "SEARCHING_FOR_RIDER";
+          statusChanged = true;
+          logger.info(`🔍 Order ${order.orderNumber} is now SEARCHING for courier via webhook`);
+        }
+        break;
+
       case "courier_assigned":
         if (update.rider) {
           order.rider = {
@@ -71,10 +79,11 @@ router.post("/webhook/:provider", async (req, res) => {
             vehicleNumber: update.rider.vehicleNumber || order.rider.vehicleNumber
           };
         }
-        if (order.delivery.status !== "ASSIGNED") {
-          order.delivery.status = "ASSIGNED";
+        if (order.delivery.status !== "RIDER_ASSIGNED") {
+          order.delivery.status = "RIDER_ASSIGNED";
           order.delivery.assignedAt = order.delivery.assignedAt || new Date();
           statusChanged = true;
+          logger.info(`👤 Courier assigned to Order ${order.orderNumber} via webhook: ${update.rider?.name}`);
         }
         break;
 
@@ -99,17 +108,17 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
 
       case "canceled":
-        if (order.delivery.status !== "CANCELLED") {
-          order.delivery.status = "CANCELLED";
-          // Note: We might not want to cancel the whole order automatically
+        if (order.delivery.status !== "DELIVERY_FAILED") {
+          order.delivery.status = "DELIVERY_FAILED";
+          // We don't automatically cancel the order itself, as the store might want to re-assign
           statusChanged = true;
           logger.warn(`⚠️ Delivery for order ${order.orderNumber} was CANCELLED via webhook`);
         }
         break;
 
       case "failed_delivery":
-        if (order.delivery.status !== "FAILED") {
-          order.delivery.status = "FAILED";
+        if (order.delivery.status !== "DELIVERY_FAILED") {
+          order.delivery.status = "DELIVERY_FAILED";
           statusChanged = true;
           logger.error(`❌ Delivery for order ${order.orderNumber} FAILED via webhook`);
         }

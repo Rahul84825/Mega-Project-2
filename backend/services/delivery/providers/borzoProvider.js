@@ -121,7 +121,8 @@ const normalizeTask = (data = {}) => {
     status: order.status || "",
     rider: {
       name: order.courier?.name || "",
-      phone: order.courier?.phone || ""
+      phone: order.courier?.phone || "",
+      vehicleNumber: order.courier?.car_number || ""
     },
     pickupOtp: "", // Borzo usually doesn't use pickup OTP in basic flow
     trackingUrl: order.tracking_url || "",
@@ -156,8 +157,9 @@ export const createBorzoProvider = () => {
       // - total_weight_kg: must be numeric
       
       const rawWeight = payload.totalWeightKg;
-      // Ensure numeric conversion and 3-decimal precision for hyperlocal accuracy (e.g. 100g = 0.100)
-      const finalWeight = Number(parseFloat(rawWeight || 1).toFixed(3));
+      // Use nullish coalescing to avoid defaulting to 1 when weight is a valid number (even 0.1)
+      const weightValue = (rawWeight !== undefined && rawWeight !== null) ? rawWeight : 1;
+      const finalWeight = Number(parseFloat(weightValue).toFixed(3));
       const vehicleTypeId = payload.vehicleTypeId || 8;
 
       const body = {
@@ -208,7 +210,8 @@ export const createBorzoProvider = () => {
     async calculateDeliveryFee(payload) {
       // payload contains pickup and dropoff addresses
       const rawWeight = payload.totalWeightKg;
-      const finalWeight = Number(parseFloat(rawWeight || 1).toFixed(3));
+      const weightValue = (rawWeight !== undefined && rawWeight !== null) ? rawWeight : 1;
+      const finalWeight = Number(parseFloat(weightValue).toFixed(3));
       const vehicleTypeId = payload.vehicleTypeId || 8;
 
       const body = {
@@ -274,34 +277,49 @@ export const createBorzoProvider = () => {
     parseWebhook(payload) {
       // Borzo webhook format: { order: { order_id, status, points: [...], ... } }
       const order = payload.order || {};
-      const status = order.status;
+      const status = String(order.status || "").toLowerCase();
       const points = order.points || [];
       
       let event = "unknown";
+      
       // Borzo India Statuses: new, available (searching), active (assigned), completed, canceled, delayed
-      if (status === "new") event = "order_created";
-      if (status === "available") event = "searching_courier"; 
-      
-      if (status === "active") {
-        event = "courier_assigned";
-        // If the first point (pickup) is completed, it means it's picked up
-        if (points.length > 0 && points[0].completed_datetime) {
-          event = "picked_up";
-        }
+      // Detailed mapping for robust lifecycle synchronization
+      switch (status) {
+        case "new":
+          event = "order_created";
+          break;
+        case "available":
+          event = "searching_courier";
+          break;
+        case "active":
+          event = "courier_assigned";
+          // If the first point (pickup) is completed, it means it's picked up
+          if (points.length > 0 && points[0].completed_datetime) {
+            event = "picked_up";
+          }
+          break;
+        case "completed":
+          event = "delivered";
+          break;
+        case "canceled":
+          event = "canceled";
+          break;
+        case "delayed":
+          event = "failed_delivery";
+          break;
+        default:
+          event = `borzo_${status}`; // Fallback for unknown statuses
       }
-      
-      if (status === "completed") event = "delivered";
-      if (status === "canceled") event = "canceled";
-      if (status === "delayed") event = "failed_delivery";
 
       return {
         provider: "borzo",
         event,
         taskId: String(order.order_id || ""),
-        status,
+        status: status,
         rider: {
           name: order.courier?.name || "",
-          phone: order.courier?.phone || ""
+          phone: order.courier?.phone || "",
+          vehicleNumber: order.courier?.car_number || ""
         },
         raw: payload
       };

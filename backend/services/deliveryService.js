@@ -6,7 +6,7 @@ import { validateDeliveryRadius } from "./locationService.js";
 import { getZoneByPincode } from "../config/pincodeZones.js";
 
 /**
- * Helper: Parse weight string (e.g., "500g", "1kg") to kg
+ * Helper: Parse weight string (e.g., "500g", "1kg", "0.5") to kg
  */
 const parseWeightToKg = (weightStr, quantity = 1) => {
   if (!weightStr) return 0.1 * quantity; // Default 100g per item
@@ -17,7 +17,12 @@ const parseWeightToKg = (weightStr, quantity = 1) => {
   if (str.includes("kg")) return numeric * quantity;
   if (str.includes("g")) return (numeric / 1000) * quantity;
   
-  return (numeric / 1000) * quantity; // Assume grams if no unit
+  // If no unit is provided:
+  // 1. If numeric is >= 10, it's almost certainly grams (e.g., "250", "500")
+  // 2. If numeric is < 10, it's likely already in kg (e.g., "0.5", "1", "2.5")
+  if (numeric < 10) return numeric * quantity;
+  
+  return (numeric / 1000) * quantity; // Assume grams for larger numbers without units
 };
 
 /**
@@ -108,7 +113,7 @@ export const assignDeliveryPartner = async (orderId) => {
       providerOrderId: task.taskId,
       trackingId: task.taskId,
       trackingUrl: task.trackingUrl,
-      status: "ASSIGNED",
+      status: task.rider?.name ? "RIDER_ASSIGNED" : "DELIVERY_ASSIGNED",
       assignedAt: new Date(),
       pickupOtp: task.pickupOtp || ""
     };
