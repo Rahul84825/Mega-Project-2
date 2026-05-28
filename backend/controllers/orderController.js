@@ -257,25 +257,19 @@ export const acceptOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (order.status === "PREPARING") {
-      // If already preparing, update ETA and attempt delivery assignment if not already done
+    if (order.status === "PREPARING" || order.status === "ACCEPTED") {
+      // If already preparing, update ETA
       order.preparation.etaMinutes = etaMinutes;
       order.preparation.readyBy = new Date(Date.now() + etaMinutes * 60 * 1000);
       await order.save();
-      
-      // If delivery is not yet assigned, try assigning now
-      if (!order.delivery?.providerOrderId) {
-        try {
-          order = await assignDeliveryPartner(order._id);
-        } catch (assignError) {
-          logger.error(`❌ Manual assignment failed during accept retry for ${id}:`, assignError.message);
-        }
-      }
-      
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
-    order.status = "PREPARING";
+    if (order.status !== "PLACED") {
+      return res.status(400).json({ success: false, message: `Cannot accept order in ${order.status} state` });
+    }
+
+    order.status = "PREPARING"; // Swiggy style: Accepted = Preparing
     order.statusTimestamps.preparingAt = new Date();
     order.preparation.startsAt = new Date();
     if (Number.isFinite(etaMinutes)) {
@@ -285,26 +279,11 @@ export const acceptOrder = async (req, res) => {
 
     await order.save();
 
-    // Assign delivery partner (Strictly Borzo now)
-    try {
-      logger.info(`🔍 DEBUG: Triggering assignDeliveryPartner for order ${order._id}`);
-      order = await assignDeliveryPartner(order._id);
-    } catch (assignError) {
-      logger.error(`❌ Auto-assignment failed during accept for ${id}:`, {
-        error: assignError.message,
-        orderId: id
-      });
-      // We proceed with the order acceptance even if delivery assignment fails
-    }
-
-    // Schedule automated transition to READY
-    if (Number.isFinite(etaMinutes)) {
-      scheduleOrderReady(order._id, etaMinutes);
-    }
+    // ── DO NOT CREATE BORZO TASK YET ──
+    // In Swiggy/Zomato model, we wait until food is READY before dispatching the rider.
+    logger.info(`✅ Order ${order._id} accepted and preparing. Delivery assignment deferred until READY.`);
 
     emitOrderEvent("orderAccepted", sanitizeOrder(order));
-    logger.info("Order accepted", { orderId: String(order._id) });
-
     sendOrderAcceptedEmail(order).catch(err => logger.error("Failed to send accepted email", err));
 
     return res.status(200).json({ success: true, order: sanitizeOrder(order) });
@@ -411,14 +390,13 @@ export const markPreparing = async (req, res) => {
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
+    if (order.status !== "PLACED") {
+      return res.status(400).json({ success: false, message: `Cannot mark preparing from ${order.status}` });
+    }
+
     order.status = "PREPARING";
     order.statusTimestamps.preparingAt = new Date();
     await order.save();
-
-    // Ensure delivery partner is assigned
-    if (!order.rider?.name) {
-      order = await assignDeliveryPartner(order._id);
-    }
 
     emitOrderEvent("orderPreparing", sanitizeOrder(order));
     sendOrderPreparingEmail(order).catch(err => logger.error("Failed to send preparing email", err));
@@ -440,22 +418,23 @@ export const markReadyForPickup = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
+    if (order.status !== "PREPARING") {
+      return res.status(400).json({ success: false, message: `Cannot mark ready from ${order.status}` });
+    }
+
     order.status = "READY";
     order.preparation.readyBy = new Date();
     order.statusTimestamps.readyForPickupAt = new Date();
     
-    // Ensure delivery partner is assigned if not already
-    if (!order.rider?.name) {
-      try {
-        logger.info(`🚚 Auto-assigning partner for order ${id} during markReady`);
-        order = await assignDeliveryPartner(order._id);
-      } catch (assignError) {
-        logger.error(`❌ Delivery assignment failed for ${id}:`, assignError.message);
-        // We still save the status change even if assignment failed to prevent 500 crash
-        await order.save();
-      }
-    } else {
-      await order.save();
+    await order.save(); // Save status first
+
+    // ── CREATE BORZO TASK ONLY NOW ──
+    try {
+      logger.info(`🚚 Auto-assigning partner for order ${id} during markReady`);
+      order = await assignDeliveryPartner(order._id);
+    } catch (assignError) {
+      logger.error(`❌ Delivery assignment failed for ${id}:`, assignError.message);
+      // Order is still READY, admin can retry assignment later if needed
     }
 
     emitOrderEvent("orderReady", sanitizeOrder(order));
@@ -471,28 +450,34 @@ export const markReadyForPickup = async (req, res) => {
 export const markPickedUp = async (req, res) => {
   try {
     const { id } = req.params;
+    const { otp } = req.body;
     let order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (order.status === "PICKED_UP") {
-      return res.status(200).json({ success: true, order: sanitizeOrder(order) });
+    if (order.status === "PICKED_UP" || order.status === "DELIVERED") {
+      return res.status(400).json({ success: false, message: "Order already picked up or delivered" });
     }
 
-    // Safety: Ensure delivery partner is assigned if not already
-    if (!order.rider?.name) {
-      try {
-        logger.info(`🔍 DEBUG: Manual trigger of assignDeliveryPartner for order ${id} during markPickedUp`);
-        order = await assignDeliveryPartner(order._id);
-      } catch (assignError) {
-        logger.error(`❌ Manual assignment failed during pick-up for ${id}:`, assignError.message);
+    if (order.status !== "READY") {
+      return res.status(400).json({ success: false, message: `Cannot pick up order in ${order.status} state. Must be READY.` });
+    }
+
+    // ── OTP VERIFICATION ──
+    if (order.delivery?.pickupOtp) {
+      if (!otp) {
+        return res.status(400).json({ success: false, message: "OTP is required for pickup verification" });
+      }
+      if (String(otp).trim() !== String(order.delivery.pickupOtp).trim()) {
+        return res.status(400).json({ success: false, message: "Invalid OTP" });
       }
     }
 
     order.status = "PICKED_UP";
     order.statusTimestamps.pickedUpAt = new Date();
+    order.delivery.status = "PICKED_UP"; // Sync delivery status
     await order.save();
 
     emitOrderEvent("orderPickedUp", sanitizeOrder(order));

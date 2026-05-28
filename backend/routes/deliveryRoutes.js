@@ -56,14 +56,25 @@ router.post("/webhook/:provider", async (req, res) => {
       return res.status(200).json({ success: true, message: "Order not found" });
     }
 
-    // 3. Update order status based on webhook event
+    // 3. Prevent duplicate or backwards transitions & track history
+    order.delivery.webhookHistory = order.delivery.webhookHistory || [];
+    order.delivery.webhookHistory.push({
+      event: update.event,
+      receivedAt: new Date(),
+      payload: payload
+    });
+
     let statusChanged = false;
 
     logger.info(`🔄 Processing webhook event: ${update.event} for order ${order.orderNumber}`);
 
-    // Map delivery events to internal order statuses
+    // Map delivery events to internal order statuses with STRICT checks
     switch (update.event) {
       case "searching_courier":
+        if (["RIDER_ASSIGNED", "PICKED_UP", "DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) {
+          logger.warn(`⚠️ Ignoring searching_courier for ${order.orderNumber} as it is already ${order.delivery.status}`);
+          break;
+        }
         if (order.delivery.status !== "SEARCHING_FOR_RIDER") {
           order.delivery.status = "SEARCHING_FOR_RIDER";
           statusChanged = true;
@@ -72,6 +83,10 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
 
       case "courier_assigned":
+        if (["PICKED_UP", "DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) {
+          logger.warn(`⚠️ Ignoring courier_assigned for ${order.orderNumber} as it is already ${order.delivery.status}`);
+          break;
+        }
         if (update.rider) {
           order.rider = {
             name: update.rider.name || order.rider.name,
@@ -88,6 +103,10 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
 
       case "picked_up":
+        if (["DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) {
+          logger.warn(`⚠️ Ignoring picked_up for ${order.orderNumber} as it is already ${order.delivery.status}`);
+          break;
+        }
         if (order.status !== "PICKED_UP") {
           order.status = "PICKED_UP";
           order.statusTimestamps.pickedUpAt = order.statusTimestamps.pickedUpAt || new Date();
@@ -98,6 +117,10 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
 
       case "delivered":
+        if (order.delivery.status === "DELIVERY_FAILED") {
+          logger.warn(`⚠️ Ignoring delivered for ${order.orderNumber} as it is already FAILED`);
+          break;
+        }
         if (order.status !== "DELIVERED") {
           order.status = "DELIVERED";
           order.statusTimestamps.deliveredAt = order.statusTimestamps.deliveredAt || new Date();
@@ -108,16 +131,16 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
 
       case "canceled":
-        if (order.delivery.status !== "DELIVERY_FAILED") {
+        if (order.delivery.status !== "DELIVERY_FAILED" && order.delivery.status !== "DELIVERED") {
           order.delivery.status = "DELIVERY_FAILED";
-          // We don't automatically cancel the order itself, as the store might want to re-assign
+          // Swiggy style: Delivery failed, but order might need re-assignment or manual cancellation
           statusChanged = true;
           logger.warn(`⚠️ Delivery for order ${order.orderNumber} was CANCELLED via webhook`);
         }
         break;
 
       case "failed_delivery":
-        if (order.delivery.status !== "DELIVERY_FAILED") {
+        if (order.delivery.status !== "DELIVERY_FAILED" && order.delivery.status !== "DELIVERED") {
           order.delivery.status = "DELIVERY_FAILED";
           statusChanged = true;
           logger.error(`❌ Delivery for order ${order.orderNumber} FAILED via webhook`);
@@ -125,9 +148,10 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
     }
 
+    // Always save to persist the webhookHistory, even if status didn't change
+    await order.save();
+
     if (statusChanged) {
-      await order.save();
-      
       // Notify admin panel via Socket.io
       const io = getIo();
       if (io) {

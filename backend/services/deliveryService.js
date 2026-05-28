@@ -27,7 +27,7 @@ const parseWeightToKg = (weightStr, quantity = 1) => {
 
 /**
  * ASSIGN DELIVERY PARTNER
- * This function is called when an order is accepted.
+ * This function is called ONLY when an order is marked READY.
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
@@ -37,6 +37,16 @@ export const assignDeliveryPartner = async (orderId) => {
     if (!order) {
       logger.error(`🔍 DEBUG: Order ${orderId} NOT FOUND in database`);
       throw new Error("Order not found");
+    }
+
+    // ── STRICT IDEMPOTENCY PROTECTION ──
+    if (order.delivery?.providerOrderId) {
+      logger.warn(`⚠️ Delivery task already exists for Order ${order.orderNumber}. Skipping duplicate creation.`);
+      return order;
+    }
+    if (order.delivery?.status && order.delivery.status !== "PENDING" && order.delivery.status !== "FAILED") {
+      logger.warn(`⚠️ Delivery already in progress for Order ${order.orderNumber}. Status: ${order.delivery.status}. Skipping.`);
+      return order;
     }
 
     // ── PHASE 1: PINCODE RE-VALIDATION (Replacing Radius) ──
@@ -69,7 +79,6 @@ export const assignDeliveryPartner = async (orderId) => {
     // Calculate total weight with enhanced precision logging
     const totalWeightKg = order.items.reduce((sum, item) => {
       const itemWeight = parseWeightToKg(item.selectedVariant?.weight, item.quantity);
-      logger.info(`⚖️ Item: ${item.titleSnapshot || item.name}, Weight: ${item.selectedVariant?.weight}, Calculated: ${itemWeight}kg`);
       return sum + itemWeight;
     }, 0);
 
@@ -96,26 +105,29 @@ export const assignDeliveryPartner = async (orderId) => {
       }))
     };
 
-    logger.info(`🚚 Requesting ${provider} delivery for Order ${order.orderNumber}...`, { payload });
+    logger.info(`🚚 Requesting ${provider} delivery for Order ${order.orderNumber}...`);
 
     const task = await createDeliveryTask(payload, { provider });
     
     if (!task || !task.taskId) {
-      logger.error(`🔍 DEBUG: No taskId returned from ${provider} provider`, { task });
+      logger.error(`🔍 DEBUG: No taskId returned from ${provider} provider`);
       throw new Error(`${provider} failed to return a task ID`);
     }
 
     logger.info(`🔍 DEBUG: Task created successfully. Task ID: ${task.taskId}`);
+
+    // Generate secure 4-digit pickup OTP if provider didn't return one
+    const pickupOtp = task.pickupOtp || Math.floor(1000 + Math.random() * 9000).toString();
 
     order.delivery = {
       ...(order.delivery || {}),
       provider: provider,
       providerOrderId: task.taskId,
       trackingId: task.taskId,
-      trackingUrl: task.trackingUrl,
+      trackingUrl: task.trackingUrl || "",
       status: task.rider?.name ? "RIDER_ASSIGNED" : "DELIVERY_ASSIGNED",
       assignedAt: new Date(),
-      pickupOtp: task.pickupOtp || ""
+      pickupOtp: pickupOtp
     };
 
     if (task.rider?.name) {
@@ -132,12 +144,11 @@ export const assignDeliveryPartner = async (orderId) => {
     const io = getIo();
     if (io) io.emit("order:updated", order.toObject());
 
-    logger.info(`✅ ${provider} Delivery Assigned: ${task.taskId}`);
+    logger.info(`✅ ${provider} Delivery Assigned: ${task.taskId} with OTP: ${pickupOtp}`);
     return order;
   } catch (error) {
     logger.error("❌ Failed to assign delivery partner:", {
       message: error.message,
-      stack: error.stack,
       orderId
     });
     throw error;

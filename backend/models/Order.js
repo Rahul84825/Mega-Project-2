@@ -119,7 +119,12 @@ const orderSchema = new mongoose.Schema(
       status: { type: String, trim: true, default: "" },
       assignedAt: { type: Date, default: null },
       promisedBy: { type: Date, default: null },
-      pickupOtp: { type: String, trim: true, default: "" }
+      pickupOtp: { type: String, trim: true, default: "" },
+      webhookHistory: [{
+        event: { type: String },
+        receivedAt: { type: Date, default: Date.now },
+        payload: { type: mongoose.Schema.Types.Mixed }
+      }]
     },
     rider: {
       name: { type: String, trim: true, default: "" },
