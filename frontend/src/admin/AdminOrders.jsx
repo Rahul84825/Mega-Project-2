@@ -31,6 +31,14 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
+
+    // ── FALLBACK POLLING: Refresh every 10 seconds if Socket.IO is unreliable ──
+    const interval = setInterval(() => {
+      console.log("🔄 POLLING: Refreshing orders list...");
+      fetchOrders();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [fetchOrders]);
 
   const selectedOrder = useMemo(() => 

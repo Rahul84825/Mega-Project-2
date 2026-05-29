@@ -72,6 +72,9 @@ export const placeOrder = async (req, res) => {
       bodyKeys: Object.keys(orderData || {})
     });
 
+    // ── LOGGING: CHECKOUT_ADDRESS ──
+    console.log("📍 CHECKOUT_ADDRESS:", JSON.stringify(orderData?.shippingAddress, null, 2));
+
     if (!isValidOrderPayload(orderData)) {
       logger.warn("❌ INVALID_ORDER_PAYLOAD");
       return res.status(400).json({
@@ -166,6 +169,9 @@ export const placeOrder = async (req, res) => {
         message: "Order could not be created"
       });
     }
+
+    // ── LOGGING: MONGODB_ADDRESS ──
+    console.log("📍 MONGODB_ADDRESS:", JSON.stringify(createdOrder.shippingAddress, null, 2));
 
     logger.info("✅ ORDER_PLACED_SUCCESS", {
       orderId: createdOrder?.orderId,

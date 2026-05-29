@@ -213,11 +213,17 @@ export const createBorzoProvider = () => {
       console.log("📍 BORZO_PAYLOAD_ADDRESS (Pickup):", body.points[0].address);
       console.log("📍 BORZO_PAYLOAD_ADDRESS (Dropoff):", body.points[1].address);
 
+      // ── LOGGING: BORZO_PAYLOAD_ADDRESS ──
+      console.log("📍 BORZO_PAYLOAD_ADDRESS:", JSON.stringify(body.points[1].address, null, 2));
+
       const data = await request(`${config.baseUrl}/create-order`, {
         method: "POST",
         headers: buildHeaders(config),
         body: JSON.stringify(body)
       });
+
+      // ── LOGGING: BORZO_API_RESPONSE ──
+      console.log("📍 BORZO_API_RESPONSE:", JSON.stringify(data, null, 2));
 
       const task = normalizeTask(data);
       logger.info(`✅ [BORZO] Task Created: ${task.taskId}, Status: ${task.status}`);

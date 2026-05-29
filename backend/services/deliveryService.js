@@ -127,6 +127,9 @@ export const assignDeliveryPartner = async (orderId) => {
     console.log("providerOrderId:", order.delivery?.providerOrderId);
     console.log("DELIVERY STATUS:", order.delivery?.status);
 
+    // ── LOGGING: ASSIGN_DELIVERY_ADDRESS ──
+    console.log("📍 ASSIGN_DELIVERY_ADDRESS:", JSON.stringify(order.shippingAddress, null, 2));
+
     // ── STRICT IDEMPOTENCY PROTECTION (FIXED) ──
     // ONLY block duplicate creation if an ACTUAL provider task ID exists.
     // Check for non-empty string to avoid blocking on initialized empty values.
