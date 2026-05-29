@@ -346,6 +346,7 @@ export const createBorzoProvider = () => {
           break;
         case "courier_departed":
         case "picked_up":
+        case "delivering":
           event = "picked_up";
           break;
         case "completed":
@@ -377,7 +378,7 @@ export const createBorzoProvider = () => {
         rider: {
           name: courier.name || "",
           phone: courier.phone || "",
-          vehicleNumber: courier.car_number || ""
+          vehicleNumber: courier.vehicle_number || courier.car_number || ""
         },
         trackingUrl,
         raw: payload

@@ -27,6 +27,15 @@ router.post("/webhook/:provider", async (req, res) => {
   const { provider } = req.params;
   const payload = req.body;
 
+  if (provider === "borzo") {
+    // ── TEMPORARY WEBHOOK DIAGNOSTIC LOGS ──
+    console.log("=========================================");
+    console.log("🚨 BORZO_WEBHOOK_HIT");
+    console.log("📋 BORZO_WEBHOOK_HEADERS:", JSON.stringify(req.headers, null, 2));
+    console.log("📦 BORZO_WEBHOOK_BODY:", JSON.stringify(payload, null, 2));
+    console.log("=========================================");
+  }
+
   // ── LOGGING: RAW_BORZO_WEBHOOK ──
   console.log("-----------------------------------------");
   console.log(`📦 RAW_BORZO_WEBHOOK RECEIVED AT: ${new Date().toISOString()}`);
