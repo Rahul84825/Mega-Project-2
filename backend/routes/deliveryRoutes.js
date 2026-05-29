@@ -45,13 +45,14 @@ router.post("/webhook/:provider", async (req, res) => {
     // 1. Parse provider-specific webhook into a standard format
     const update = await handleDeliveryWebhook(payload, { provider });
 
+    // ── LOGGING: BORZO_RAW_STATUS & BORZO_MAPPED_STATUS ──
+    console.log(`🔍 BORZO_RAW_STATUS: ${update.status}`);
+    console.log(`🔍 BORZO_MAPPED_STATUS: ${update.event}`);
+
     if (!update || !update.taskId) {
       logger.warn(`⚠️ [WEBHOOK] Ignored malformed webhook payload from ${provider}`);
       return res.status(200).json({ success: true, message: "Ignored" });
     }
-
-    // ── LOGGING: Raw & Mapped Status ──
-    logger.info(`🔍 BORZO_STATUS: RAW=${update.status} | MAPPED=${update.event}`);
 
     // 2. Find the order associated with this delivery task
     const order = await Order.findOne({ "delivery.providerOrderId": update.taskId });
@@ -73,6 +74,19 @@ router.post("/webhook/:provider", async (req, res) => {
 
     let statusChanged = false;
 
+    // ── LOGISTICS METADATA SYNC: Ensure rider info is always updated if present ──
+    const oldRider = order.rider || {};
+    const newRider = update.rider || {};
+    if (newRider.name && (newRider.name !== oldRider.name || newRider.phone !== oldRider.phone)) {
+      order.rider = {
+        name: newRider.name,
+        phone: newRider.phone || oldRider.phone,
+        vehicleNumber: newRider.vehicleNumber || oldRider.vehicleNumber
+      };
+      statusChanged = true;
+      logger.info(`👤 [WEBHOOK] RIDER_SYNCED: ${order.rider.name} for Order: ${order.orderNumber}`);
+    }
+
     // Map delivery events to internal order statuses with STRICT checks
     switch (update.event) {
       case "searching_courier":
@@ -85,19 +99,6 @@ router.post("/webhook/:provider", async (req, res) => {
 
       case "courier_assigned":
         if (["PICKED_UP", "DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) break;
-        
-        // If rider info changed, we should notify the frontend even if delivery status is already RIDER_ASSIGNED
-        const oldRider = order.rider || {};
-        const newRider = update.rider || {};
-        if (newRider.name !== oldRider.name || newRider.phone !== oldRider.phone) {
-          order.rider = {
-            name: newRider.name || oldRider.name,
-            phone: newRider.phone || oldRider.phone,
-            vehicleNumber: newRider.vehicleNumber || oldRider.vehicleNumber
-          };
-          statusChanged = true;
-        }
-
         if (order.delivery.status !== "RIDER_ASSIGNED") {
           order.delivery.status = "RIDER_ASSIGNED";
           order.delivery.assignedAt = order.delivery.assignedAt || new Date();
@@ -140,13 +141,16 @@ router.post("/webhook/:provider", async (req, res) => {
 
     // Always save to persist the webhookHistory
     await order.save();
+    console.log(`💾 MONGODB_ORDER_STATUS: ${order.status}`);
     logger.info(`💾 MONGODB_SAVE_SUCCESS for Order: ${order.orderNumber}`);
 
     if (statusChanged) {
       // ── LOGGING: Socket Emission ──
       const io = getIo();
       if (io) {
-        io.emit("order:updated", order.toObject());
+        const payload = order.toObject();
+        console.log(`📡 SOCKET_PAYLOAD_STATUS: ${payload.status}`);
+        io.emit("order:updated", payload);
         logger.info(`📡 SOCKET_EVENT_EMITTED: order:updated for Order: ${order.orderNumber}`);
       }
     } else {

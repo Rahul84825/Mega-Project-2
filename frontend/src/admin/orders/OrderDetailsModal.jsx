@@ -20,6 +20,8 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
   if (!open || !order) return null;
 
   const status = resolveStatus(order);
+  console.log(`🖥️ FRONTEND_RENDERED_STATUS: ${status}`);
+  
   const payMethod = resolvePaymentMethod(order);
   const payStatus = resolvePaymentStatus(order);
   
