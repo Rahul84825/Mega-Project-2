@@ -176,7 +176,7 @@ export const assignDeliveryPartner = async (orderId) => {
         geo: { lat: 18.5679, lng: 73.9143 } // Mithai World exact location
       },
       dropoff: {
-        address: buildFormattedAddress(order.shippingAddress),
+        address: order.shippingAddress?.fullAddress || buildFormattedAddress(order.shippingAddress),
         phone: order.customer.phone,
         name: order.customer.name,
         pincode: order.shippingAddress.postalCode,
@@ -193,6 +193,7 @@ export const assignDeliveryPartner = async (orderId) => {
     };
 
     // ── STEP 5: DELIVERY API REQUEST ──
+    console.log("📍 FINAL_BORZO_DROPOFF_ADDRESS:", payload.dropoff.address);
     logger.info(`📡 [MARK READY] STEP 5 - ${provider.toUpperCase()} API REQUEST for Order ${order.orderNumber}`);
     const task = await createDeliveryTask(payload, { provider });
     
