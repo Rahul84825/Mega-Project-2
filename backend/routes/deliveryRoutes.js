@@ -27,7 +27,13 @@ router.post("/webhook/:provider", async (req, res) => {
   const { provider } = req.params;
   const payload = req.body;
 
-  // ── LOGGING: Webhook Received ──
+  // ── LOGGING: RAW_BORZO_WEBHOOK ──
+  console.log("-----------------------------------------");
+  console.log(`📦 RAW_BORZO_WEBHOOK RECEIVED AT: ${new Date().toISOString()}`);
+  console.log(`📦 HEADERS:`, JSON.stringify(req.headers, null, 2));
+  console.log(`📦 PAYLOAD:`, JSON.stringify(payload, null, 2));
+  console.log("-----------------------------------------");
+
   logger.info(`📦 BORZO_WEBHOOK_RECEIVED`, { provider, payload });
 
   // ── SECURITY: Webhook Validation ──
@@ -49,20 +55,25 @@ router.post("/webhook/:provider", async (req, res) => {
     console.log(`🔍 BORZO_RAW_STATUS: ${update.status}`);
     console.log(`🔍 BORZO_MAPPED_STATUS: ${update.event}`);
 
-    if (!update || !update.taskId) {
+    if (!update || !update.taskId || update.taskId.trim() === "") {
+      console.log(`⚠️ INVALID_PROVIDER_ORDER_ID: Received "${update?.taskId}"`);
+      console.log(`⚠️ LOOKUP_SKIPPED`);
       logger.warn(`⚠️ [WEBHOOK] Ignored malformed webhook payload from ${provider}`);
       return res.status(200).json({ success: true, message: "Ignored" });
     }
+
+    console.log(`🔍 PROVIDER_ORDER_ID_LOOKUP: ${update.taskId}`);
 
     // 2. Find the order associated with this delivery task
     const order = await Order.findOne({ "delivery.providerOrderId": update.taskId });
 
     if (!order) {
+      console.log(`⚠️ LOOKUP_SKIPPED: No order matches taskId ${update.taskId}`);
       logger.warn(`⚠️ [WEBHOOK] No order found for ${provider} taskId: ${update.taskId}`);
       return res.status(200).json({ success: true, message: "Order not found" });
     }
 
-    logger.info(`✅ ORDER_FOUND: ${order.orderNumber}`);
+    console.log(`✅ ORDER_FOUND: ${order.orderNumber}`);
 
     // 3. Track history
     order.delivery.webhookHistory = order.delivery.webhookHistory || [];

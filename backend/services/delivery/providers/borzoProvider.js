@@ -306,11 +306,20 @@ export const createBorzoProvider = () => {
     },
 
     parseWebhook(payload) {
-      // Borzo webhook format: { order: { order_id, status, points: [...], ... } }
-      const order = payload.order || {};
-      const rawStatus = String(order.status || "").toLowerCase();
-      const points = order.points || [];
+      // Borzo webhook can be nested: { order: { order_id, status, ... } }
+      // Or root-level: { order_id, status, ... }
+      const nestedOrder = payload.order || {};
       
+      // Normalize extraction
+      const rawOrderId = String(nestedOrder.order_id || payload.order_id || "").trim();
+      const rawStatus = String(nestedOrder.status || payload.status || "").toLowerCase();
+      const points = nestedOrder.points || payload.points || [];
+      const courier = nestedOrder.courier || payload.courier || {};
+
+      // ── LOGGING: EXTRACTED_ORDER_ID & EXTRACTED_TASK_ID ──
+      console.log(`🔍 EXTRACTED_ORDER_ID: ${rawOrderId}`);
+      console.log(`🔍 EXTRACTED_TASK_ID: ${rawOrderId}`);
+
       let event = "unknown";
       
       /**
@@ -356,12 +365,12 @@ export const createBorzoProvider = () => {
       return {
         provider: "borzo",
         event,
-        taskId: String(order.order_id || ""),
+        taskId: rawOrderId,
         status: rawStatus,
         rider: {
-          name: order.courier?.name || "",
-          phone: order.courier?.phone || "",
-          vehicleNumber: order.courier?.car_number || ""
+          name: courier.name || "",
+          phone: courier.phone || "",
+          vehicleNumber: courier.car_number || ""
         },
         raw: payload
       };
