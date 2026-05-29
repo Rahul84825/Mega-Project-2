@@ -521,6 +521,8 @@ export const markDelivered = async (req, res) => {
 };
 
 export const getOrdersByStatus = async (req, res) => {
+  const startTime = Date.now();
+  console.log(`FETCH_ORDERS_START: ${new Date().toISOString()}`);
   try {
     const status = req.query.status ? String(req.query.status).toUpperCase() : null;
 
@@ -536,6 +538,10 @@ export const getOrdersByStatus = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
+
+    const duration = Date.now() - startTime;
+    console.log(`FETCH_ORDERS_END: ${new Date().toISOString()}`);
+    console.log(`QUERY_DURATION_MS: ${duration}ms`);
 
     return res.status(200).json({
       success: true,

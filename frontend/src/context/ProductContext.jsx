@@ -313,11 +313,19 @@ export function ProductProvider({ children }) {
   }, []);
 
   const fetchOrders = useCallback(async () => {
+     const startTime = Date.now();
+     console.log(`FETCH_ORDERS_START: ${new Date().toISOString()}`);
      try {
       const { data } = await api.get("/api/orders");
+      const duration = Date.now() - startTime;
+      console.log(`FETCH_ORDERS_END: ${new Date().toISOString()}`);
+      console.log(`QUERY_DURATION_MS: ${duration}ms`);
       const sorted = toArray(data?.orders || data).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       dispatch({ type: actionTypes.SET_DATA, payload: { orders: sorted } });
-    } catch (err) { console.error("fetchOrders error", err); }
+    } catch (err) { 
+      const duration = Date.now() - startTime;
+      console.error(`fetchOrders error after ${duration}ms`, err); 
+    }
   }, []);
 
   const fetchOffers = useCallback(async () => {
