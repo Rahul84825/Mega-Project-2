@@ -29,17 +29,25 @@ const AdminOrders = () => {
   const [rejectModal, setRejectModal] = useState({ open: false, order: null });
   const [acceptModal, setAcceptModal] = useState({ open: false, order: null });
 
+  // ── AUTO-REFRESH LOGIC FOR ACTIVE ORDERS ──
   useEffect(() => {
     fetchOrders();
 
-    // ── FALLBACK POLLING: Refresh every 10 seconds if Socket.IO is unreliable ──
-    const interval = setInterval(() => {
-      console.log("🔄 POLLING: Refreshing orders list...");
-      fetchOrders();
-    }, 10000);
+    const refreshActiveOrders = () => {
+      const activeStatuses = ["PLACED", "PREPARING", "READY", "PICKED_UP"];
+      const hasActiveOrders = (orders || []).some(o => activeStatuses.includes(resolveStatus(o)));
+
+      if (hasActiveOrders) {
+        console.log("🔄 ORDER_STATUS_REFRESHED: Polling for active orders...");
+        fetchOrders();
+      }
+    };
+
+    // Polling interval: 5 seconds for active orders
+    const interval = setInterval(refreshActiveOrders, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [fetchOrders, orders]);
 
   const selectedOrder = useMemo(() => 
     (orders || []).find(o => o._id === selectedId),
@@ -88,6 +96,17 @@ const AdminOrders = () => {
     }
   };
 
+  const handleManualSync = async () => {
+    setBusyOrderId("sync");
+    try {
+      await fetchOrders();
+      toast.success("Orders synchronized");
+      console.log("🔄 ORDER_STATUS_REFRESHED: Manual sync complete");
+    } finally {
+      setBusyOrderId(null);
+    }
+  };
+
   const handleAcceptSubmit = async (etaMinutes) => {
     if (!acceptModal.order) return;
     const orderId = acceptModal.order._id;
@@ -115,6 +134,14 @@ const AdminOrders = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
+          <button 
+            onClick={handleManualSync}
+            disabled={busyOrderId === "sync"}
+            className="h-10 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+          >
+            {busyOrderId === "sync" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+            Sync Delivery
+          </button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
             <input
@@ -166,6 +193,7 @@ const AdminOrders = () => {
         onHandover={(o) => handleAction(o._id, () => markOrderPickedUp(o._id))}
         onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
         onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
+        onSync={handleManualSync}
       />
 
       <AcceptOrderModal

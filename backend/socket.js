@@ -59,13 +59,13 @@ export const initializeSocket = (httpServer) => {
     const role = socket.handshake.auth?.role || socket.data?.role || "user";
 
     if (role === "admin") {
-      console.log(`Admin connected: ${socket.id}`);
+      console.log(`📡 SOCKET_CONNECTED (Admin): ${socket.id}`);
     } else {
-      console.log(`Socket connected: ${socket.id}`);
+      console.log(`📡 SOCKET_CONNECTED: ${socket.id}`);
     }
 
     socket.on("disconnect", (reason) => {
-      console.log(`Socket disconnected: ${socket.id} (${reason})`);
+      console.log(`📡 SOCKET_DISCONNECTED: ${socket.id} (${reason})`);
     });
   });
 

@@ -348,7 +348,7 @@ export function ProductProvider({ children }) {
 
     const handleOrderUpdate = (order) => {
       if (order) {
-        console.log(`📡 FRONTEND_SOCKET_RECEIVED: order:updated for Order ${order.orderNumber}`);
+        console.log(`📡 SOCKET_EVENT_RECEIVED: order:updated for Order ${order.orderNumber}`);
         dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
         console.log(`✅ FRONTEND_ORDER_UPDATED: Order ${order.orderNumber} is now ${order.status}`);
       }

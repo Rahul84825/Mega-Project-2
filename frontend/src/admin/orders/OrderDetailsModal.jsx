@@ -16,7 +16,7 @@ import {
 } from "./orderUtils";
 import OrderTimer from "./OrderTimer";
 
-const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMarkDelivered }) => {
+const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMarkDelivered, onSync }) => {
   if (!open || !order) return null;
 
   const status = resolveStatus(order);
@@ -39,6 +39,8 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
     ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     : "N/A";
 
+  const isDeliveryActive = ["PLACED", "PREPARING", "READY", "PICKED_UP"].includes(status);
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#2d1b0e]/60 backdrop-blur-sm px-4 py-6">
       <div className="w-full max-w-6xl max-h-[90vh] rounded-[32px] border border-[#e6d3b3] bg-[#fffaf3] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
@@ -59,12 +61,22 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#b67b3a]">Placement: {formattedDate} at {formattedTime}</p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="h-10 w-10 rounded-full flex items-center justify-center text-[#7a5c3a] hover:bg-[#f5e6d3] transition-colors border border-[#e6d3b3]"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+            {isDeliveryActive && (
+              <button 
+                onClick={() => onSync?.()}
+                className="h-10 px-4 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#8b4513] bg-[#fffaf3] border border-[#e6d3b3] hover:bg-[#f5e6d3] transition-colors"
+              >
+                <Clock size={14} /> Sync Status
+              </button>
+            )}
+            <button 
+              onClick={onClose} 
+              className="h-10 w-10 rounded-full flex items-center justify-center text-[#7a5c3a] hover:bg-[#f5e6d3] transition-colors border border-[#e6d3b3]"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* ── CONTENT ── */}
@@ -126,15 +138,22 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
                   <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${
                     delivery.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700' :
                     delivery.status === 'PICKED_UP' ? 'bg-blue-50 text-blue-700' :
+                    delivery.status === 'RIDER_ASSIGNED' ? 'bg-indigo-50 text-indigo-700' :
+                    delivery.status === 'SEARCHING_FOR_RIDER' ? 'bg-amber-50 text-amber-700' :
                     'bg-[#f5e6d3] text-[#8b4513]'
                   }`}>
                     {(delivery.status || "Pending").replace(/_/g, ' ')}
                   </span>
                 </div>
                 {rider.name ? (
-                  <p className="text-xs font-bold text-[#2d1b0e]">{rider.name} • {rider.phone}</p>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-[#2d1b0e]">{rider.name} • {rider.phone}</p>
+                    {rider.vehicleNumber && <p className="text-[10px] font-medium text-[#7a5c3a]">{rider.vehicleNumber}</p>}
+                  </div>
                 ) : (
-                  <p className="text-xs font-medium text-[#b67b3a] italic">Assigning rider...</p>
+                  <p className="text-xs font-medium text-[#b67b3a] italic">
+                    {delivery.status === "SEARCHING_FOR_RIDER" ? "Searching for rider..." : "Assigning rider..."}
+                  </p>
                 )}
                 {delivery.trackingUrl && (
                   <a 
