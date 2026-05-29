@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Search, Sparkles, Filter, Clock, Loader2 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
@@ -29,13 +29,18 @@ const AdminOrders = () => {
   const [rejectModal, setRejectModal] = useState({ open: false, order: null });
   const [acceptModal, setAcceptModal] = useState({ open: false, order: null });
 
-  // ── AUTO-REFRESH LOGIC FOR ACTIVE ORDERS ──
+  // ── AUTO-REFRESH LOGIC FOR ACTIVE ORDERS (FIXED) ──
+  const ordersRef = useRef(orders);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+
   useEffect(() => {
     fetchOrders();
 
     const refreshActiveOrders = () => {
       const activeStatuses = ["PLACED", "PREPARING", "READY", "PICKED_UP"];
-      const hasActiveOrders = (orders || []).some(o => activeStatuses.includes(resolveStatus(o)));
+      const hasActiveOrders = (ordersRef.current || []).some(o => activeStatuses.includes(resolveStatus(o)));
 
       if (hasActiveOrders) {
         console.log("🔄 ORDER_STATUS_REFRESHED: Polling for active orders...");
@@ -43,11 +48,11 @@ const AdminOrders = () => {
       }
     };
 
-    // Polling interval: 5 seconds for active orders
-    const interval = setInterval(refreshActiveOrders, 5000);
+    // Polling interval: 30 seconds for active orders (safe fallback, sockets handle instant sync)
+    const interval = setInterval(refreshActiveOrders, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchOrders, orders]);
+  }, [fetchOrders]);
 
   const selectedOrder = useMemo(() => 
     (orders || []).find(o => o._id === selectedId),
