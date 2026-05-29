@@ -285,12 +285,9 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
               </button>
             )}
             {status === "PICKED_UP" && (
-              <button 
-                onClick={() => onMarkDelivered(order)}
-                className="h-12 px-8 rounded-2xl bg-[#8b4513] text-white text-[11px] font-black uppercase tracking-widest hover:bg-[#6b3410] transition-all shadow-md active:scale-95 flex items-center gap-2"
-              >
-                <CheckCircle2 size={16} /> Mark Delivered
-              </button>
+              <div className="h-12 px-6 rounded-2xl bg-[#fffaf3] border border-dashed border-[#e6d3b3] text-[#a67f52] text-[11px] font-black uppercase tracking-widest flex items-center gap-2 mr-4">
+                <Truck size={16} className="animate-pulse" /> Out For Delivery
+              </div>
             )}
             <button 
               onClick={onClose}

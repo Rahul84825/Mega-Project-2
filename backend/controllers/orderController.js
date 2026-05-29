@@ -504,8 +504,19 @@ export const markDelivered = async (req, res) => {
       return res.status(200).json({ success: true, order: sanitizeOrder(order) });
     }
 
+    // Enforce webhook-only status synchronization for delivery provider orders
+    if (order.delivery && order.delivery.provider) {
+      return res.status(400).json({
+        success: false,
+        message: "Manual delivery completion is disabled. Status updates are synchronized automatically via delivery partner webhooks."
+      });
+    }
+
     order.status = "DELIVERED";
     order.statusTimestamps.deliveredAt = new Date();
+    if (order.delivery) {
+      order.delivery.status = "DELIVERED";
+    }
 
     await order.save();
 

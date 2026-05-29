@@ -269,14 +269,9 @@ const OrderCard = ({
           )}
 
           {status === "PICKED_UP" && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onMarkDelivered(order); }}
-              disabled={isBusy}
-              className="w-full h-12 rounded-xl bg-[#8b4513] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#6b3410] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isBusy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-              Mark Delivered
-            </button>
+            <div className="w-full text-center py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#a67f52] flex items-center justify-center gap-2 bg-[#fffaf3] border border-dashed border-[#e6d3b3] rounded-xl h-12">
+              <Truck size={14} className="animate-pulse" /> Out For Delivery
+            </div>
           )}
 
           {(status === "DELIVERED" || status === "REJECTED" || status === "CANCELLED") && (
