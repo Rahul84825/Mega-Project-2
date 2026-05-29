@@ -80,7 +80,8 @@ export const calculateDelivery = async (req, res) => {
 
     logger.info("🚚 Calculating dynamic delivery fee", { payload });
 
-    const result = await calculateDeliveryFee(payload, { provider: "borzo" });
+    const provider = process.env.DEFAULT_DELIVERY_PROVIDER || "borzo";
+    const result = await calculateDeliveryFee(payload, { provider });
 
     return res.status(200).json({
       success: true,

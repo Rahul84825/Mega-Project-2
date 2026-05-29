@@ -6,7 +6,7 @@ const getEnv = (key, fallback = "") => String(process.env[key] || fallback).trim
 console.log("BORZO PROVIDER HIT");
 
 const buildConfig = () => {
-  let baseUrl = getEnv("BORZO_BASE_URL", "https://robotapitest-in.borzodelivery.com/api/business/1.6");
+  let baseUrl = getEnv("BORZO_BASE_URL", "https://robot-in.borzodelivery.com/api/business/1.6");
   const authToken = getEnv("BORZO_API_TOKEN");
 
   // ── URL NORMALIZATION: Fix common hostname typos for India ──

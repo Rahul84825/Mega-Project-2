@@ -47,7 +47,7 @@ const buildFormattedAddress = (addr) => {
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
-  console.log("===== BORZO FLOW START =====");
+  console.log(`===== DELIVERY FLOW START (${process.env.DEFAULT_DELIVERY_PROVIDER || "borzo"}) =====`);
   console.log("CALLING assignDeliveryPartner()");
   logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId}`);
   
@@ -74,7 +74,7 @@ export const assignDeliveryPartner = async (orderId) => {
       return order;
     }
 
-    console.log("CALLING BORZO NOW");
+    console.log(`CALLING ${process.env.DEFAULT_DELIVERY_PROVIDER || "borzo"} NOW`);
 
     // ── PHASE 1: PINCODE VALIDATION ──
     const pincode = order.shippingAddress?.postalCode;
@@ -85,13 +85,13 @@ export const assignDeliveryPartner = async (orderId) => {
     const zone = getZoneByPincode(pincode);
     if (!zone || !zone.available) {
       const errorMsg = `Pincode ${pincode} is not in allowed delivery zones.`;
-      logger.error(`🛑 [BORZO PROTECTION] Blocking task creation. Reason: ${errorMsg}`);
+      logger.error(`🛑 [DELIVERY PROTECTION] Blocking task creation. Reason: ${errorMsg}`);
       order.delivery = { ...order.delivery, status: "FAILED", error: errorMsg };
       await order.save();
       throw new Error(errorMsg);
     }
 
-    const provider = "borzo";
+    const provider = process.env.DEFAULT_DELIVERY_PROVIDER || "borzo";
 
     // ── PHASE 2: WEIGHT CALCULATION ──
     const totalWeightKg = order.items.reduce((sum, item) => {
@@ -114,26 +114,29 @@ export const assignDeliveryPartner = async (orderId) => {
         address: buildFormattedAddress(order.shippingAddress),
         phone: order.customer.phone,
         name: order.customer.name,
+        pincode: order.shippingAddress.postalCode,
         geo: order.shippingAddress.geo || null
       },
       items: order.items.map(item => ({
         name: item.titleSnapshot || item.name,
-        quantity: item.quantity
-      }))
+        quantity: item.quantity,
+        price: item.priceSnapshot || item.price
+      })),
+      totalAmount: order.totals?.grandTotal
     };
 
-    // ── STEP 5: BORZO API REQUEST ──
-    logger.info(`📡 [MARK READY] STEP 5 - BORZO API REQUEST for Order ${order.orderNumber}`);
+    // ── STEP 5: DELIVERY API REQUEST ──
+    logger.info(`📡 [MARK READY] STEP 5 - ${provider.toUpperCase()} API REQUEST for Order ${order.orderNumber}`);
     const task = await createDeliveryTask(payload, { provider });
     
-    console.log("BORZO RESPONSE RECEIVED", JSON.stringify(task, null, 2));
+    console.log(`${provider.toUpperCase()} RESPONSE RECEIVED`, JSON.stringify(task, null, 2));
 
-    // ── STEP 6: BORZO RESPONSE RECEIVED ──
+    // ── STEP 6: RESPONSE RECEIVED ──
     if (!task || !task.taskId) {
-      logger.error(`❌ [MARK READY] STEP 6 - FAILED. No taskId returned from Borzo`);
-      throw new Error("Borzo failed to return a task ID");
+      logger.error(`❌ [MARK READY] STEP 6 - FAILED. No taskId returned from ${provider}`);
+      throw new Error(`${provider} failed to return a task ID`);
     }
-    logger.info(`✅ [MARK READY] STEP 6 - BORZO RESPONSE RECEIVED. Task ID: ${task.taskId}`);
+    logger.info(`✅ [MARK READY] STEP 6 - ${provider.toUpperCase()} RESPONSE RECEIVED. Task ID: ${task.taskId}`);
 
     // ── STEP 7: DELIVERY SAVED ──
     // Generate simple 4-digit pickup OTP for verbal confirmation
