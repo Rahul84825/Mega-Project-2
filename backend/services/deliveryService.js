@@ -31,6 +31,16 @@ const parseWeightToKg = (weightStr, quantity = 1) => {
 const buildFormattedAddress = (addr) => {
   if (!addr) return "";
 
+  // ── LOGGING: Original Address Components ──
+  console.log("📍 ADDRESS_SYNC_START:", {
+    line1: addr.line1,
+    line2: addr.line2,
+    landmark: addr.landmark,
+    city: addr.city,
+    state: addr.state,
+    pincode: addr.postalCode
+  });
+
   const components = [];
 
   // Extract and trim fields
@@ -86,11 +96,8 @@ const buildFormattedAddress = (addr) => {
 
   const finalAddress = components.join(", ");
   
-  // LOG: Compare rebuilt address with components
-  console.log("ADDRESS SYNC TRACE:", {
-    originalLine1: line1,
-    rebuiltAddress: finalAddress
-  });
+  // ── LOGGING: Final Rebuilt Address ──
+  console.log("📍 DELIVERY_SERVICE_ADDRESS:", finalAddress);
 
   return finalAddress;
 };

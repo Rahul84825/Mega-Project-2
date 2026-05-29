@@ -210,8 +210,8 @@ export const createBorzoProvider = () => {
         points: body.points.map(p => ({ addr: p.address, lat: p.latitude, lng: p.longitude }))
       });
 
-      console.log("FINAL BORZO PAYLOAD ADDRESS (Pickup):", body.points[0].address);
-      console.log("FINAL BORZO PAYLOAD ADDRESS (Dropoff):", body.points[1].address);
+      console.log("📍 BORZO_PAYLOAD_ADDRESS (Pickup):", body.points[0].address);
+      console.log("📍 BORZO_PAYLOAD_ADDRESS (Dropoff):", body.points[1].address);
 
       const data = await request(`${config.baseUrl}/create-order`, {
         method: "POST",

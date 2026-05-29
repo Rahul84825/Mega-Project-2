@@ -28,7 +28,7 @@ router.post("/webhook/:provider", async (req, res) => {
   const payload = req.body;
 
   // ── LOGGING: Webhook Received ──
-  logger.info(`📦 [WEBHOOK] BORZO_WEBHOOK_RECEIVED`, { provider, payload });
+  logger.info(`📦 BORZO_WEBHOOK_RECEIVED`, { provider, payload });
 
   // ── SECURITY: Webhook Validation ──
   if (provider === "borzo") {
@@ -51,7 +51,7 @@ router.post("/webhook/:provider", async (req, res) => {
     }
 
     // ── LOGGING: Raw & Mapped Status ──
-    logger.info(`🔍 [WEBHOOK] RAW_BORZO_STATUS: ${update.status} | MAPPED_INTERNAL_STATUS: ${update.event}`);
+    logger.info(`🔍 BORZO_STATUS: RAW=${update.status} | MAPPED=${update.event}`);
 
     // 2. Find the order associated with this delivery task
     const order = await Order.findOne({ "delivery.providerOrderId": update.taskId });
@@ -60,6 +60,8 @@ router.post("/webhook/:provider", async (req, res) => {
       logger.warn(`⚠️ [WEBHOOK] No order found for ${provider} taskId: ${update.taskId}`);
       return res.status(200).json({ success: true, message: "Order not found" });
     }
+
+    logger.info(`✅ ORDER_FOUND: ${order.orderNumber}`);
 
     // 3. Track history
     order.delivery.webhookHistory = order.delivery.webhookHistory || [];
@@ -132,18 +134,21 @@ router.post("/webhook/:provider", async (req, res) => {
         break;
     }
 
+    if (statusChanged) {
+      logger.info(`📝 ORDER_UPDATED: ${order.orderNumber} status changed to ${order.status}/${order.delivery.status}`);
+    }
+
     // Always save to persist the webhookHistory
     await order.save();
-    logger.info(`💾 [WEBHOOK] ORDER_UPDATED: ${order.orderNumber} | MONGODB_UPDATED`);
+    logger.info(`💾 MONGODB_SAVE_SUCCESS for Order: ${order.orderNumber}`);
 
     if (statusChanged) {
       // ── LOGGING: Socket Emission ──
       const io = getIo();
       if (io) {
         io.emit("order:updated", order.toObject());
-        logger.info(`📡 [WEBHOOK] SOCKET_EMITTED: order:updated for Order: ${order.orderNumber}`);
+        logger.info(`📡 SOCKET_EVENT_EMITTED: order:updated for Order: ${order.orderNumber}`);
       }
-      logger.info(`✅ [WEBHOOK] ORDER_SYNCED successfully: ${order.orderNumber} is now ${order.status}/${order.delivery.status}`);
     } else {
       logger.info(`ℹ️ [WEBHOOK] No status change detected for Order: ${order.orderNumber}`);
     }
