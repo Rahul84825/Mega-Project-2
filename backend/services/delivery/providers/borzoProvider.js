@@ -315,10 +315,12 @@ export const createBorzoProvider = () => {
       const rawStatus = String(nestedOrder.status || payload.status || "").toLowerCase();
       const points = nestedOrder.points || payload.points || [];
       const courier = nestedOrder.courier || payload.courier || {};
+      const trackingUrl = nestedOrder.tracking_url || payload.tracking_url || "";
 
       // ── LOGGING: EXTRACTED_ORDER_ID & EXTRACTED_TASK_ID ──
       console.log(`🔍 EXTRACTED_ORDER_ID: ${rawOrderId}`);
       console.log(`🔍 EXTRACTED_TASK_ID: ${rawOrderId}`);
+      console.log(`RAW_BORZO_STATUS: ${rawStatus}`);
 
       let event = "unknown";
       
@@ -342,18 +344,21 @@ export const createBorzoProvider = () => {
             event = "picked_up";
           }
           break;
+        case "courier_departed":
+        case "picked_up":
+          event = "picked_up";
+          break;
         case "completed":
         case "finished":
-        case "delivered":
         case "delivery_completed":
         case "delivery completed":
+        case "delivered":
           event = "delivered";
           break;
         case "canceled":
         case "cancelled":
           event = "canceled";
           break;
-        case "delayed":
         case "failed":
         case "failed_delivery":
           event = "failed_delivery";
@@ -362,16 +367,19 @@ export const createBorzoProvider = () => {
           event = `borzo_${rawStatus}`; // Fallback
       }
 
+      console.log(`MAPPED_INTERNAL_STATUS: ${event}`);
+
       return {
         provider: "borzo",
-        event,
         taskId: rawOrderId,
         status: rawStatus,
+        event,
         rider: {
           name: courier.name || "",
           phone: courier.phone || "",
           vehicleNumber: courier.car_number || ""
         },
+        trackingUrl,
         raw: payload
       };
     }

@@ -30,8 +30,8 @@ router.post("/webhook/:provider", async (req, res) => {
   // ── LOGGING: RAW_BORZO_WEBHOOK ──
   console.log("-----------------------------------------");
   console.log(`📦 RAW_BORZO_WEBHOOK RECEIVED AT: ${new Date().toISOString()}`);
-  console.log(`📦 HEADERS:`, JSON.stringify(req.headers, null, 2));
-  console.log(`📦 PAYLOAD:`, JSON.stringify(payload, null, 2));
+  console.log(`REQUEST_HEADERS:`, JSON.stringify(req.headers, null, 2));
+  console.log(`REQUEST_BODY:`, JSON.stringify(payload, null, 2));
   console.log("-----------------------------------------");
 
   logger.info(`📦 BORZO_WEBHOOK_RECEIVED`, { provider, payload });
@@ -51,9 +51,12 @@ router.post("/webhook/:provider", async (req, res) => {
     // 1. Parse provider-specific webhook into a standard format
     const update = await handleDeliveryWebhook(payload, { provider });
 
-    // ── LOGGING: BORZO_RAW_STATUS & BORZO_MAPPED_STATUS ──
-    console.log(`🔍 BORZO_RAW_STATUS: ${update.status}`);
-    console.log(`🔍 BORZO_MAPPED_STATUS: ${update.event}`);
+    // ── LOGGING: PARSED_WEBHOOK ──
+    console.log("PARSED_WEBHOOK", JSON.stringify(update, null, 2));
+    console.log(`PARSED_TASK_ID: ${update?.taskId}`);
+    console.log(`PARSED_STATUS: ${update?.status}`);
+    console.log(`PARSED_EVENT: ${update?.event}`);
+    console.log(`PARSED_RIDER:`, JSON.stringify(update?.rider, null, 2));
 
     if (!update || !update.taskId || update.taskId.trim() === "") {
       console.log(`⚠️ INVALID_PROVIDER_ORDER_ID: Received "${update?.taskId}"`);
@@ -89,6 +92,7 @@ router.post("/webhook/:provider", async (req, res) => {
     const oldRider = order.rider || {};
     const newRider = update.rider || {};
     if (newRider.name && (newRider.name !== oldRider.name || newRider.phone !== oldRider.phone)) {
+      console.log(`👤 RIDER_FOUND_IN_WEBHOOK: ${newRider.name}`);
       order.rider = {
         name: newRider.name,
         phone: newRider.phone || oldRider.phone,
@@ -153,6 +157,9 @@ router.post("/webhook/:provider", async (req, res) => {
     // Always save to persist the webhookHistory
     await order.save();
     console.log(`💾 MONGODB_ORDER_STATUS: ${order.status}`);
+    if (statusChanged && newRider.name) {
+      console.log(`💾 RIDER_SAVED_TO_MONGODB: ${order.rider.name}`);
+    }
     logger.info(`💾 MONGODB_SAVE_SUCCESS for Order: ${order.orderNumber}`);
 
     if (statusChanged) {
@@ -161,6 +168,7 @@ router.post("/webhook/:provider", async (req, res) => {
       if (io) {
         const payload = order.toObject();
         console.log(`📡 SOCKET_PAYLOAD_STATUS: ${payload.status}`);
+        console.log(`📡 SOCKET_PAYLOAD_RIDER:`, JSON.stringify(payload.rider, null, 2));
         io.emit("order:updated", payload);
         logger.info(`📡 SOCKET_EVENT_EMITTED: order:updated for Order: ${order.orderNumber}`);
       }
