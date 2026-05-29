@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles, Filter } from "lucide-react";
+import { Search, Sparkles, Filter, Clock, Loader2 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency } from "shared/utils/pricing";
