@@ -196,7 +196,7 @@ export const createBorzoProvider = () => {
               phone: sanitizePhone(payload.dropoff.phone),
               name: payload.dropoff.name || "Customer"
             },
-            note: payload.dropoff.note || ""
+            note: [payload.dropoff.landmark, payload.dropoff.note].filter(Boolean).join(" | ") || ""
           }
         ],
         vehicle_type_id: vehicleTypeId, 
@@ -209,6 +209,9 @@ export const createBorzoProvider = () => {
         formattedWeightSent: body.total_weight_kg,
         points: body.points.map(p => ({ addr: p.address, lat: p.latitude, lng: p.longitude }))
       });
+
+      console.log("FINAL BORZO PAYLOAD ADDRESS (Pickup):", body.points[0].address);
+      console.log("FINAL BORZO PAYLOAD ADDRESS (Dropoff):", body.points[1].address);
 
       const data = await request(`${config.baseUrl}/create-order`, {
         method: "POST",

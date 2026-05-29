@@ -65,6 +65,7 @@ export const placeOrder = async (req, res) => {
       amount: orderData?.amount,
       hasCustomer: !!orderData?.customer,
       customerName: orderData?.customer?.name,
+      customerAddress: orderData?.shippingAddress, // Added for debugging Issue 1
       itemCount: Array.isArray(orderData?.items) ? orderData.items.length : 0,
       hasTotals: !!orderData?.totals,
       paymentMethod: orderData?.payment?.method || orderData?.paymentMethod,

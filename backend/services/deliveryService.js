@@ -29,16 +29,70 @@ const parseWeightToKg = (weightStr, quantity = 1) => {
  * Helper: Build a robust address string for delivery providers
  */
 const buildFormattedAddress = (addr) => {
-  const parts = [
-    addr.line1,
-    addr.line2,
-    addr.landmark ? `Near ${addr.landmark}` : "",
-    addr.city,
-    addr.state || "Maharashtra",
-    addr.postalCode,
-    "India"
-  ];
-  return parts.filter(Boolean).join(", ");
+  if (!addr) return "";
+
+  const components = [];
+
+  // Extract and trim fields
+  const line1 = String(addr.line1 || "").trim();
+  const line2 = String(addr.line2 || "").trim();
+  const landmark = String(addr.landmark || "").trim();
+  const city = String(addr.city || "").trim();
+  const state = String(addr.state || "").trim();
+  const pincode = String(addr.postalCode || "").trim();
+
+  // 1. Add Line 1 (Required)
+  if (line1) components.push(line1);
+
+  // 2. Add Line 2 if not already in Line 1
+  if (line2 && !line1.toLowerCase().includes(line2.toLowerCase())) {
+    components.push(line2);
+  }
+
+  // 3. Add Landmark if not already included
+  if (landmark) {
+    const cleanLandmark = landmark.toLowerCase().startsWith("near") ? landmark : `Near ${landmark}`;
+    const combinedCurrent = components.join(", ").toLowerCase();
+    if (!combinedCurrent.includes(landmark.toLowerCase())) {
+      components.push(cleanLandmark);
+    }
+  }
+
+  // 4. Add City
+  const currentAddressStr = components.join(", ").toLowerCase();
+  if (city && !currentAddressStr.includes(city.toLowerCase())) {
+    components.push(city);
+  }
+
+  // 5. Add State (Normalize Maharashtra)
+  if (state) {
+    const isMaharashtra = state.toLowerCase().includes("maharashtra") || state.toLowerCase() === "mh";
+    if (isMaharashtra && !currentAddressStr.includes("maharashtra")) {
+      components.push("Maharashtra");
+    } else if (!isMaharashtra && !currentAddressStr.includes(state.toLowerCase())) {
+      components.push(state);
+    }
+  }
+
+  // 6. Add Pincode
+  if (pincode && !currentAddressStr.includes(pincode)) {
+    components.push(pincode);
+  }
+
+  // 7. Add Country
+  if (!currentAddressStr.includes("india")) {
+    components.push("India");
+  }
+
+  const finalAddress = components.join(", ");
+  
+  // LOG: Compare rebuilt address with components
+  console.log("ADDRESS SYNC TRACE:", {
+    originalLine1: line1,
+    rebuiltAddress: finalAddress
+  });
+
+  return finalAddress;
 };
 
 /**
@@ -60,6 +114,7 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     console.log("ORDER ID:", order._id);
+    console.log("STORED MONGODB ADDRESS:", JSON.stringify(order.shippingAddress, null, 2)); // Added for Issue 1
     console.log("ORDER STATUS:", order.status);
     console.log("DELIVERY DATA:", JSON.stringify(order.delivery, null, 2));
     console.log("providerOrderId:", order.delivery?.providerOrderId);
@@ -115,7 +170,9 @@ export const assignDeliveryPartner = async (orderId) => {
         phone: order.customer.phone,
         name: order.customer.name,
         pincode: order.shippingAddress.postalCode,
-        geo: order.shippingAddress.geo || null
+        geo: order.shippingAddress.geo || null,
+        landmark: order.shippingAddress.landmark || "",
+        note: order.notes || ""
       },
       items: order.items.map(item => ({
         name: item.titleSnapshot || item.name,

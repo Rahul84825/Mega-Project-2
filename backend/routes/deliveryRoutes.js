@@ -83,13 +83,19 @@ router.post("/webhook/:provider", async (req, res) => {
 
       case "courier_assigned":
         if (["PICKED_UP", "DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) break;
-        if (update.rider) {
+        
+        // If rider info changed, we should notify the frontend even if delivery status is already RIDER_ASSIGNED
+        const oldRider = order.rider || {};
+        const newRider = update.rider || {};
+        if (newRider.name !== oldRider.name || newRider.phone !== oldRider.phone) {
           order.rider = {
-            name: update.rider.name || order.rider.name,
-            phone: update.rider.phone || order.rider.phone,
-            vehicleNumber: update.rider.vehicleNumber || order.rider.vehicleNumber
+            name: newRider.name || oldRider.name,
+            phone: newRider.phone || oldRider.phone,
+            vehicleNumber: newRider.vehicleNumber || oldRider.vehicleNumber
           };
+          statusChanged = true;
         }
+
         if (order.delivery.status !== "RIDER_ASSIGNED") {
           order.delivery.status = "RIDER_ASSIGNED";
           order.delivery.assignedAt = order.delivery.assignedAt || new Date();
@@ -99,7 +105,7 @@ router.post("/webhook/:provider", async (req, res) => {
 
       case "picked_up":
         if (["DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) break;
-        if (order.status !== "PICKED_UP") {
+        if (order.status !== "PICKED_UP" || order.delivery.status !== "PICKED_UP") {
           order.status = "PICKED_UP";
           order.statusTimestamps.pickedUpAt = order.statusTimestamps.pickedUpAt || new Date();
           order.delivery.status = "PICKED_UP";
@@ -109,7 +115,7 @@ router.post("/webhook/:provider", async (req, res) => {
 
       case "delivered":
         if (order.delivery.status === "DELIVERY_FAILED") break;
-        if (order.status !== "DELIVERED") {
+        if (order.status !== "DELIVERED" || order.delivery.status !== "DELIVERED") {
           order.status = "DELIVERED";
           order.statusTimestamps.deliveredAt = order.statusTimestamps.deliveredAt || new Date();
           order.delivery.status = "DELIVERED";
@@ -128,16 +134,18 @@ router.post("/webhook/:provider", async (req, res) => {
 
     // Always save to persist the webhookHistory
     await order.save();
-    logger.info(`💾 [WEBHOOK] MONGODB_UPDATED for Order: ${order.orderNumber}`);
+    logger.info(`💾 [WEBHOOK] ORDER_UPDATED: ${order.orderNumber} | MONGODB_UPDATED`);
 
     if (statusChanged) {
       // ── LOGGING: Socket Emission ──
       const io = getIo();
       if (io) {
         io.emit("order:updated", order.toObject());
-        logger.info(`📡 [WEBHOOK] SOCKET_EVENT_EMITTED: order:updated for Order: ${order.orderNumber}`);
+        logger.info(`📡 [WEBHOOK] SOCKET_EMITTED: order:updated for Order: ${order.orderNumber}`);
       }
       logger.info(`✅ [WEBHOOK] ORDER_SYNCED successfully: ${order.orderNumber} is now ${order.status}/${order.delivery.status}`);
+    } else {
+      logger.info(`ℹ️ [WEBHOOK] No status change detected for Order: ${order.orderNumber}`);
     }
 
     return res.status(200).json({ success: true });
