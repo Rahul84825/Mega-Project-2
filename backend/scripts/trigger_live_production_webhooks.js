@@ -4,7 +4,8 @@ import axios from "axios";
 const BACKEND_URL = "https://mega-project-2-b880.onrender.com";
 const WEBHOOK_ENDPOINT = `${BACKEND_URL}/api/delivery/webhook/borzo`;
 const CALLBACK_TOKEN = "96E7A948233D35E27F6471360948751A605FBBC3";
-const TASK_ID = "326389";
+const TASK_ID = "326404";
+const CLIENT_ORDER_ID = "ORD-RZP-MPRXI3DF";
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -14,7 +15,7 @@ const payloads = [
     body: {
       order_id: TASK_ID,
       status: "searching_courier",
-      client_order_id: "ORD-RZP-MPR6H755"
+      client_order_id: CLIENT_ORDER_ID
     }
   },
   {
@@ -22,7 +23,7 @@ const payloads = [
     body: {
       order_id: TASK_ID,
       status: "courier_assigned",
-      client_order_id: "ORD-RZP-MPR6H755",
+      client_order_id: CLIENT_ORDER_ID,
       courier: {
         name: "Sunil Kumar",
         phone: "+919876543210",
@@ -35,7 +36,7 @@ const payloads = [
     body: {
       order_id: TASK_ID,
       status: "delivering",
-      client_order_id: "ORD-RZP-MPR6H755",
+      client_order_id: CLIENT_ORDER_ID,
       courier: {
         name: "Sunil Kumar",
         phone: "+919876543210",
@@ -48,7 +49,7 @@ const payloads = [
     body: {
       order_id: TASK_ID,
       status: "completed",
-      client_order_id: "ORD-RZP-MPR6H755",
+      client_order_id: CLIENT_ORDER_ID,
       courier: {
         name: "Sunil Kumar",
         phone: "+919876543210",
