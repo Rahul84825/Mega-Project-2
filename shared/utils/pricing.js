@@ -128,41 +128,54 @@ const PINCODE_DISTANCES = {
 export const getDeliveryConfig = (pincode = "", distance = null) => {
   const code = String(pincode).trim();
   
-  // 1. If distance is provided (Dynamic Geocoding)
-  if (distance !== null && distance !== undefined) {
-    const dist = Number(distance);
+  // 1. Determine distance
+  let dist = distance;
+  if (dist === null || dist === undefined) {
+    dist = PINCODE_DISTANCES[code];
+  }
+
+  // 2. Apply Pricing Rules based on distance
+  if (dist !== undefined && dist !== null) {
+    const d = Number(dist);
     
-    if (dist > 15) {
+    if (d > 15) {
       return { 
         threshold: Infinity, 
         charge: 0, 
-        label: "Out of Reach (Contact Us)", 
+        label: "Location Out of Reach", 
         outOfReach: true 
       };
     }
 
-    if (dist <= 5) return { threshold: Infinity, charge: 40, label: `Local Delivery (${dist.toFixed(1)}km)`, outOfReach: false };
-    if (dist <= 10) return { threshold: Infinity, charge: 60, label: `Standard Distance (${dist.toFixed(1)}km)`, outOfReach: false };
-    if (dist <= 15) return { threshold: Infinity, charge: 80, label: `Medium Distance (${dist.toFixed(1)}km)`, outOfReach: false };
-  }
-
-  // 2. Same Pincode check (Fallback if distance not calculated yet)
-  if (code === BASE_PINCODE) {
-    return { threshold: 200, charge: 40, label: "Same Pincode (Viman Nagar)", outOfReach: false };
-  }
-
-  // 3. Static Pincode Distance mapping (Legacy Fallback)
-  const mappedDistance = PINCODE_DISTANCES[code];
-  if (mappedDistance !== undefined) {
-    if (mappedDistance > 15) {
-      return { threshold: Infinity, charge: 0, label: "Out of Reach (Contact Us)", outOfReach: true };
+    if (d <= 5) {
+      return { 
+        threshold: 0, 
+        charge: 0, 
+        label: d === 0 ? "Local Delivery (Viman Nagar)" : `Local Delivery (${d.toFixed(1)}km)`, 
+        outOfReach: false 
+      };
     }
-    if (mappedDistance <= 5) return { threshold: 500, charge: 40, label: "Local Delivery", outOfReach: false };
-    if (mappedDistance <= 10) return { threshold: 500, charge: 60, label: "Standard Distance", outOfReach: false };
-    return { threshold: 500, charge: 80, label: "Medium Distance", outOfReach: false };
+
+    if (d <= 10) {
+      return { 
+        threshold: 499, 
+        charge: 60, 
+        label: `Standard Distance (${d.toFixed(1)}km)`, 
+        outOfReach: false 
+      };
+    }
+
+    if (d <= 15) {
+      return { 
+        threshold: 899, 
+        charge: 80, 
+        label: `Medium Distance (${d.toFixed(1)}km)`, 
+        outOfReach: false 
+      };
+    }
   }
 
-  // 4. Default / Unknown
+  // 3. Default / Unknown Pincode
   return { threshold: 500, charge: 60, label: "Standard Delivery", outOfReach: false };
 };
 

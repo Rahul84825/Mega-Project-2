@@ -3,6 +3,7 @@ import { geocodeAddress, calculateHaversineDistance, validateDeliveryRadius } fr
 import { STORE_LOCATION, DELIVERY_PRICING_TIERS } from "../config/location.js";
 import { getZoneByPincode } from "../config/pincodeZones.js";
 import { logger } from "../utils/logger.js";
+import { getDeliveryConfig } from "../../shared/utils/pricing.js";
 
 /**
  * Check delivery availability and calculate internal fee
@@ -22,6 +23,16 @@ export const checkAvailability = async (req, res) => {
     }
 
     const zone = getZoneByPincode(pincode);
+    const config = getDeliveryConfig(pincode);
+
+    if (config.outOfReach) {
+      logger.warn(`🛑 [DELIVERY REJECTED] Pincode ${pincode} is out of reach.`);
+      return res.status(200).json({
+        success: true,
+        deliveryAvailable: false,
+        message: "This location is currently out of our delivery reach."
+      });
+    }
 
     if (!zone || !zone.available) {
       logger.warn(`🛑 [DELIVERY REJECTED] Pincode ${pincode} is not in service area.`);
@@ -32,14 +43,14 @@ export const checkAvailability = async (req, res) => {
       });
     }
 
-    logger.info(`✅ [DELIVERY APPROVED] Pincode: ${pincode}, Area: ${zone.area}, Fee: ${zone.fee}`);
+    logger.info(`✅ [DELIVERY APPROVED] Pincode: ${pincode}, Area: ${zone.area}, Fee: ${config.charge}`);
 
     return res.status(200).json({
       success: true,
       deliveryAvailable: true,
       area: zone.area,
       city: zone.city,
-      deliveryFee: zone.fee,
+      deliveryFee: config.charge,
       eta: zone.eta,
       pincode: pincode
     });

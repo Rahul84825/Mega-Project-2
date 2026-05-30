@@ -222,14 +222,22 @@ function CartPage() {
                 <div className="flex justify-between text-sm font-bold text-[#7a5c3a]">
                   <div className="flex flex-col">
                     <span className="uppercase tracking-widest opacity-60">Delivery</span>
-                    <span className="text-[9px] text-[#b67b3a] font-medium">{deliveryLabel}</span>
+                    <span className="text-[9px] text-[#b67b3a] font-medium">{!pincode ? "Local delivery" : deliveryLabel}</span>
                   </div>
-                  {deliveryFee === 0 ? (
+                  {!pincode ? (
+                    <span className="font-black text-emerald-600">FREE*</span>
+                  ) : deliveryFee === 0 ? (
                     <span className="font-black text-emerald-600">FREE</span>
                   ) : (
                     <span>{formatCurrency(deliveryFee)}</span>
                   )}
                 </div>
+
+                {!pincode && (
+                  <p className="text-[9px] text-[var(--muted)] italic -mt-3">
+                    *Final delivery charges calculated at checkout based on location.
+                  </p>
+                )}
 
                 {deliveryFee > 0 && amountNeeded > 0 && (
                   <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
