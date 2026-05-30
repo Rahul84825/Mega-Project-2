@@ -359,7 +359,13 @@ export const verifyPayment = async (req, res) => {
     // Emit socket event (Standardized)
     const io = getIo();
     if (io) {
-      io.emit("order:new", createdOrder.toObject());
+      const payload = createdOrder.toObject();
+      console.log("=========================================");
+      console.log(`📡 EVENT_EMITTED: order:new`);
+      console.log(`📡 ORDER_ID: ${payload.orderNumber}`);
+      console.log(`📡 EVENT_PAYLOAD:`, JSON.stringify(payload, null, 2));
+      console.log("=========================================");
+      io.emit("order:new", payload);
     }
 
     // Send emails asynchronously

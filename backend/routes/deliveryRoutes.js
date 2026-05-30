@@ -176,9 +176,11 @@ router.post("/webhook/:provider", async (req, res) => {
       const io = getIo();
       if (io) {
         const payload = order.toObject();
-        console.log(`📡 SOCKET_PAYLOAD_STATUS: ${payload.status}`);
-        console.log(`📡 SOCKET_PAYLOAD_RIDER:`, JSON.stringify(payload.rider, null, 2));
-        console.log(`📡 ORDER_UPDATE_EMITTED: order:updated for Order ${order.orderNumber}`);
+        console.log("=========================================");
+        console.log(`📡 EVENT_EMITTED: order:updated`);
+        console.log(`📡 ORDER_ID: ${payload.orderNumber}`);
+        console.log(`📡 EVENT_PAYLOAD:`, JSON.stringify(payload, null, 2));
+        console.log("=========================================");
         io.emit("order:updated", payload);
         logger.info(`📡 SOCKET_EVENT_EMITTED: order:updated for Order: ${order.orderNumber}`);
       }

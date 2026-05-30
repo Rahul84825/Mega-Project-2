@@ -343,8 +343,19 @@ export function ProductProvider({ children }) {
 
     if (!socket.connected) socket.connect();
 
+    const handleConnect = () => {
+      console.log(`📡 SOCKET_CONNECTED: Client socket connected/reconnected. Pulling fresh orders...`);
+      fetchOrders();
+    };
+
     const handleNewOrder = (order) => {
       if (order) {
+        console.log("=========================================");
+        console.log(`📡 EVENT_RECEIVED: order:new`);
+        console.log(`📡 ORDER_ID: ${order.orderNumber}`);
+        console.log(`📡 CURRENT_STATUS: ${order.status}`);
+        console.log("=========================================");
+
         console.log(`📡 ORDER_UPDATE_RECEIVED: order:new for Order ${order.orderNumber}`);
         dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
         console.log(`📡 ORDER_STATE_UPDATED: order:new for Order ${order.orderNumber}`);
@@ -358,6 +369,12 @@ export function ProductProvider({ children }) {
 
     const handleOrderUpdate = (order) => {
       if (order) {
+        console.log("=========================================");
+        console.log(`📡 EVENT_RECEIVED: order:updated`);
+        console.log(`📡 ORDER_ID: ${order.orderNumber}`);
+        console.log(`📡 CURRENT_STATUS: ${order.status}`);
+        console.log("=========================================");
+
         console.log(`📡 ORDER_UPDATE_RECEIVED: order:updated for Order ${order.orderNumber}`);
         dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
         console.log(`📡 ORDER_STATE_UPDATED: order:updated for Order ${order.orderNumber}`);
@@ -373,6 +390,7 @@ export function ProductProvider({ children }) {
       if (id) dispatch({ type: actionTypes.REMOVE_PRODUCT, payload: id });
     };
 
+    socket.on("connect", handleConnect);
     socket.on("order:new", handleNewOrder);
     socket.on("order:updated", handleOrderUpdate);
     socket.on("product:updated", handleProductUpdate);
@@ -381,6 +399,7 @@ export function ProductProvider({ children }) {
     socket.on("stock:updated", () => fetchProducts());
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("order:new", handleNewOrder);
       socket.off("order:updated", handleOrderUpdate);
       socket.off("product:updated", handleProductUpdate);

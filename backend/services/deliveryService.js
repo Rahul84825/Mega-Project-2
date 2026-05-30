@@ -312,8 +312,13 @@ export const assignDeliveryPartner = async (orderId) => {
 
     const io = getIo();
     if (io) {
-      console.log(`📡 ORDER_UPDATE_EMITTED: order:updated for Order ${order.orderNumber}`);
-      io.emit("order:updated", order.toObject());
+      const payload = order.toObject();
+      console.log("=========================================");
+      console.log(`📡 EVENT_EMITTED: order:updated`);
+      console.log(`📡 ORDER_ID: ${payload.orderNumber}`);
+      console.log(`📡 EVENT_PAYLOAD:`, JSON.stringify(payload, null, 2));
+      console.log("=========================================");
+      io.emit("order:updated", payload);
     }
 
     return order;
@@ -348,8 +353,13 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
         
         const io = getIo();
         if (io) {
-          console.log(`📡 ORDER_UPDATE_EMITTED: order:updated for Order ${order.orderNumber}`);
-          io.emit("order:updated", order); // Matches frontend listener name
+          const payload = typeof order.toObject === "function" ? order.toObject() : order;
+          console.log("=========================================");
+          console.log(`📡 EVENT_EMITTED: order:updated`);
+          console.log(`📡 ORDER_ID: ${payload.orderNumber}`);
+          console.log(`📡 EVENT_PAYLOAD:`, JSON.stringify(payload, null, 2));
+          console.log("=========================================");
+          io.emit("order:updated", payload); // Matches frontend listener name
         }
         
         logger.info(`✅ Order ${order.orderNumber} is now READY. Waiting for rider.`);

@@ -1,8 +1,14 @@
+import dns from "dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Order from "../models/Order.js";
 
-dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const inspectDb = async () => {
   console.log("\n========== MONGODB LIVE INSPECTION ==========");
