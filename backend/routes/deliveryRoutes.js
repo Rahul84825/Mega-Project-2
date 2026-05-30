@@ -24,6 +24,12 @@ router.post("/calculate", calculateDelivery);
  * Receives status updates from delivery partners (Borzo, Dunzo, etc.)
  */
 router.post("/webhook/:provider", async (req, res) => {
+  // 1. Log at the FIRST line of the webhook route
+  console.log("BORZO_WEBHOOK_RECEIVED", req.body);
+
+  // 7. Log every request header
+  console.log("BORZO_WEBHOOK_HEADERS", req.headers);
+
   const { provider } = req.params;
   const payload = req.body;
 
@@ -47,13 +53,32 @@ router.post("/webhook/:provider", async (req, res) => {
 
   // ── SECURITY: Webhook Validation ──
   if (provider === "borzo") {
+    // 3. Add logging before auth validation
+    console.log("BEFORE_AUTH_VALIDATION", {
+      receivedToken: req.headers["x-dv-auth-token"] || "MISSING",
+      expectedToken: process.env.BORZO_CALLBACK_TOKEN ? "PRESENT" : "MISSING"
+    });
+
     const receivedToken = req.headers["x-dv-auth-token"];
     const expectedToken = process.env.BORZO_CALLBACK_TOKEN;
     
-    if (expectedToken && receivedToken !== expectedToken) {
+    // 8. Log callback token comparison result
+    const comparisonResult = receivedToken === expectedToken;
+    console.log("CALLBACK_TOKEN_COMPARISON_RESULT", {
+      receivedToken,
+      expectedToken,
+      match: comparisonResult
+    });
+
+    if (expectedToken && !comparisonResult) {
+      // 4. Add logging after auth validation (failed case)
+      console.log("AFTER_AUTH_VALIDATION", { success: false, reason: "Token mismatch" });
       logger.warn(`🛑 Unauthorized Borzo webhook attempt. Invalid token.`);
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
+
+    // 4. Add logging after auth validation (success case)
+    console.log("AFTER_AUTH_VALIDATION", { success: true, reason: "Authorized" });
   }
 
   try {
@@ -163,8 +188,23 @@ router.post("/webhook/:provider", async (req, res) => {
       logger.info(`📝 ORDER_UPDATED: ${order.orderNumber} status changed to ${order.status}/${order.delivery.status}`);
     }
 
+    // 5. Add logging before MongoDB update
+    console.log("BEFORE_MONGODB_UPDATE", {
+      orderNumber: order.orderNumber,
+      statusBefore: order.status,
+      deliveryStatusBefore: order.delivery.status
+    });
+
     // Always save to persist the webhookHistory
     await order.save();
+
+    // 6. Add logging after MongoDB update
+    console.log("AFTER_MONGODB_UPDATE", {
+      orderNumber: order.orderNumber,
+      statusAfter: order.status,
+      deliveryStatusAfter: order.delivery.status
+    });
+
     console.log(`💾 MONGODB_ORDER_STATUS: ${order.status}`);
     if (statusChanged && newRider.name) {
       console.log(`💾 RIDER_SAVED_TO_MONGODB: ${order.rider.name}`);
