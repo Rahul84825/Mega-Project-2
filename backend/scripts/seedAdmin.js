@@ -7,12 +7,15 @@ import dns from "dns";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
-dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envConfig = dotenv.config({ path: path.join(__dirname, "../.env") }).parsed || {};
 
-const DATABASE_URI = process.env.MONGODB_URI || process.env.MONGODB_URI_FALLBACK || process.env.MONGO_URI;
-const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "mithaiworld@gmail.com").toLowerCase().trim();
-const ADMIN_NAME = process.env.ADMIN_NAME || "Admin User";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@123";
+const DATABASE_URI = envConfig.MONGODB_URI || process.env.MONGODB_URI || process.env.MONGODB_URI_FALLBACK || process.env.MONGO_URI;
+const ADMIN_EMAIL = String(envConfig.ADMIN_EMAIL || process.env.ADMIN_EMAIL || "mithaipune@gmail.com").toLowerCase().trim();
+const ADMIN_NAME = envConfig.ADMIN_NAME || process.env.ADMIN_NAME || "Admin User";
+const ADMIN_PASSWORD = envConfig.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "Admin@123";
 
 const seedAdmin = async () => {
   try {
