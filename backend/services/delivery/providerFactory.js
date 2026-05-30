@@ -6,11 +6,16 @@ const PROVIDERS = {
 
 export const getDeliveryProvider = (providerName) => {
   const defaultProvider = process.env.DEFAULT_DELIVERY_PROVIDER || "borzo";
-  const key = String(providerName || defaultProvider).toLowerCase().trim();
-  const factory = PROVIDERS[key];
+  let key = String(providerName || defaultProvider).toLowerCase().trim();
+  if (key === "dunzo") {
+    key = "borzo";
+  }
+  let factory = PROVIDERS[key];
 
   if (!factory) {
-    throw new Error(`Delivery provider '${key}' not found. Available: ${Object.keys(PROVIDERS).join(", ")}`);
+    console.warn(`⚠️ [PROVIDER] Delivery provider '${key}' not found. Falling back to borzo.`);
+    key = "borzo";
+    factory = PROVIDERS[key];
   }
 
   return factory();

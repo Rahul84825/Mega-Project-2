@@ -412,8 +412,15 @@ export const syncActiveOrders = async () => {
 
     for (const order of ordersToSync) {
       try {
+        if (order.delivery && order.delivery.provider === "dunzo") {
+          console.log(`🔄 [SYNC] Migrating legacy provider "dunzo" to "borzo" for Order ${order.orderNumber}`);
+          order.delivery.provider = "borzo";
+          await order.save();
+        }
+
         const taskId = order.delivery.providerOrderId;
-        const task = await getTrackingDetails(taskId);
+        const provider = order.delivery?.provider || "borzo";
+        const task = await getTrackingDetails(taskId, { provider });
         
         if (!task || !task.status) continue;
 

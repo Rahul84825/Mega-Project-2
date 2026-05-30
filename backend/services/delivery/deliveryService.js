@@ -1,7 +1,11 @@
 import { getDeliveryProvider } from "./providerFactory.js";
 
 const getProviderName = (provider) => {
-  return String(provider || process.env.DEFAULT_DELIVERY_PROVIDER || "dunzo").trim();
+  let name = String(provider || process.env.DEFAULT_DELIVERY_PROVIDER || "borzo").trim().toLowerCase();
+  if (name === "dunzo") {
+    name = "borzo";
+  }
+  return name;
 };
 
 export const createDeliveryTask = async (payload, options = {}) => {
