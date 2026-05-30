@@ -342,10 +342,10 @@ function CheckoutPage() {
                     <div className="md:col-span-2 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 text-xs font-medium animate-in fade-in slide-in-from-top-2">
                       <div className="flex items-center gap-2 mb-1">
                         <MapPinOff size={16} />
-                        <span className="font-bold uppercase tracking-tight">Delivery Unavailable</span>
+                        <span className="font-bold uppercase tracking-tight">Not Serviceable</span>
                       </div>
-                      {pincodeError}. We are currently unable to deliver to this pincode automatically. 
-                      <span className="block mt-1 font-bold">Please contact us at +91 98819 88751 for manual assistance.</span>
+                      <p className="font-bold">{pincodeError}</p>
+                      <span className="block mt-1 opacity-70">Please contact us at +91 98819 88751 for special assistance.</span>
                     </div>
                   )}
 

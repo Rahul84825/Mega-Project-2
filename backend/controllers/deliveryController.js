@@ -26,11 +26,11 @@ export const checkAvailability = async (req, res) => {
     const config = getDeliveryConfig(pincode);
 
     if (config.outOfReach) {
-      logger.warn(`🛑 [DELIVERY REJECTED] Pincode ${pincode} is out of reach.`);
+      logger.warn(`🛑 [DELIVERY REJECTED] Pincode ${pincode} is not serviceable.`);
       return res.status(200).json({
         success: true,
         deliveryAvailable: false,
-        message: "This location is currently out of our delivery reach."
+        message: "Sorry, we currently do not deliver to this location."
       });
     }
 

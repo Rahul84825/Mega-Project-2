@@ -45,138 +45,85 @@ export const calculateSellingPrice = (mrp, discountPercent) => {
 const DEFAULT_DELIVERY_CHARGE = 40;
 const BASE_PINCODE = "411014";
 
-// Mock distance mapping from BASE_PINCODE to other Pune pincodes (for demo purposes)
-const PINCODE_DISTANCES = {
-  "411014": 0,    // Viman Nagar
+// Strict Serviceable Pincodes Mapping
+const SERVICEABLE_PINCODES = {
+  // TIER 1 (0–5 km): FREE DELIVERY
+  "411014": { tier: 1, label: "Local Delivery (Viman Nagar)" },
+  "411006": { tier: 1, label: "Local Delivery (Yerwada)" },
+  "411032": { tier: 1, label: "Local Delivery (Dhanori)" },
 
-  // Nearby Areas (1–5km)
-  "411006": 3,    // Yerwada / Kalyani Nagar
-  "411032": 4,    // Yerwada
-  "411047": 2,    // Lohegaon
-  "411015": 2,    // Vishrantwadi
-  "411032": 4,    // Dhanori
-  "411036": 5,    // Kalyani Nagar
-  "411001": 5,    // Camp / MG Road
-  "411027": 5,    // Pimple Saudagar
-  "411048": 5,    // NIBM
-  "411013": 5,    // Hadapsar
+  // TIER 2 (5–10 km): ₹60 (Free >= ₹499)
+  "411047": { tier: 2, label: "Standard Distance (Lohegaon)" },
+  "411015": { tier: 2, label: "Standard Distance (Vishrantwadi)" },
+  "411036": { tier: 2, label: "Standard Distance (Mundhwa)" },
+  "411001": { tier: 2, label: "Standard Distance (Camp)" },
+  "412207": { tier: 2, label: "Standard Distance (Wagholi)" },
 
-  // Standard Distance (6–10km)
-  "411011": 7,    // Kasba Peth
-  "411017": 8,    // Pimpri
-  "411018": 9,    // Chinchwad
-  "411028": 8,    // Hadapsar / Magarpatta
-  "411040": 8,    // Wanowrie
-  "411042": 8,    // Swargate
-  "411016": 9,    // Shivajinagar
-  "411020": 9,    // Aundh
-  "411021": 10,   // Pashan
-  "411004": 9,    // Deccan
-  "411005": 8,    // Shivajinagar
-  "411037": 9,    // Bibwewadi
-  "411022": 10,   // Bavdhan
-  "411026": 10,   // Nigdi
-  "411039": 10,   // Bhosari
-  "411045": 10,   // Baner
-
-  // Medium/Far Distance (11–15km)
-  "411002": 11,   // Swargate
-  "411030": 11,   // Sinhagad Road
-  "411033": 12,   // Akurdi
-  "411035": 13,   // Chinchwad
-  "411038": 13,   // Kothrud
-  "411041": 14,   // Dhayari
-  "411043": 14,   // Dhankawadi
-  "411046": 15,   // Ambegaon
-  "411051": 14,   // Anand Nagar
-  "411052": 15,   // Karve Nagar
-  "411058": 15,   // Warje
-  "411019": 14,   // Chinchwad
-  "411044": 15,   // Talegaon
-
-  // Last Reach Areas (16–20km)
-  "411023": 16,   // NDA / Sinhagad side
-  "411024": 17,   // Khadakwasla
-  "411057": 18,   // Hinjewadi
-  "411061": 17,   // Pimple Gurav
-  "411062": 18,   // Thergaon
-  "411060": 19,   // Kondhwa
-  "411059": 18,   // Wakad
-  "412105": 20,   // Chakan
-  "412307": 19,   // Wagholi
-  "412308": 20,   // Manjari
-  "412101": 20,   // Talegaon Dabhade
-
-  // Out of Reach (>20km)
-  "412114": 22,   // Dehu Road
-  "412115": 24,   // Pirangut
-  "412109": 25,   // Moshi
-  "412106": 26,   // Alandi
-  "412110": 27,   // Rajgurunagar
-  "412216": 28,   // Narhe outskirts
-  "412205": 30    // Rural Pune belt
+  // TIER 3 (10–15 km): ₹80 (Free >= ₹899)
+  "411005": { tier: 3, label: "Medium Distance (Shivajinagar)" },
+  "411028": { tier: 3, label: "Medium Distance (Hadapsar)" },
+  "412307": { tier: 3, label: "Medium Distance (Manjari)" },
+  "411040": { tier: 3, label: "Medium Distance (Wanowrie)" },
+  "411004": { tier: 3, label: "Medium Distance (Deccan)" },
+  "411011": { tier: 3, label: "Medium Distance (Kasba Peth)" },
+  "411002": { tier: 3, label: "Medium Distance (Swargate)" },
+  "411003": { tier: 3, label: "Medium Distance (Raviwar Peth)" },
+  "411007": { tier: 3, label: "Medium Distance (Aundh)" }
 };
 
 /**
- * Rules for delivery eligibility and fees based on distance/pincode
- * NEW BUSINESS RULES:
- * 0-5 km   → ₹40
- * 5-10 km  → ₹60
- * 10-15 km → ₹80
- * > 15 km  → OUT OF REACH
+ * Rules for delivery eligibility and fees based on pincode tiers
  */
 export const getDeliveryConfig = (pincode = "", distance = null) => {
   const code = String(pincode).trim();
-  
-  // 1. Determine distance
-  let dist = distance;
-  if (dist === null || dist === undefined) {
-    dist = PINCODE_DISTANCES[code];
+  const config = SERVICEABLE_PINCODES[code];
+
+  if (!config) {
+    return { 
+      threshold: Infinity, 
+      charge: 0, 
+      label: "Sorry, we currently do not deliver to this location.", 
+      outOfReach: true 
+    };
   }
 
-  // 2. Apply Pricing Rules based on distance
-  if (dist !== undefined && dist !== null) {
-    const d = Number(dist);
-    
-    if (d > 15) {
-      return { 
-        threshold: Infinity, 
-        charge: 0, 
-        label: "Location Out of Reach", 
-        outOfReach: true 
-      };
-    }
-
-    if (d <= 5) {
-      return { 
-        threshold: 0, 
-        charge: 0, 
-        label: d === 0 ? "Local Delivery (Viman Nagar)" : `Local Delivery (${d.toFixed(1)}km)`, 
-        outOfReach: false 
-      };
-    }
-
-    if (d <= 10) {
-      return { 
-        threshold: 499, 
-        charge: 60, 
-        label: `Standard Distance (${d.toFixed(1)}km)`, 
-        outOfReach: false 
-      };
-    }
-
-    if (d <= 15) {
-      return { 
-        threshold: 899, 
-        charge: 80, 
-        label: `Medium Distance (${d.toFixed(1)}km)`, 
-        outOfReach: false 
-      };
-    }
+  // TIER 1: FREE
+  if (config.tier === 1) {
+    return { 
+      threshold: 0, 
+      charge: 0, 
+      label: config.label, 
+      outOfReach: false 
+    };
   }
 
-  // 3. Default / Unknown Pincode
-  return { threshold: 500, charge: 60, label: "Standard Delivery", outOfReach: false };
+  // TIER 2: ₹60, FREE >= 499
+  if (config.tier === 2) {
+    return { 
+      threshold: 499, 
+      charge: 60, 
+      label: config.label, 
+      outOfReach: false 
+    };
+  }
+
+  // TIER 3: ₹80, FREE >= 899
+  if (config.tier === 3) {
+    return { 
+      threshold: 899, 
+      charge: 80, 
+      label: config.label, 
+      outOfReach: false 
+    };
+  }
+
+  // Default Fallback
+  return { 
+    threshold: Infinity, 
+    charge: 0, 
+    label: "Sorry, we currently do not deliver to this location.", 
+    outOfReach: true 
+  };
 };
 
 /**
