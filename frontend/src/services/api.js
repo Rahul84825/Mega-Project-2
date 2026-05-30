@@ -16,7 +16,7 @@ const API_ROOT = getBackendUrl();
 const DEFAULT_TIMEOUT = 15000;
 
 const api = axios.create({
-  baseURL: API_ROOT + "/api",
+  baseURL: API_ROOT,
   timeout: DEFAULT_TIMEOUT,
   withCredentials: true
 });
