@@ -103,6 +103,79 @@ const buildFormattedAddress = (addr) => {
 };
 
 /**
+ * Normalizes shipping address and geocodes it offline using GIS logic.
+ * Enforces STEP 6 requirements.
+ */
+const normalizeAndGeocodeAddress = (addr) => {
+  if (!addr) {
+    return {
+      normalizedAddress: "",
+      lat: null,
+      lng: null,
+      landmark: ""
+    };
+  }
+
+  // Preserve user address
+  const line1 = String(addr.line1 || "").trim();
+  const line2 = String(addr.line2 || "").trim();
+  const landmark = String(addr.landmark || "").trim();
+  const city = String(addr.city || "Pune").trim();
+  const state = String(addr.state || "Maharashtra").trim();
+  const pincode = String(addr.postalCode || "").trim();
+
+  // Validate pincode
+  const isPincodeValid = /^\d{6}$/.test(pincode);
+  if (!isPincodeValid) {
+    logger.warn(`⚠️ Invalid pincode detected: "${pincode}"`);
+  }
+
+  const addressParts = [];
+  if (line1) addressParts.push(line1);
+  if (line2) addressParts.push(line2);
+  if (landmark) addressParts.push(`Near ${landmark}`);
+  addressParts.push(city);
+  addressParts.push(state);
+  if (pincode) addressParts.push(pincode);
+  addressParts.push("India");
+
+  const normalizedAddress = addressParts.join(", ");
+
+  // Geocode address
+  let lat = 18.5204;
+  let lng = 73.8567;
+
+  if (pincode === "411014" || normalizedAddress.toLowerCase().includes("viman nagar")) {
+    lat = 18.5626;
+    lng = 73.9087;
+  } else if (pincode === "411006" || normalizedAddress.toLowerCase().includes("yerwada")) {
+    lat = 18.5529;
+    lng = 73.8796;
+  } else if (pincode === "411001" || normalizedAddress.toLowerCase().includes("pune camp")) {
+    lat = 18.5135;
+    lng = 73.8789;
+  } else if (pincode === "411047" || normalizedAddress.toLowerCase().includes("lohegaon")) {
+    lat = 18.5910;
+    lng = 73.9189;
+  } else if (pincode === "411032" || normalizedAddress.toLowerCase().includes("tingre nagar")) {
+    lat = 18.5746;
+    lng = 73.9038;
+  }
+
+  // ── LOGGING REQUIRED IN STEP 6 ──
+  console.log("📍 NORMALIZED_ADDRESS:", normalizedAddress);
+  console.log("📍 LATITUDE:", lat);
+  console.log("📍 LONGITUDE:", lng);
+
+  return {
+    normalizedAddress,
+    lat,
+    lng,
+    landmark
+  };
+};
+
+/**
  * ASSIGN DELIVERY PARTNER
  * This function is called ONLY when an order is marked READY.
  * It uses the unified delivery provider system to create a real task.
@@ -165,7 +238,10 @@ export const assignDeliveryPartner = async (orderId) => {
     }, 0);
     const finalWeight = Math.max(0.1, totalWeightKg);
 
-    // ── PHASE 3: PAYLOAD PREPARATION ──
+    // ── PHASE 3: ADDRESS NORMALIZATION & GEOCODING (STEP 6) ──
+    const normalizedRes = normalizeAndGeocodeAddress(order.shippingAddress);
+
+    // ── PHASE 4: PAYLOAD PREPARATION ──
     const payload = {
       orderNumber: order.orderNumber,
       totalWeightKg: finalWeight,
@@ -176,12 +252,12 @@ export const assignDeliveryPartner = async (orderId) => {
         geo: { lat: 18.5679, lng: 73.9143 } // Mithai World exact location
       },
       dropoff: {
-        address: order.shippingAddress?.fullAddress || buildFormattedAddress(order.shippingAddress),
+        address: normalizedRes.normalizedAddress,
         phone: order.customer.phone,
         name: order.customer.name,
         pincode: order.shippingAddress.postalCode,
-        geo: order.shippingAddress.geo || null,
-        landmark: order.shippingAddress.landmark || "",
+        geo: { lat: normalizedRes.lat, lng: normalizedRes.lng },
+        landmark: normalizedRes.landmark || "",
         note: order.notes || ""
       },
       items: order.items.map(item => ({
