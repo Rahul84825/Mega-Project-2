@@ -9,7 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
-import brandLogo from "../assets/image.png";
+import brandLogo from "../assets/logo.png";
 
 function Navbar() {
   const navigate = useNavigate();
