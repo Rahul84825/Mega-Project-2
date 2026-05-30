@@ -33,14 +33,14 @@ const CONTACT_INFO = [
   {
     icon: Phone,
     label: "Phone",
-    value: "+91 95112 89914",
-    href: "tel:+919511289914",
+    value: "+91 98581 06106",
+    href: "tel:+919858106106",
   },
   {
     icon: Mail,
     label: "Email",
-    value: "mithaiworld08@gmail.com",
-    href: "mailto:mithaiworld08@gmail.com",
+    value: "mithaipune@gmail.com",
+    href: "mailto:mithaipune@gmail.com",
   },
   {
     icon: Clock,
