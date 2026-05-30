@@ -123,7 +123,7 @@ function Navbar() {
           >
             <div className="relative">
               <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-12 w-12 rotate-0' : 'h-16 w-16 rotate-[-8deg] group-hover:rotate-0'}`} />
+              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-16 w-16 rotate-0' : 'h-24 w-24 rotate-[-8deg] group-hover:rotate-0'}`} />
             </div>
           </button>
 
