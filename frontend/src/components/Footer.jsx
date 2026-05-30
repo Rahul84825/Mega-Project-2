@@ -91,21 +91,14 @@ const Footer = () => {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6
                           pb-10 border-b border-white/[0.08]">
 
-            {/* Brand mark */}
             <button
               onClick={() => navigate("/")}
               className="group flex items-center gap-2 sm:gap-4 shrink-0 transition-all duration-500 hover:scale-105 active:scale-95"
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-                <img src={brandLogo} alt="Logo" className="relative object-contain transition-all duration-700 ease-out h-12 w-12 group-hover:rotate-0" />
+                <img src={brandLogo} alt="Logo" className="relative object-contain transition-all duration-700 ease-out h-16 w-16 sm:h-20 sm:w-20 group-hover:rotate-0" />
               </div>
-              <p className="text-lg font-medium leading-tight tracking-tight text-[#fff8f0]">
-                Mithai World
-              </p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-[#e8883a]">
-                Premium Sweets
-              </p>
             </button>
 
             {/* Trust badges */}

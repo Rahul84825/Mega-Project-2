@@ -117,18 +117,13 @@ function Navbar() {
       }`}>
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-4 lg:gap-8">
           
-          {/* ── LOGO ── */}
           <button 
             onClick={() => navigate("/")} 
             className="group flex items-center gap-2 sm:gap-4 shrink-0 transition-all duration-500 hover:scale-105 active:scale-95"
           >
             <div className="relative">
               <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-9 w-9 rotate-0' : 'h-12 w-12 rotate-[-8deg] group-hover:rotate-0'}`} />
-            </div>
-            <div className="hidden sm:flex flex-col items-start leading-tight">
-              <span className="serif text-xl lg:text-2xl font-bold tracking-tight text-[var(--charcoal)] group-hover:text-[var(--burgundy)] transition-colors duration-500">Mithai World</span>
-              <span className="text-[8px] lg:text-[9px] font-black uppercase tracking-[0.4em] text-[var(--gold)] mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity">Premium Indian Treats</span>
+              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-12 w-12 rotate-0' : 'h-16 w-16 rotate-[-8deg] group-hover:rotate-0'}`} />
             </div>
           </button>
 
@@ -276,10 +271,9 @@ function Navbar() {
           <div className="flex flex-col h-full bg-[var(--cream)]/30">
             <div className="p-6 flex items-center justify-between border-b border-gray-100 bg-white">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-[var(--gold)]/10 rounded-full flex items-center justify-center p-1.5 animate-pulse">
+                <div className="h-14 w-14 bg-[var(--gold)]/10 rounded-full flex items-center justify-center p-2 animate-pulse">
                    <img src={brandLogo} className="w-full h-full object-contain" alt="" />
                 </div>
-                <span className="serif text-xl font-bold text-[var(--burgundy)]">Mithai World</span>
               </div>
               <button onClick={() => setMobileOpen(false)} className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-all active:scale-90 shadow-sm border border-gray-100">
                 <X size={20} className="text-[var(--charcoal)]" />
