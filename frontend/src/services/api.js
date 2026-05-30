@@ -1,11 +1,22 @@
 import axios from "axios";
 import { getStoredToken, notifySessionExpired } from "./utils/authSession";
 
-const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, "").replace(/\/api$/i, "");
+const getBackendUrl = () => {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("192.168.")) {
+      return "https://mega-project-2-b880.onrender.com";
+    }
+  }
+  const rawUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  return rawUrl.replace(/\/api\/?$/, "");
+};
+
+const API_ROOT = getBackendUrl();
 const DEFAULT_TIMEOUT = 15000;
 
 const api = axios.create({
-  baseURL: API_ROOT,
+  baseURL: API_ROOT + "/api",
   timeout: DEFAULT_TIMEOUT,
   withCredentials: true
 });
