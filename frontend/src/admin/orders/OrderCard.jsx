@@ -51,6 +51,7 @@ const OrderCard = ({
   const subtotal = totals.itemsSubtotal || order.subtotal || 0;
   const shippingFee = totals.shippingFee ?? order.deliveryFee ?? 0;
   const grandTotal = totals.grandTotal || order.total || 0;
+  console.log(`📡 ORDER_RENDERED: Order ${order.orderNumber || order._id} - Status: ${status}`);
 
   return (
     <div 

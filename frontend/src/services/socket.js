@@ -25,6 +25,10 @@ socket.on("disconnect", (reason) => {
   console.log("📡 SOCKET_DISCONNECTED:", reason);
 });
 
+socket.io.on("reconnect", (attempt) => {
+  console.log("📡 SOCKET_RECONNECTED:", attempt);
+});
+
 socket.on("connect_error", (error) => {
   console.error("📡 SOCKET_CONNECTION_ERROR:", error.message);
 });

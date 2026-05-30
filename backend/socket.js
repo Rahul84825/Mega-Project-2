@@ -9,6 +9,10 @@ const getFrontendOrigin = () => {
 
 const allowedOrigins = [
   getFrontendOrigin(),
+  "https://mithaipune.com",
+  "https://www.mithaipune.com",
+  "http://mithaipune.com",
+  "http://www.mithaipune.com",
   "https://mithaiworld.vercel.app",
   "https://mega-project-2.vercel.app"
 ];

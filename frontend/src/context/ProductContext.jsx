@@ -345,7 +345,9 @@ export function ProductProvider({ children }) {
 
     const handleNewOrder = (order) => {
       if (order) {
+        console.log(`📡 ORDER_UPDATE_RECEIVED: order:new for Order ${order.orderNumber}`);
         dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
+        console.log(`📡 ORDER_STATE_UPDATED: order:new for Order ${order.orderNumber}`);
         // Play notification ONLY if user is confirmed as Admin
         // This ensures customers don't hear the Swiggy-style alert
         if (isAdmin === true) {
@@ -356,9 +358,9 @@ export function ProductProvider({ children }) {
 
     const handleOrderUpdate = (order) => {
       if (order) {
-        console.log(`📡 SOCKET_EVENT_RECEIVED: order:updated for Order ${order.orderNumber}`);
+        console.log(`📡 ORDER_UPDATE_RECEIVED: order:updated for Order ${order.orderNumber}`);
         dispatch({ type: actionTypes.UPSERT_ORDER, payload: order });
-        console.log(`✅ FRONTEND_ORDER_UPDATED: Order ${order.orderNumber} is now ${order.status}`);
+        console.log(`📡 ORDER_STATE_UPDATED: order:updated for Order ${order.orderNumber}`);
       }
     };
 

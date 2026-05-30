@@ -311,7 +311,10 @@ export const assignDeliveryPartner = async (orderId) => {
     logger.info(`💾 [MARK READY] STEP 7 - DELIVERY SAVED with OTP: ${pickupOtp}`);
 
     const io = getIo();
-    if (io) io.emit("order:updated", order.toObject());
+    if (io) {
+      console.log(`📡 ORDER_UPDATE_EMITTED: order:updated for Order ${order.orderNumber}`);
+      io.emit("order:updated", order.toObject());
+    }
 
     return order;
   } catch (error) {
@@ -344,7 +347,10 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
         await order.save();
         
         const io = getIo();
-        if (io) io.emit("order:updated", order); // Matches frontend listener name
+        if (io) {
+          console.log(`📡 ORDER_UPDATE_EMITTED: order:updated for Order ${order.orderNumber}`);
+          io.emit("order:updated", order); // Matches frontend listener name
+        }
         
         logger.info(`✅ Order ${order.orderNumber} is now READY. Waiting for rider.`);
       }

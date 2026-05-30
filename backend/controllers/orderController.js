@@ -50,6 +50,7 @@ const emitOrderEvent = (event, payload) => {
   if (io) {
     // Standardize to order:new for placement and order:updated for all state changes
     const mappedEvent = (event === "orderPlaced" || event === "order:new") ? "order:new" : "order:updated";
+    console.log(`📡 ORDER_UPDATE_EMITTED: ${mappedEvent} for Order ${payload.orderNumber || payload._id}`);
     io.emit(mappedEvent, payload);
   }
 };
