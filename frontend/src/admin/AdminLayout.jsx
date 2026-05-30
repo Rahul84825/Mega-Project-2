@@ -5,7 +5,7 @@ import {
   ShoppingBag, Store, LogOut, ChevronLeft, Menu, Percent, Image as ImageIcon, Sparkles
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import brandLogo from "../assets/image.png";
+import brandLogo from "../assets/logo.png";
 
 const NAV_ITEMS = [
   { to: "/admin",            label: "Dashboard",   icon: LayoutDashboard, end: true },
