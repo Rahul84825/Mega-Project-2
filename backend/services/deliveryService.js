@@ -203,14 +203,18 @@ export const assignDeliveryPartner = async (orderId) => {
     // ── LOGGING: ASSIGN_DELIVERY_ADDRESS ──
     console.log("📍 ASSIGN_DELIVERY_ADDRESS:", JSON.stringify(order.shippingAddress, null, 2));
 
-    // ── STRICT IDEMPOTENCY PROTECTION (FIXED) ──
-    // ONLY block duplicate creation if an ACTUAL provider task ID exists.
-    // Check for non-empty string to avoid blocking on initialized empty values.
-    if (order.delivery?.providerOrderId && order.delivery.providerOrderId.trim() !== "") {
-      console.log("DUPLICATE DETECTED - BLOCKING");
-      logger.warn(`⚠️ [MARK READY] SKIPPED - Delivery task already exists (${order.delivery.providerOrderId}) for Order ${order.orderNumber}`);
+    // ── STRICT IDEMPOTENCY PROTECTION (CONCURRENCY LOCK) ──
+    // ONLY block duplicate creation if an ACTUAL provider task ID exists, or if a task creation is in progress.
+    if (order.delivery?.status === "ASSIGNING" || (order.delivery?.providerOrderId && order.delivery.providerOrderId.trim() !== "")) {
+      console.log("DUPLICATE DETECTED OR ASSIGNMENT IN PROGRESS - BLOCKING");
+      logger.warn(`⚠️ [MARK READY] SKIPPED - Delivery task already in progress or exists for Order ${order.orderNumber}`);
       return order;
     }
+
+    // Set intermediate state atomically to prevent concurrent double-triggers
+    order.delivery = order.delivery || {};
+    order.delivery.status = "ASSIGNING";
+    await order.save();
 
     console.log(`CALLING ${process.env.DEFAULT_DELIVERY_PROVIDER || "borzo"} NOW`);
 
@@ -328,6 +332,25 @@ export const assignDeliveryPartner = async (orderId) => {
       message: error.message,
       orderId
     });
+
+    // Revert intermediate status on failure to allow retry
+    try {
+      const order = await Order.findById(orderId);
+      if (order && order.delivery?.status === "ASSIGNING") {
+        order.delivery.status = "FAILED";
+        order.delivery.error = error.message;
+        await order.save();
+        
+        // Emit Socket update to notify UI of failure
+        const io = getIo();
+        if (io) {
+          io.emit("order:updated", order.toObject());
+        }
+      }
+    } catch (dbErr) {
+      console.error("Failed to revert delivery status:", dbErr.message);
+    }
+
     throw error;
   }
 };
@@ -368,4 +391,147 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
       logger.error(`Error in automated READY transition for order ${orderId}:`, err);
     }
   }, ms);
+};
+
+/**
+ * Syncs the status of all active Borzo delivery tasks by polling their latest
+ * information from the provider API and updating the MongoDB records.
+ * Solves Render server cold starts and webhook delivery issues.
+ */
+export const syncActiveOrders = async () => {
+  try {
+    const activeStatuses = ["PREPARING", "READY", "PICKED_UP"];
+    const ordersToSync = await Order.find({
+      status: { $in: activeStatuses },
+      "delivery.providerOrderId": { $exists: true, $ne: "" }
+    });
+
+    if (ordersToSync.length === 0) return;
+
+    console.log(`🔄 [SYNC] Checking status of ${ordersToSync.length} active Borzo orders...`);
+
+    for (const order of ordersToSync) {
+      try {
+        const taskId = order.delivery.providerOrderId;
+        const task = await getTrackingDetails(taskId);
+        
+        if (!task || !task.status) continue;
+
+        let event = "unknown";
+        const rawStatus = task.status.toLowerCase();
+        
+        switch (rawStatus) {
+          case "new":
+            event = "order_created";
+            break;
+          case "available":
+          case "searching_courier":
+            event = "searching_courier";
+            break;
+          case "active":
+          case "courier_assigned":
+            event = "courier_assigned";
+            break;
+          case "courier_departed":
+          case "picked_up":
+          case "delivering":
+            event = "picked_up";
+            break;
+          case "completed":
+          case "finished":
+          case "delivery_completed":
+          case "delivery completed":
+          case "delivered":
+            event = "delivered";
+            break;
+          case "canceled":
+          case "cancelled":
+            event = "canceled";
+            break;
+          case "failed":
+          case "failed_delivery":
+            event = "failed_delivery";
+            break;
+        }
+
+        let statusChanged = false;
+
+        // Sync rider details if available
+        const oldRider = order.rider || {};
+        const newRider = task.rider || {};
+        if (newRider.name && (newRider.name !== oldRider.name || newRider.phone !== oldRider.phone)) {
+          order.rider = {
+            name: newRider.name,
+            phone: newRider.phone || oldRider.phone,
+            vehicleNumber: newRider.vehicleNumber || oldRider.vehicleNumber
+          };
+          statusChanged = true;
+          console.log(`🔄 [SYNC] Syncing rider details for Order ${order.orderNumber}: ${newRider.name}`);
+        }
+
+        // Map delivery status
+        switch (event) {
+          case "searching_courier":
+            if (["RIDER_ASSIGNED", "PICKED_UP", "DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) break;
+            if (order.delivery.status !== "SEARCHING_FOR_RIDER") {
+              order.delivery.status = "SEARCHING_FOR_RIDER";
+              statusChanged = true;
+            }
+            break;
+
+          case "courier_assigned":
+            if (["PICKED_UP", "DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) break;
+            if (order.delivery.status !== "RIDER_ASSIGNED") {
+              order.delivery.status = "RIDER_ASSIGNED";
+              order.delivery.assignedAt = order.delivery.assignedAt || new Date();
+              statusChanged = true;
+            }
+            break;
+
+          case "picked_up":
+            if (["DELIVERED", "DELIVERY_FAILED"].includes(order.delivery.status)) break;
+            if (order.status !== "PICKED_UP" || order.delivery.status !== "PICKED_UP") {
+              order.status = "PICKED_UP";
+              order.statusTimestamps.pickedUpAt = order.statusTimestamps.pickedUpAt || new Date();
+              order.delivery.status = "PICKED_UP";
+              statusChanged = true;
+            }
+            break;
+
+          case "delivered":
+            if (order.delivery.status === "DELIVERY_FAILED") break;
+            if (order.status !== "DELIVERED" || order.delivery.status !== "DELIVERED") {
+              order.status = "DELIVERED";
+              order.statusTimestamps.deliveredAt = order.statusTimestamps.deliveredAt || new Date();
+              order.delivery.status = "DELIVERED";
+              statusChanged = true;
+            }
+            break;
+
+          case "canceled":
+          case "failed_delivery":
+            if (order.delivery.status !== "DELIVERY_FAILED" && order.delivery.status !== "DELIVERED") {
+              order.delivery.status = "DELIVERY_FAILED";
+              statusChanged = true;
+            }
+            break;
+        }
+
+        if (statusChanged) {
+          await order.save();
+          console.log(`🔄 [SYNC] Order ${order.orderNumber} successfully auto-synced to ${order.status}/${order.delivery.status}`);
+          
+          // Emit socket update
+          const io = getIo();
+          if (io) {
+            io.emit("order:updated", order.toObject());
+          }
+        }
+      } catch (err) {
+        console.error(`❌ [SYNC] Failed to sync order ${order.orderNumber}:`, err.message);
+      }
+    }
+  } catch (error) {
+    console.error("❌ [SYNC] Error in active orders synchronization:", error.message);
+  }
 };

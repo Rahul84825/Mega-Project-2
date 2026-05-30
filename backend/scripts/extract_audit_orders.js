@@ -31,7 +31,8 @@ const extractOrders = async () => {
       "ORD-MPSCFDV4-AECB24",
       "ORD-MPSCEY58-E5F2DC",
       "ORD-MPSCEHFW-B6F8BC",
-      "ORD-RZP-MPSBVSIR"
+      "ORD-RZP-MPSBVSIR",
+      "ORD-RZP-MPSEMHV9"
     ];
 
     const results = {};

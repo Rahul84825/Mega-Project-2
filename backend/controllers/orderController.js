@@ -7,7 +7,7 @@ import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
 import { InventoryError, reserveStock, restoreStock } from "../services/inventoryService.js";
 import generateOrderId from "../utils/orderIdGenerator.js";
-import { assignDeliveryPartner, scheduleOrderReady } from "../services/deliveryService.js";
+import { assignDeliveryPartner, scheduleOrderReady, syncActiveOrders } from "../services/deliveryService.js";
 import {
   sendOrderPlacedEmail,
   sendAdminNewOrderAlert,
@@ -542,6 +542,11 @@ export const getOrdersByStatus = async (req, res) => {
   const startTime = Date.now();
   console.log(`FETCH_ORDERS_START: ${new Date().toISOString()}`);
   try {
+    // Asynchronously sync active Borzo orders in the background
+    syncActiveOrders().catch((err) =>
+      console.error("❌ Background active orders sync failed:", err.message)
+    );
+
     const status = req.query.status ? String(req.query.status).toUpperCase() : null;
 
     if (status && !ORDER_STATUSES.includes(status)) {
