@@ -97,7 +97,15 @@ const Footer = () => {
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-                <img src={brandLogo} alt="Logo" className="relative object-contain transition-all duration-700 ease-out h-24 w-24 sm:h-32 sm:w-32 group-hover:rotate-0" />
+                <img src={brandLogo} alt="Logo" className="relative object-contain transition-all duration-700 ease-out h-16 w-16 sm:h-20 sm:w-20 group-hover:rotate-0" />
+              </div>
+              <div className="flex flex-col items-start leading-none">
+                <span className="font-serif text-2xl sm:text-3xl font-black tracking-tighter text-[#fff8f0]">
+                  Mithai
+                </span>
+                <span className="font-sans text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.4em] text-[#e8883a]">
+                  World
+                </span>
               </div>
             </button>
 
@@ -242,7 +250,7 @@ const Footer = () => {
                 ))}
               </ul>
             </div>
-
+''
           </div>
         </div>
       </div>
@@ -256,7 +264,12 @@ const Footer = () => {
               © {year}{" "}
               <span className="font-medium text-[rgba(255,248,240,0.60)]">Mithai World</span>
               . All rights reserved.
-            </p>
+            </p>/
+
+
+
+
+
 
             <div className="flex items-center gap-4">
               <p className="flex items-center gap-1.5 text-xs font-medium

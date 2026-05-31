@@ -123,7 +123,15 @@ function Navbar() {
           >
             <div className="relative">
               <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-16 w-16 rotate-0' : 'h-24 w-24 rotate-[-8deg] group-hover:rotate-0'}`} />
+              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-12 w-12 rotate-0' : 'h-16 w-16 rotate-[-8deg] group-hover:rotate-0'}`} />
+            </div>
+            <div className="flex flex-col items-start leading-none">
+              <span className={`font-serif font-black tracking-tighter transition-all duration-500 ${scrolled ? 'text-base text-[var(--burgundy)]' : 'text-xl text-[var(--burgundy)]'}`}>
+                Mithai
+              </span>
+              <span className={`font-sans font-bold uppercase tracking-[0.3em] transition-all duration-500 ${scrolled ? 'text-[7px] text-[var(--gold)]' : 'text-[9px] text-[var(--gold)]'}`}>
+                World
+              </span>
             </div>
           </button>
 
@@ -273,6 +281,14 @@ function Navbar() {
               <div className="flex items-center gap-3">
                 <div className="h-14 w-14 bg-[var(--gold)]/10 rounded-full flex items-center justify-center p-2 animate-pulse">
                    <img src={brandLogo} className="w-full h-full object-contain" alt="" />
+                </div>
+                <div className="flex flex-col items-start leading-none">
+                  <span className="font-serif text-xl font-black tracking-tighter text-[var(--burgundy)]">
+                    Mithai
+                  </span>
+                  <span className="font-sans text-[8px] font-bold uppercase tracking-[0.3em] text-[var(--gold)]">
+                    World
+                  </span>
                 </div>
               </div>
               <button onClick={() => setMobileOpen(false)} className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-all active:scale-90 shadow-sm border border-gray-100">

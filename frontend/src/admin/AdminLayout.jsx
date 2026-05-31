@@ -28,13 +28,22 @@ const Sidebar = ({ mobile = false, collapsed, setCollapsed, mobileOpen, setMobil
             type="button"
             aria-label="Go to home"
             onClick={() => navigate("/")}
+            className="flex items-center gap-3"
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
           >
             <img
               src={brandLogo}
               alt="Mithai World"
-              className="h-16 sm:h-20 w-auto object-contain flex-shrink-0"
+              className="h-10 sm:h-12 w-auto object-contain flex-shrink-0"
             />
+            <div className="flex flex-col items-start leading-none">
+              <span className="font-serif text-lg font-black tracking-tighter text-[#8b4513]">
+                Mithai
+              </span>
+              <span className="font-sans text-[7px] font-bold uppercase tracking-[0.3em] text-[#7a5c3a]">
+                World
+              </span>
+            </div>
           </button>
         </div>
       )}
