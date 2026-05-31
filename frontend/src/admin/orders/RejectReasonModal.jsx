@@ -27,34 +27,34 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
   const hasReason = customReason.trim() || selectedReason;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#2d1b0e]/40 backdrop-blur-md px-4 transition-all duration-300">
-      <div className="w-full max-w-md rounded-[32px] border border-[#e6d3b3] bg-[#fffaf3] shadow-[0_32px_64px_-12px_rgba(45,27,14,0.3)] overflow-hidden transform transition-all animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#2d1b0e]/40 backdrop-blur-md px-2 sm:px-4 transition-all duration-300">
+      <div className="w-full max-w-[95vw] sm:max-w-md rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] bg-[#fffaf3] shadow-[0_32px_64px_-12px_rgba(45,27,14,0.3)] overflow-hidden transform transition-all animate-in zoom-in-95 duration-300">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#e6d3b3]/50 px-8 py-6 bg-[var(--cream)]/30">
+        <div className="flex items-center justify-between border-b border-[#e6d3b3]/50 px-5 sm:px-8 py-4 sm:py-6 bg-[var(--cream)]/30">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.4em] text-[#b67b3a] font-bold mb-1">Cancellation Protocol</div>
-            <div className="text-xl serif font-medium text-[#2d1b0e]">#{order?.orderNumber || order?.orderId}</div>
+            <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.4em] text-[#b67b3a] font-bold mb-1">Cancellation Protocol</div>
+            <div className="text-base sm:text-xl serif font-medium text-[#2d1b0e]">#{order?.orderNumber || order?.orderId}</div>
           </div>
           <button onClick={onClose} className="rounded-full p-2 text-[#7a5c3a] hover:bg-[#f5e6d3] hover:text-[#2d1b0e] transition-all border border-transparent hover:border-[#e6d3b3]">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="px-8 py-8">
+        <div className="px-5 sm:px-8 py-5 sm:py-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {/* Info Card */}
-          <div className="mb-8 flex items-start gap-4 rounded-[24px] border border-rose-100 bg-rose-50/50 p-5 shadow-sm">
-            <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-              <AlertCircle className="h-6 w-6" />
+          <div className="mb-6 sm:mb-8 flex items-start gap-3 sm:gap-4 rounded-xl sm:rounded-[24px] border border-rose-100 bg-rose-50/50 p-4 sm:p-5 shadow-sm">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+              <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <p className="text-xs text-rose-800 leading-relaxed font-medium">
-              The customer will be notified of this <span className="font-bold underline">Cancellation</span> immediately. This action cannot be reversed.
+            <p className="text-[10px] sm:text-xs text-rose-800 leading-relaxed font-medium">
+              The customer will be notified of this <span className="font-bold underline">Cancellation</span>. Action cannot be reversed.
             </p>
           </div>
 
           {/* Reasons */}
           <div className="space-y-4">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-[#6d4c41] ml-1">Select Reason</label>
+            <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#6d4c41] ml-1">Select Reason</label>
             <div className="space-y-2">
               {REJECT_REASONS.map((reason) => (
                 <button
@@ -64,7 +64,7 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
                     setSelectedReason(selectedReason === reason.value ? "" : reason.value);
                     setCustomReason("");
                   }}
-                  className={`w-full h-12 px-5 rounded-2xl border-2 transition-all flex items-center text-left text-xs font-bold ${
+                  className={`w-full h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center text-left text-[11px] sm:text-xs font-bold ${
                     selectedReason === reason.value
                       ? "border-rose-600 bg-rose-50 text-rose-700 shadow-sm ring-4 ring-rose-600/5"
                       : "border-[#e6d3b3] bg-white text-[#6d4c41] hover:border-rose-300"
@@ -78,11 +78,11 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
           </div>
 
           {/* Custom Reason */}
-          <div className="mt-8 space-y-4">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-[#6d4c41] ml-1">Or add custom reason</label>
+          <div className="mt-6 sm:mt-8 space-y-4">
+            <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#6d4c41] ml-1">Custom reason</label>
             <div className="relative group">
               <div className="absolute left-4 top-4 text-[#d4a373] group-focus-within:text-[#8b4513] transition-colors">
-                <Edit3 size={20} />
+                <Edit3 size={18} />
               </div>
               <textarea
                 rows={3}
@@ -91,27 +91,27 @@ const RejectReasonModal = ({ open, onClose, onSubmit, order }) => {
                   setCustomReason(e.target.value);
                   if (e.target.value.trim()) setSelectedReason("");
                 }}
-                className="w-full rounded-2xl border-2 border-[#e6d3b3] bg-white pl-12 pr-4 py-4 text-sm font-bold text-[#2d1b0e] placeholder-[#e6d3b3] focus:border-[#8b4513] focus:ring-4 focus:ring-[#8b4513]/5 outline-none transition-all resize-none"
-                placeholder="Type specific reason here..."
+                className="w-full rounded-xl sm:rounded-2xl border-2 border-[#e6d3b3] bg-white pl-10 sm:pl-12 pr-4 py-3 sm:py-4 text-sm font-bold text-[#2d1b0e] placeholder-[#e6d3b3] focus:border-[#8b4513] focus:ring-4 focus:ring-[#8b4513]/5 outline-none transition-all resize-none"
+                placeholder="Type specific reason..."
               />
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="mt-10 flex items-center gap-4">
-            <button onClick={onClose} className="flex-1 h-14 rounded-2xl border border-[#e6d3b3] text-sm font-bold text-[#7a5c3a] hover:bg-[#f5e6d3] transition-all">
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <button onClick={onClose} className="order-2 sm:order-1 flex-1 h-12 sm:h-14 rounded-xl sm:rounded-2xl border border-[#e6d3b3] text-sm font-bold text-[#7a5c3a] hover:bg-[#f5e6d3] transition-all">
               Back
             </button>
             <button
               onClick={handleSubmit}
               disabled={!hasReason}
-              className={`flex-[2] h-14 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95 ${
+              className={`order-1 sm:order-2 flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 sm:gap-3 text-sm font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95 ${
                 hasReason 
                   ? "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-600/20" 
                   : "bg-[#e6d3b3] text-[#7a5c3a] cursor-not-allowed"
               }`}
             >
-              <Trash2 size={20} />
+              <Trash2 size={18} />
               Confirm Reject
             </button>
           </div>

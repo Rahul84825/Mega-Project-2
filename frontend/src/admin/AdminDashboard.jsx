@@ -95,26 +95,26 @@ const AdminDashboard = () => {
   }, [products]);
 
   return (
-    <div className="space-y-8 md:space-y-12 page-enter pb-20">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border border-[#e6d3b3] shadow-sm">
+    <div className="space-y-6 md:space-y-12 page-enter pb-20">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
         <div className="section-title mb-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-bold uppercase tracking-widest mb-3">
             <Sparkles size={12} /> Live Dashboard
           </div>
-          <h2 className="serif text-3xl md:text-4xl font-medium text-[#2d1b0e]">Welcome back, Admin</h2>
-          <p className="text-sm font-medium text-[#7a5c3a]">Here's what's happening at Mithai World today.</p>
+          <h2 className="serif text-2xl sm:text-3xl md:text-4xl font-medium text-[#2d1b0e]">Welcome back, Admin</h2>
+          <p className="text-xs sm:text-sm font-medium text-[#7a5c3a]">Here's what's happening at Mithai World today.</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 sm:gap-3">
+        <div className="flex flex-row sm:flex-wrap gap-2 sm:gap-3">
           <button 
             onClick={() => downloadReport('sales')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-[var(--surface-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm active:scale-95"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-white border border-[var(--surface-border)] text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm active:scale-95"
           >
             <FileText size={14} className="text-emerald-600" /> Sales
           </button>
           <button 
             onClick={() => downloadReport('customers')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-[var(--surface-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm active:scale-95"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-white border border-[var(--surface-border)] text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[var(--charcoal)] hover:bg-[var(--cream)] transition-all shadow-sm active:scale-95"
           >
             <Users size={14} className="text-blue-600" /> Customers
           </button>
@@ -122,7 +122,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Grid - Fluid Layout */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {statsCards.map((s, i) => (
           <div key={i} className="bg-white p-5 md:p-6 rounded-[24px] md:rounded-3xl border border-[var(--surface-border)] shadow-sm hover:shadow-xl transition-all duration-300 group">
             <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl ${s.bg} ${s.color} flex items-center justify-center mb-3 md:mb-4 shadow-inner group-hover:scale-110 transition-transform`}>
@@ -136,17 +136,17 @@ const AdminDashboard = () => {
 
       {/* Analytics Charts - Stacked on Mobile/Tablet */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
-        <div className="bg-white p-6 md:p-8 rounded-[32px] border border-[var(--surface-border)] shadow-sm">
+        <div className="bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[var(--surface-border)] shadow-sm">
           <div className="flex items-center justify-between mb-6 md:mb-8">
             <div>
-              <h3 className="serif text-xl md:text-2xl font-medium text-[var(--charcoal)]">Revenue Trend</h3>
-              <p className="text-[9px] md:text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest mt-1">Last 7 Days Earnings</p>
+              <h3 className="serif text-lg sm:text-xl md:text-2xl font-medium text-[var(--charcoal)]">Revenue Trend</h3>
+              <p className="text-[8px] sm:text-[9px] md:text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest mt-1">Last 7 Days Earnings</p>
             </div>
-            <TrendingUp size={20} className="text-emerald-500" />
+            <TrendingUp size={20} className="text-emerald-500 shrink-0" />
           </div>
-          <div className="h-[250px] md:h-[350px] w-full">
+          <div className="h-[200px] sm:h-[250px] md:h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#8b4513" stopOpacity={0.1}/>
@@ -167,17 +167,17 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 md:p-8 rounded-[32px] border border-[var(--surface-border)] shadow-sm">
+        <div className="bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[var(--surface-border)] shadow-sm">
           <div className="flex items-center justify-between mb-6 md:mb-8">
             <div>
-              <h3 className="serif text-xl md:text-2xl font-medium text-[var(--charcoal)]">Order Volume</h3>
-              <p className="text-[9px] md:text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest mt-1">Daily Order Count</p>
+              <h3 className="serif text-lg sm:text-xl md:text-2xl font-medium text-[var(--charcoal)]">Order Volume</h3>
+              <p className="text-[8px] sm:text-[9px] md:text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest mt-1">Daily Order Count</p>
             </div>
-            <BarChart3 size={20} className="text-[var(--burgundy)]" />
+            <BarChart3 size={20} className="text-[var(--burgundy)] shrink-0" />
           </div>
-          <div className="h-[250px] md:h-[350px] w-full">
+          <div className="h-[200px] sm:h-[250px] md:h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <BarChart data={chartData}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 700, fill: '#999'}} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 700, fill: '#999'}} />

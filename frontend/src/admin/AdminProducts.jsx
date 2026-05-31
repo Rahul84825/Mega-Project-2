@@ -138,17 +138,17 @@ const AdminProducts = () => {
     <div className="animate-in fade-in duration-500 max-w-7xl mx-auto page-enter space-y-8 pb-20">
       
       {/* HEADER SECTION */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border border-[#e6d3b3] shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fffaf3] text-[#b67b3a] border border-[#f0e0c4] text-[10px] font-bold uppercase tracking-widest mb-4">
             <LayoutGrid size={14} /> Inventory Management
           </div>
-          <h2 className="serif text-3xl md:text-4xl font-medium text-[#2d1b0e] mb-2">Product Catalog</h2>
-          <p className="text-sm font-medium text-[#7a5c3a]">Manage sizes, pricing, and availability across your entire collection.</p>
+          <h2 className="serif text-2xl sm:text-3xl md:text-4xl font-medium text-[#2d1b0e] mb-2">Product Catalog</h2>
+          <p className="text-xs sm:text-sm font-medium text-[#7a5c3a]">Manage sizes, pricing, and availability across your entire collection.</p>
         </div>
         <button 
           onClick={() => navigate("/admin/add-product", { state: null })} 
-          className="h-14 px-8 rounded-2xl bg-[#8b4513] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#6b3410] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 shrink-0"
+          className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-[#8b4513] text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest hover:bg-[#6b3410] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 shrink-0"
         >
           <PlusCircle size={18} /> Add New Mithai
         </button>
@@ -160,17 +160,17 @@ const AdminProducts = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#a67f52] group-focus-within:text-[#8b4513] transition-colors" />
           <input 
             type="text" 
-            placeholder="Search by name, category, or tags..." 
+            placeholder="Search..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            className="w-full h-14 pl-12 pr-4 bg-white border border-[#e6d3b3] rounded-2xl text-sm font-medium text-[#2d1b0e] placeholder:text-[#a67f52] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/20 focus:border-[#8b4513] transition-all shadow-sm" 
+            className="w-full h-12 sm:h-14 pl-12 pr-4 bg-white border border-[#e6d3b3] rounded-xl sm:rounded-2xl text-sm font-medium text-[#2d1b0e] placeholder:text-[#a67f52] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/20 focus:border-[#8b4513] transition-all shadow-sm" 
           />
         </div>
         <div className="relative md:w-72">
            <select 
              value={filterCat} 
              onChange={(e) => setFilterCat(e.target.value)} 
-             className="w-full h-14 pl-4 pr-12 bg-white border border-[#e6d3b3] rounded-2xl text-sm font-bold text-[#7a5c3a] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/20 focus:border-[#8b4513] transition-all shadow-sm appearance-none cursor-pointer"
+             className="w-full h-12 sm:h-14 pl-4 pr-12 bg-white border border-[#e6d3b3] rounded-xl sm:rounded-2xl text-sm font-bold text-[#7a5c3a] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/20 focus:border-[#8b4513] transition-all shadow-sm appearance-none cursor-pointer"
            >
              <option value="all">All Categories</option>
              {(categories || []).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}

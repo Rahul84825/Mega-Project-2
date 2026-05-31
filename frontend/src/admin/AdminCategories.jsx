@@ -192,28 +192,28 @@ function AdminCategories() {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-7xl mx-auto page-enter space-y-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="animate-in fade-in duration-500 max-w-7xl mx-auto page-enter space-y-8 md:space-y-10">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
         <div className="section-title mb-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
             <Sparkles size={12} /> Structure
           </div>
-          <h2 className="serif">Categories</h2>
-          <p>Organize your catalog and control navigation visibility.</p>
+          <h2 className="serif text-2xl sm:text-3xl md:text-4xl">Categories</h2>
+          <p className="text-xs sm:text-sm font-medium text-[#7a5c3a]">Organize your catalog and control navigation visibility.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative group">
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <div className="relative group flex-1 lg:w-64">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)] group-focus-within:text-[var(--gold)] transition-colors" size={16} />
             <input 
               type="text" 
-              placeholder="Search categories..." 
+              placeholder="Search..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
-              className="input-field pl-10 w-full sm:w-64 h-12" 
+              className="input-field pl-10 w-full h-12" 
             />
           </div>
-          <button onClick={() => setModal("add")} className="btn-primary h-12">
+          <button onClick={() => setModal("add")} className="btn-primary h-12 flex-1 lg:flex-none justify-center">
             <PlusCircle size={16} /> Add Category
           </button>
         </div>

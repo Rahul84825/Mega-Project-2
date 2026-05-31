@@ -154,27 +154,27 @@ const AdminLayout = () => {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
-        <header className="bg-[#fffaf3] border-b border-[#e6d3b3] px-4 h-16 flex items-center gap-4 flex-shrink-0 shadow-sm md:hidden">
+        <header className="bg-[#fffaf3] border-b border-[#e6d3b3] px-3 sm:px-4 h-16 flex items-center gap-2 sm:gap-4 flex-shrink-0 shadow-sm md:hidden">
           <button 
-            className="p-2 -ml-2 text-[#7a5c3a] hover:text-[#8b4513] hover:bg-[#d4a373] rounded-xl transition-colors" 
+            className="p-2 -ml-1 sm:-ml-2 text-[#7a5c3a] hover:text-[#8b4513] hover:bg-[#d4a373] rounded-xl transition-colors" 
             onClick={() => setMobileOpen(true)}
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           
-          <div className="flex items-center gap-2">
-            <img src={brandLogo} alt="Logo" className="h-10" />
-            <h1 className="text-sm font-medium text-[#2d1b0e] tracking-tight">Admin</h1>
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <img src={brandLogo} alt="Logo" className="h-8 sm:h-10 flex-shrink-0" />
+            <h1 className="text-xs sm:text-sm font-bold text-[#2d1b0e] tracking-tight truncate">Admin</h1>
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#d4a373] border border-[#e6d3b3] rounded-full flex items-center justify-center ring-2 ring-[#fffaf3] shadow-sm">
-              <span className="text-xs font-medium text-white">{user?.name?.[0]?.toUpperCase() || "A"}</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#d4a373] border border-[#e6d3b3] rounded-full flex items-center justify-center ring-2 ring-[#fffaf3] shadow-sm shrink-0">
+              <span className="text-[10px] sm:text-xs font-bold text-white">{user?.name?.[0]?.toUpperCase() || "A"}</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar bg-[#fffaf3]">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 custom-scrollbar bg-[#fffaf3]">
           <Outlet />
         </main>
       </div>

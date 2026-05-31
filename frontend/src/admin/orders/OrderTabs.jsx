@@ -2,7 +2,7 @@ import { ORDER_TABS } from "./orderUtils";
 
 const OrderTabs = ({ activeTab, counts, onSelect }) => {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex overflow-x-auto pb-2 -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap gap-2 sm:pb-0 custom-scrollbar no-scrollbar">
       {ORDER_TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         const count = counts[tab.id] || 0;

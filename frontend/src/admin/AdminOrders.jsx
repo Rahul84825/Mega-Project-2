@@ -129,32 +129,32 @@ const AdminOrders = () => {
   return (
     <div className="space-y-6 page-enter">
       {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="section-title">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 md:gap-6">
+        <div className="section-title mb-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
             <Sparkles size={12} /> Realtime Control
           </div>
-          <h2 className="serif">Orders Management</h2>
-          <p>{orders.length} total orders · {formatCurrency(totalRevenue)} revenue</p>
+          <h2 className="serif text-2xl sm:text-3xl md:text-4xl">Orders Management</h2>
+          <p className="text-xs sm:text-sm">{orders.length} total orders · {formatCurrency(totalRevenue)} revenue</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <button 
             onClick={handleManualSync}
             disabled={busyOrderId === "sync"}
-            className="h-10 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+            className="flex-1 lg:flex-none h-10 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
           >
             {busyOrderId === "sync" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
-            Sync Delivery
+            <span className="truncate">Sync Delivery</span>
           </button>
-          <div className="relative">
+          <div className="relative flex-1 lg:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
             <input
               type="text"
-              placeholder="Search ID, Name, Phone..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-10 w-full sm:w-64 h-10"
+              className="input-field pl-10 w-full h-10"
             />
           </div>
         </div>
