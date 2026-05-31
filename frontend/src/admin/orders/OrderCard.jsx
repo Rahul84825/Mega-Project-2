@@ -90,35 +90,35 @@ const OrderCard = ({
       </div>
 
       {/* ── CUSTOMER & PAYMENT ROW ── */}
-      <div className="px-4 py-5 sm:px-5 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-white">
-        <div className="space-y-3">
+      <div className="px-4 py-5 sm:px-5 grid grid-cols-1 md:grid-cols-2 gap-5 bg-white">
+        <div className="space-y-3 min-w-0">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-[#f5e6d3] flex items-center justify-center border border-[#e6d3b3] shrink-0">
               <span className="text-xs font-bold text-[#8b4513]">{order.customer?.name?.[0]?.toUpperCase() || 'G'}</span>
             </div>
             <span className="text-sm font-bold text-[#2d1b0e] truncate">{order.customer?.name || "Guest Customer"}</span>
           </div>
-          <div className="flex flex-col gap-2 sm:pl-11">
-            <a href={`tel:${order.customer?.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 text-xs font-medium text-[#7a5c3a] hover:text-[#8b4513]">
+          <div className="flex flex-col gap-2 pl-0 sm:pl-11">
+            <a href={`tel:${order.customer?.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 text-xs font-medium text-[#7a5c3a] hover:text-[#8b4513] w-fit">
               <Phone size={14} className="shrink-0" /> <span className="truncate">{order.customer?.phone || "No Phone"}</span>
             </a>
-            <div className="flex items-center gap-2 text-xs font-medium text-[#7a5c3a]">
-              <Mail size={14} className="shrink-0" /> <span className="truncate break-all">{order.customer?.email || "No Email"}</span>
+            <div className="flex items-center gap-2 text-xs font-medium text-[#7a5c3a] w-full min-w-0">
+              <Mail size={14} className="shrink-0" /> <span className="truncate">{order.customer?.email || "No Email"}</span>
             </div>
           </div>
         </div>
 
-        <div className="space-y-3 md:text-right md:flex md:flex-col md:items-end">
-          <div className="flex items-center gap-2 bg-[#fffaf3] border border-[#e6d3b3] px-3 py-1.5 rounded-xl shadow-sm w-fit md:ml-auto">
+        <div className="space-y-3 md:text-right flex flex-col items-start md:items-end min-w-0">
+          <div className="flex items-center gap-2 bg-[#fffaf3] border border-[#e6d3b3] px-3 py-1.5 rounded-xl shadow-sm w-fit max-w-full">
             <Icon size={14} className="text-[#8b4513] shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#2d1b0e]">{payMethod}</span>
-            <span className={`ml-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest ${payStatusMeta.cls}`}>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#2d1b0e] truncate">{payMethod}</span>
+            <span className={`ml-2 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest shrink-0 ${payStatusMeta.cls}`}>
               {payStatusMeta.label}
             </span>
           </div>
-          <div className="flex items-start gap-2 sm:pl-2 md:pl-0 w-full md:max-w-[250px]">
-            <MapPin size={14} className="text-[#a67f52] shrink-0 mt-0.5" />
-            <span className="text-xs font-medium text-[#7a5c3a] line-clamp-2 text-left md:text-right leading-relaxed break-words">
+          <div className="flex items-start gap-2 w-full">
+            <MapPin size={14} className="text-[#a67f52] shrink-0 mt-0.5 md:hidden" />
+            <span className="text-xs font-medium text-[#7a5c3a] line-clamp-2 leading-relaxed break-words text-left md:text-right w-full">
               {[order.shippingAddress?.line1, order.shippingAddress?.city, order.shippingAddress?.postalCode].filter(Boolean).join(", ")}
             </span>
           </div>
@@ -127,7 +127,7 @@ const OrderCard = ({
 
       {/* ── RIDER INFO (IF ASSIGNED) ── */}
       {order.rider?.name && (
-        <div className="px-3 sm:px-4 py-3 mx-3 sm:mx-4 mb-4 rounded-xl bg-[#fffaf3] border border-[#e6d3b3] flex flex-wrap items-center justify-between gap-3 sm:gap-4 shadow-sm">
+        <div className="px-4 py-3 mx-4 mb-4 rounded-xl bg-[#fffaf3] border border-[#e6d3b3] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-10 w-10 rounded-full bg-white border border-[#f0e0c4] flex items-center justify-center text-[#8b4513] shadow-sm shrink-0">
               <Truck size={18} />
@@ -139,7 +139,7 @@ const OrderCard = ({
             </div>
           </div>
           {order.delivery?.pickupOtp && status === "READY" && (
-            <div className="bg-white px-3 py-1.5 rounded-lg border border-[#e6d3b3] shadow-sm ml-auto">
+            <div className="bg-white px-3 py-1.5 rounded-lg border border-[#e6d3b3] shadow-sm w-fit sm:ml-auto shrink-0">
               <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a]">Pickup OTP</div>
               <div className="text-sm font-black text-[#2d1b0e] tracking-widest">{order.delivery.pickupOtp}</div>
             </div>

@@ -127,10 +127,10 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="space-y-6 page-enter">
+    <div className="space-y-6 page-enter max-w-full overflow-x-hidden">
       {/* ── HEADER ── */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 md:gap-6">
-        <div className="section-title mb-0">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
+        <div className="section-title mb-0 w-full lg:w-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
             <Sparkles size={12} /> Realtime Control
           </div>
@@ -138,16 +138,16 @@ const AdminOrders = () => {
           <p className="text-xs sm:text-sm">{orders.length} total orders · {formatCurrency(totalRevenue)} revenue</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
           <button 
             onClick={handleManualSync}
             disabled={busyOrderId === "sync"}
-            className="flex-1 lg:flex-none h-10 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+            className="w-fit h-10 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm shrink-0"
           >
             {busyOrderId === "sync" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
             <span className="truncate">Sync Delivery</span>
           </button>
-          <div className="relative flex-1 lg:w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
             <input
               type="text"
@@ -164,7 +164,7 @@ const AdminOrders = () => {
       <OrderTabs activeTab={activeTab} counts={tabCounts} onSelect={setActiveTab} />
 
       {/* ── ORDERS LIST ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
         {filteredOrders.length === 0 ? (
           <div className="col-span-full py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
             <div className="h-12 w-12 rounded-full bg-[var(--cream)] flex items-center justify-center mx-auto mb-4 text-[var(--muted)]">
