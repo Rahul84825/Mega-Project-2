@@ -50,7 +50,9 @@ export const isTokenExpired = (token) => {
     return false;
   }
 
-  return Date.now() >= payload.exp * 1000;
+  // Add a 60-second buffer to handle minor clock skew between client and server
+  // This prevents race conditions where the token is valid but the client clock is slightly ahead.
+  return Date.now() >= (payload.exp * 1000) - 60000;
 };
 
 export const getStoredAuth = () => {

@@ -25,7 +25,20 @@ const normalizeUser = (user) => {
 };
 
 const loadInitialAuth = () => {
+  console.log("AUTH_INIT: Loading initial auth from storage");
   const { user, token } = getStoredAuth();
+
+  if (token) {
+    console.log("TOKEN_FOUND: Found token in storage");
+  } else {
+    console.log("TOKEN_MISSING: No token found in storage");
+  }
+
+  if (user) {
+    console.log("USER_FOUND: Found user in storage", user.email);
+  } else {
+    console.log("USER_MISSING: No user found in storage");
+  }
 
   return {
     user: normalizeUser(user),
@@ -35,12 +48,22 @@ const loadInitialAuth = () => {
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
-  const initialAuth = useMemo(() => loadInitialAuth(), []);
+  const initialAuth = useMemo(() => {
+    const auth = loadInitialAuth();
+    // Synchronously set the API token during initialization to prevent 
+    // race conditions with child component effects making API calls.
+    if (auth.token) {
+      setApiAuthToken(auth.token);
+    }
+    return auth;
+  }, []);
+
   const [user, setUser] = useState(initialAuth.user);
   const [token, setToken] = useState(initialAuth.token);
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    console.log("AUTH_RESTORED: Auth state initialized from storage");
     setAuthReady(true);
   }, []);
 
@@ -49,14 +72,16 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // Still sync the token on changes to ensure consistency
     setApiAuthToken(token);
 
     try {
       if (user && token) {
         storeAuth({ user, token });
-      } else {
-        clearStoredAuth();
       }
+      // Removed clearStoredAuth() from here to prevent accidental clearing 
+      // if loadInitialAuth() returns null due to temporary storage issues.
+      // Explicit logouts and session expiry still call clearStoredAuth().
     } catch (_error) {
       // Ignore storage errors in constrained environments.
     }
