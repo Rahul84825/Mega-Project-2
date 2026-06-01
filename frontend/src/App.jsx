@@ -37,6 +37,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./context/CartContext";
 import { ProductProvider } from "./context/ProductContext";
 import GlobalStyle from "./services/utils/GlobalStyle";
+import PromotionBar from "./components/common/PromotionBar";
 
 // Store Pages (core pages, loaded early)
 import HomePage from "./pages/HomePage";
@@ -92,6 +93,7 @@ const LazyFallback = () => (
 function StoreLayout({ children, hideFooter = false }) {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--cream)" }}>
+      <PromotionBar />
       <Navbar />
       <CartDrawer />
       <main className="flex-1">

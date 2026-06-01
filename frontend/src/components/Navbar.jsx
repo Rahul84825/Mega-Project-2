@@ -24,9 +24,6 @@ function Navbar() {
   const [dropOpen, setDropOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [search, setSearch] = useState("");
-  const [showPromo, setShowPromo] = useState(() => {
-    return localStorage.getItem("hidePromo") !== "true";
-  });
 
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
@@ -35,11 +32,6 @@ function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const dismissPromo = () => {
-    setShowPromo(false);
-    localStorage.setItem("hidePromo", "true");
-  };
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && search.trim()) {
@@ -72,44 +64,6 @@ function Navbar() {
 
   return (
     <>
-      {/* ── TOP BAR (PROMOTIONAL) ── */}
-      {showPromo && (
-        <div className="bg-[var(--burgundy)] text-white py-2 px-4 text-center overflow-hidden whitespace-nowrap relative min-h-[40px] flex items-center group/promo z-[110]">
-          <div className="inline-flex items-center gap-8 animate-marquee-slow pr-8">
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Sparkles size={12} className="text-[var(--gold)] animate-pulse" /> 10 % Off on First Order! Use Code: WELCOME10
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Bell size={12} className="text-[var(--gold)] animate-bounce" /> Eat Less, Eat Best - Premium Sweets for Health-Conscious Foodies!
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
-            </span>
-            {/* Duplicated for seamless loop */}
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Sparkles size={12} className="text-[var(--gold)] animate-pulse" /> 10 % Off on First Order! Use Code: WELCOME10
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <Bell size={12} className="text-[var(--gold)] animate-bounce" /> Eat Less, Eat Best - Premium Sweets for Health-Conscious Foodies!
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2">
-              <MapPin size={12} className="text-[var(--gold)]" /> Premium Desi Ghee Preparation
-            </span>
-          </div>
-          
-          {/* Fade Overlay for Mobile Close Button */}
-          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[var(--burgundy)] via-[var(--burgundy)]/80 to-transparent z-10 md:hidden" />
-          
-          <button 
-            onClick={dismissPromo}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-all duration-300 z-20 bg-[var(--burgundy)] md:bg-transparent active:scale-90"
-            aria-label="Close Announcement"
-          >
-            <X size={14} className="text-white/80 group-hover:text-white" />
-          </button>
-        </div>
-      )}
-
       <nav className={`sticky top-0 z-[100] w-full transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] border-b ${
         scrolled 
           ? 'bg-white/90 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(139,30,63,0.15)] border-gray-100 py-2.5' 
