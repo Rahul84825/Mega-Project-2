@@ -73,11 +73,11 @@ function Navbar() {
           
           <button 
             onClick={() => navigate("/")} 
-            className="group flex items-center gap-2 sm:gap-4 shrink-0 transition-all duration-500 hover:scale-105 active:scale-95"
+            className="group flex items-center gap-2 sm:gap-4 shrink-0 transition-all duration-500"
           >
             <div className="relative">
               <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-12 w-12 rotate-0' : 'h-16 w-16 rotate-[-8deg] group-hover:rotate-0'}`} />
+              <img src={brandLogo} alt="Logo" className={`relative object-contain transition-all duration-700 ease-out ${scrolled ? 'h-12 w-12' : 'h-16 w-16'}`} />
             </div>
             <div className="flex flex-col items-start leading-none">
               <span className={`font-serif font-black tracking-tighter transition-all duration-500 ${scrolled ? 'text-base text-[var(--burgundy)]' : 'text-xl text-[var(--burgundy)]'}`}>
@@ -233,7 +233,7 @@ function Navbar() {
           <div className="flex flex-col h-full bg-[var(--cream)]/30">
             <div className="p-6 flex items-center justify-between border-b border-gray-100 bg-white">
               <div className="flex items-center gap-3">
-                <div className="h-14 w-14 bg-[var(--gold)]/10 rounded-full flex items-center justify-center p-2 animate-pulse">
+                <div className="h-14 w-14 bg-[var(--gold)]/10 rounded-full flex items-center justify-center p-2">
                    <img src={brandLogo} className="w-full h-full object-contain" alt="" />
                 </div>
                 <div className="flex flex-col items-start leading-none">

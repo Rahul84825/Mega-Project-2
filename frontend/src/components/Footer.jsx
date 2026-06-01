@@ -93,11 +93,11 @@ const Footer = () => {
 
             <button
               onClick={() => navigate("/")}
-              className="group flex items-center gap-2 sm:gap-4 shrink-0 transition-all duration-500 hover:scale-105 active:scale-95"
+              className="group flex items-center gap-2 sm:gap-4 shrink-0 transition-all duration-500"
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-[var(--gold)]/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
-                <img src={brandLogo} alt="Logo" className="relative object-contain transition-all duration-700 ease-out h-16 w-16 sm:h-20 sm:w-20 group-hover:rotate-0" />
+                <img src={brandLogo} alt="Logo" className="relative object-contain transition-all duration-700 ease-out h-16 w-16 sm:h-20 sm:w-20" />
               </div>
               <div className="flex flex-col items-start leading-none">
                 <span className="font-serif text-2xl sm:text-3xl font-black tracking-tighter text-[#fff8f0]">
