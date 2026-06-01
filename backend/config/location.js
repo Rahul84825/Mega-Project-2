@@ -14,7 +14,7 @@ export const STORE_LOCATION = {
  * Internal delivery pricing tiers based on distance
  */
 export const DELIVERY_PRICING_TIERS = [
-  { maxKm: 5, fee: 40 },
+  { maxKm: 5, fee: 0 },
   { maxKm: 10, fee: 60 },
   { maxKm: 15, fee: 80 }
 ];

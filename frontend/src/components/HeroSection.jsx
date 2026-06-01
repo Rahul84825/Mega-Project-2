@@ -85,6 +85,15 @@ function HeroSection() {
             <span className="text-[var(--gold)] bg-clip-text text-transparent bg-gradient-to-r from-[var(--gold)] via-[var(--saffron)] to-[var(--gold)]">{HERO_CONTENT.highlight}</span>
           </h1>
 
+          {/* ── PROMOTIONAL LINE ── */}
+          <div className="animate-in slide-in-from-bottom-5 fade-in duration-700 delay-400 mb-8 flex items-center justify-center md:justify-start gap-3">
+            <span className="h-px w-8 bg-[var(--gold)]/50" />
+            <span className="text-[var(--saffron)] font-black text-xs md:text-sm tracking-[0.2em] uppercase">
+              🎉 15% OFF on Your First Order
+            </span>
+            <span className="h-px w-8 bg-[var(--gold)]/50" />
+          </div>
+
           <p className="text-white/80 text-sm md:text-xl font-medium leading-relaxed mb-12 max-w-xl mx-auto md:mx-0 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-500">
             {HERO_CONTENT.description}
           </p>

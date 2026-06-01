@@ -72,9 +72,45 @@ const SERVICEABLE_PINCODES = {
 };
 
 /**
- * Rules for delivery eligibility and fees based on pincode tiers
+ * Rules for delivery eligibility and fees based on pincode tiers or distance
  */
 export const getDeliveryConfig = (pincode = "", distance = null) => {
+  // 1. If distance is provided, use it (highest priority)
+  if (distance !== null && distance !== undefined) {
+    const dist = Number(distance);
+    if (dist <= 5) {
+      return { 
+        threshold: 0, 
+        charge: 0, 
+        label: "Local Delivery (0–5 km)", 
+        outOfReach: false 
+      };
+    }
+    if (dist <= 10) {
+      return { 
+        threshold: 299, 
+        charge: 60, 
+        label: "Standard Distance (5–10 km)", 
+        outOfReach: false 
+      };
+    }
+    if (dist <= 15) {
+      return { 
+        threshold: 599, 
+        charge: 80, 
+        label: "Medium Distance (10–15 km)", 
+        outOfReach: false 
+      };
+    }
+    return { 
+      threshold: Infinity, 
+      charge: 0, 
+      label: "Sorry, we only deliver within 15 km.", 
+      outOfReach: true 
+    };
+  }
+
+  // 2. Fallback to Pincode Tiers
   const code = String(pincode).trim();
   const config = SERVICEABLE_PINCODES[code];
 
@@ -87,7 +123,7 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     };
   }
 
-  // TIER 1: FREE
+  // TIER 1: FREE (0-5 km)
   if (config.tier === 1) {
     return { 
       threshold: 0, 
@@ -97,20 +133,20 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     };
   }
 
-  // TIER 2: ₹60, FREE >= 499
+  // TIER 2: ₹60, FREE >= 299 (5-10 km)
   if (config.tier === 2) {
     return { 
-      threshold: 499, 
+      threshold: 299, 
       charge: 60, 
       label: config.label, 
       outOfReach: false 
     };
   }
 
-  // TIER 3: ₹80, FREE >= 899
+  // TIER 3: ₹80, FREE >= 599 (10-15 km)
   if (config.tier === 3) {
     return { 
-      threshold: 899, 
+      threshold: 599, 
       charge: 80, 
       label: config.label, 
       outOfReach: false 
