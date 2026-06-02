@@ -6,6 +6,7 @@ import {
   ArrowRight, CheckCircle,
 } from "lucide-react";
 import StoreMap from "./common/StoreMap";
+import { SEO } from "./common";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const STATS = [
@@ -64,6 +65,11 @@ const TIMELINE = [
 const About = () => {
   return (
     <main className="min-h-[60vh] bg-[#fff8f0] font-['Inter',system-ui,sans-serif]">
+      <SEO 
+        title="Our Story & Tradition"
+        description="Learn about Mithai World's journey from a local shop in Viman Nagar to serving 5000+ happy families in Pune with authentic, fresh Indian sweets."
+        canonical="/about"
+      />
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden text-white"

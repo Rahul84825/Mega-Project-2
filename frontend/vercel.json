@@ -4,5 +4,29 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.mithaipune.com"
+        }
+      ],
+      "destination": "https://mithaipune.com/:1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "mithaipune.vercel.app"
+        }
+      ],
+      "destination": "https://mithaipune.com/:1",
+      "permanent": true
+    }
   ]
 }

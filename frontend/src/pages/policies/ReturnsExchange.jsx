@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { SEO } from "../../components/common";
 
 /**
  * ReturnsExchange Component
@@ -8,11 +9,15 @@ import { Link } from "react-router-dom";
 const ReturnsExchange = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "Returns & Exchange Policy | Mithai World";
   }, []);
 
   return (
     <div className="min-h-[60vh] bg-[var(--cream)]">
+      <SEO 
+        title="Returns & Exchange Policy"
+        description="Learn about Mithai World's returns and exchange policy. We guarantee freshness and quality for all our Indian sweets."
+        canonical="/returns-exchanges"
+      />
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-4xl font-medium text-[var(--charcoal)]">Returns & Exchange Policy</h1>
 

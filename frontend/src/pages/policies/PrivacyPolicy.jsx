@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { SEO } from "../../components/common";
 
 /**
  * PrivacyPolicy Component
@@ -8,11 +9,15 @@ import { Link } from "react-router-dom";
 const PrivacyPolicy = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "Privacy Policy | Mithai World";
   }, []);
 
   return (
     <div className="min-h-[60vh] bg-[var(--cream)]">
+      <SEO 
+        title="Privacy Policy"
+        description="Read Mithai World's privacy policy to understand how we collect, use, and protect your personal information."
+        canonical="/privacy-policy"
+      />
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-4xl font-medium text-[var(--charcoal)]">Privacy Policy</h1>
 

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronUp } from "lucide-react";
+import { SEO } from "../../components/common";
 
 /**
  * ShippingPolicy Component
@@ -9,11 +10,15 @@ import { ChevronUp } from "lucide-react";
 const ShippingPolicy = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "Shipping Policy | Mithai World";
   }, []);
 
   return (
     <div className="min-h-[60vh] bg-[var(--cream)]">
+      <SEO 
+        title="Shipping Policy"
+        description="Understand Mithai World's shipping and delivery timelines. We offer same-day delivery for fresh sweets in Pune."
+        canonical="/shipping-policy"
+      />
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-4xl font-medium text-[var(--charcoal)]">Shipping Policy</h1>
 

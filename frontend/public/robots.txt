@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /sweets
+Allow: /about
+Allow: /contact
+Allow: /shipping-policy
+Allow: /privacy-policy
+Allow: /returns-exchanges
+Allow: /terms-conditions
+Allow: /product/
+
+# Disallow admin and internal routes
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /cart
+Disallow: /checkout
+Disallow: /my-orders
+Disallow: /payment-success
+Disallow: /order-success
+
+Sitemap: https://mithaipune.com/sitemap.xml

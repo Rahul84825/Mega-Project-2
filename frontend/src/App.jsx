@@ -153,7 +153,6 @@ function App() {
             />
 
             <Route path="/products" element={<Navigate to="/sweets" replace />} />
-            <Route path="/sweets" element={<Navigate to="/sweets" replace />} />
 
             <Route
               path="/product/:id"

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { SEO } from "../../components/common";
 
 /**
  * TermsConditions Component
@@ -8,11 +9,15 @@ import { Link } from "react-router-dom";
 const TermsConditions = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "Terms & Conditions | Mithai World";
   }, []);
 
   return (
     <div className="min-h-[60vh] bg-[var(--cream)]">
+      <SEO 
+        title="Terms & Conditions"
+        description="Review the terms and conditions for using Mithai World's website and services."
+        canonical="/terms-conditions"
+      />
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-4xl font-medium text-[var(--charcoal)]">Terms & Conditions</h1>
 

@@ -8,6 +8,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import StoreMap from "./common/StoreMap";
 import LocationCard from "./common/LocationCard";
+import { SEO } from "./common";
 
 // ── Field wrapper ──────────────────────────────────────────────────────────────
 const Field = ({ icon: Icon, label, required, error, children }) => (
@@ -102,6 +103,11 @@ const Contact = () => {
 
   return (
     <main className="min-h-[60vh] bg-[#fff8f0] font-['Inter',system-ui,sans-serif]">
+      <SEO 
+        title="Contact Us | Support & Enquiries"
+        description="Have questions about our sweets or your order? Contact Mithai World Viman Nagar. We're here to help with bulk orders, delivery, and more."
+        canonical="/contact"
+      />
 
       {/* ── Page header ── */}
       <div className="relative overflow-hidden border-b border-[rgba(83,44,22,0.10)] bg-[#fffaf3]">

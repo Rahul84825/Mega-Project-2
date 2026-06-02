@@ -5,6 +5,7 @@ import ProductCard from "../components/ProductCard";
 import ProductFilter from "../components/ProductFilter";
 import SectionContainer from "../components/home/SectionContainer";
 import { Filter, SlidersHorizontal, PackageSearch } from "lucide-react";
+import { SEO } from "../components/common";
 
 function ProductsPage() {
   const location = useLocation();
@@ -89,8 +90,21 @@ function ProductsPage() {
     });
   };
 
+  const pageTitle = filters.category 
+    ? `${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)} Collection`
+    : "Our Sweet Collection";
+  
+  const pageDesc = filters.category
+    ? `Browse our premium ${filters.category} collection. Handcrafted with love and delivered fresh across Pune.`
+    : "Explore our complete range of premium Indian sweets, dry fruit mithai, and traditional treats. Order online for delivery in Pune.";
+
   return (
     <div className="page-enter bg-[var(--cream)] min-h-[60vh] pb-20 pt-4">
+      <SEO 
+        title={pageTitle}
+        description={pageDesc}
+        canonical="/sweets"
+      />
       <SectionContainer>
         <div className="flex flex-col gap-8">
           <div className="section-title mb-0 border-b border-[var(--surface-border)] pb-6">
