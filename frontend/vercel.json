@@ -7,25 +7,47 @@
   ],
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "has": [
         {
           "type": "host",
           "value": "www.mithaipune.com"
         }
       ],
-      "destination": "https://mithaipune.com/:1",
+      "destination": "https://mithaipune.com/:path*",
       "permanent": true
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "has": [
         {
           "type": "host",
           "value": "mithaipune.vercel.app"
         }
       ],
-      "destination": "https://mithaipune.com/:1",
+      "destination": "https://mithaipune.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "mithaiworld.vercel.app"
+        }
+      ],
+      "destination": "https://mithaipune.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "mega-project-2.vercel.app"
+        }
+      ],
+      "destination": "https://mithaipune.com/:path*",
       "permanent": true
     }
   ]
