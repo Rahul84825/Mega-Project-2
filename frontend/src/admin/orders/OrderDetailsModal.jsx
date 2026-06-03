@@ -136,7 +136,7 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] truncate">{delivery.provider || "Borzo"}</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#b67b3a] truncate">{delivery.provider || "Shadowfax"}</span>
                   <span className={`px-2 py-0.5 rounded-lg text-[8px] sm:text-[9px] font-black uppercase shrink-0 ${
                     delivery.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700' :
                     delivery.status === 'PICKED_UP' ? 'bg-blue-50 text-blue-700' :
