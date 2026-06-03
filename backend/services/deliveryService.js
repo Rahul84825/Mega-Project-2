@@ -408,7 +408,7 @@ export const syncActiveOrders = async () => {
 
     if (ordersToSync.length === 0) return;
 
-    console.log(`🔄 [SYNC] Checking status of ${ordersToSync.length} active Borzo orders...`);
+    console.log(`🔄 [SYNC] Checking status of ${ordersToSync.length} active delivery orders...`);
 
     for (const order of ordersToSync) {
       try {
@@ -437,11 +437,15 @@ export const syncActiveOrders = async () => {
             break;
           case "active":
           case "courier_assigned":
+          case "assigned_for_delivery":
+          case "accepted":
             event = "courier_assigned";
             break;
           case "courier_departed":
           case "picked_up":
           case "delivering":
+          case "ofd":
+          case "out_for_delivery":
             event = "picked_up";
             break;
           case "completed":
@@ -453,10 +457,14 @@ export const syncActiveOrders = async () => {
             break;
           case "canceled":
           case "cancelled":
+          case "cancelled_by_customer":
             event = "canceled";
             break;
           case "failed":
           case "failed_delivery":
+          case "nc":
+          case "na":
+          case "lost":
             event = "failed_delivery";
             break;
         }

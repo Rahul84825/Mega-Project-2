@@ -42,6 +42,14 @@ router.post("/webhook/:provider", async (req, res) => {
     console.log("=========================================");
   }
 
+  if (provider === "shadowfax") {
+    console.log("=========================================");
+    console.log("🚨 SHADOWFAX_WEBHOOK_HIT");
+    console.log("📋 SHADOWFAX_WEBHOOK_HEADERS:", JSON.stringify(req.headers, null, 2));
+    console.log("📦 SHADOWFAX_WEBHOOK_BODY:", JSON.stringify(payload, null, 2));
+    console.log("=========================================");
+  }
+
   // ── LOGGING: RAW_BORZO_WEBHOOK ──
   console.log("-----------------------------------------");
   console.log(`📦 RAW_BORZO_WEBHOOK RECEIVED AT: ${new Date().toISOString()}`);

@@ -1,7 +1,9 @@
 import { createBorzoProvider } from "./providers/borzoProvider.js";
+import { createShadowfaxProvider } from "./providers/shadowfaxProvider.js";
 
 const PROVIDERS = {
-  borzo: createBorzoProvider
+  borzo: createBorzoProvider,
+  shadowfax: createShadowfaxProvider
 };
 
 export const getDeliveryProvider = (providerName) => {

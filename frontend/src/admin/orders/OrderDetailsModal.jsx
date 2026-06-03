@@ -270,12 +270,9 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {status === "READY" && (
-              <button 
-                onClick={() => { onClose(); onHandover(order); }}
-                className="h-10 sm:h-12 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-blue-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Truck size={16} /> Handover
-              </button>
+              <div className="h-10 sm:h-12 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-[#fffaf3] border border-dashed border-[#e6d3b3] text-[#8b4513] text-[10px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                <Clock size={16} className="animate-pulse" /> Waiting For Pickup
+              </div>
             )}
             {status === "PREPARING" && (
               <button 

@@ -257,14 +257,9 @@ const OrderCard = ({
           )}
 
           {status === "READY" && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onHandover(order); }}
-              disabled={isBusy}
-              className="w-full h-12 rounded-xl bg-blue-600 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isBusy ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
-              Confirm Handover
-            </button>
+            <div className="w-full text-center py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8b4513] flex items-center justify-center gap-2 bg-[#f5e6d3] border border-dashed border-[#e6d3b3] rounded-xl h-12">
+              <Clock size={14} className="animate-pulse" /> Waiting For Pickup
+            </div>
           )}
 
           {status === "PICKED_UP" && (
