@@ -15,14 +15,17 @@ const lazyRetry = (componentImport) => {
       return await componentImport();
     } catch (error) {
       console.error("Failed to load component, refreshing...", error);
-      // Check if this error happened recently to avoid infinite refresh loops
+      
       const hasRefreshed = sessionStorage.getItem("retry-refreshed") || "false";
       if (hasRefreshed === "false") {
         sessionStorage.setItem("retry-refreshed", "true");
-        window.location.reload();
-        return { default: () => null }; // Placeholder
+        // Force a hard reload from the server to bypass browser cache
+        window.location.reload(true);
+        return { default: () => null }; 
       }
-      throw error; // Re-throw if refresh already happened
+      
+      // If we already refreshed and it still fails, it's a real error
+      throw error; 
     }
   });
 };
