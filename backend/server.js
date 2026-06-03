@@ -1,8 +1,7 @@
+import "dotenv/config";
 import dns from "dns";
-import dotenv from "dotenv";
 
-// ── BOOTSTRAP: Load Environment Variables FIRST ──
-dotenv.config();
+// ── BOOTSTRAP: Environment Variables loaded via import ──
 console.log(`🚀 BOOT: Environment loaded. NODE_ENV: ${process.env.NODE_ENV || "development"}`);
 
 import http from "http";

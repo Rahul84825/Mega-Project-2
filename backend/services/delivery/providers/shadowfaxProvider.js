@@ -53,7 +53,8 @@ const request = async (url, options = {}) => {
       error: error.message,
       details: responseData
     });
-    throw new Error(`Shadowfax API Error: ${error.message}`);
+    const errorDetail = responseData ? JSON.stringify(responseData) : error.message;
+    throw new Error(`Shadowfax API Error: ${error.message} - Details: ${errorDetail}`);
   }
 };
 

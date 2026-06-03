@@ -181,7 +181,8 @@ const normalizeAndGeocodeAddress = (addr) => {
  * It uses the unified delivery provider system to create a real task.
  */
 export const assignDeliveryPartner = async (orderId) => {
-  console.log(`===== DELIVERY FLOW START (${process.env.DEFAULT_DELIVERY_PROVIDER || "borzo"}) =====`);
+  const defaultProvider = process.env.DEFAULT_DELIVERY_PROVIDER || "shadowfax";
+  console.log(`===== DELIVERY FLOW START (${defaultProvider}) =====`);
   console.log("CALLING assignDeliveryPartner()");
   logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId}`);
   
@@ -216,7 +217,7 @@ export const assignDeliveryPartner = async (orderId) => {
     order.delivery.status = "ASSIGNING";
     await order.save();
 
-    console.log(`CALLING ${process.env.DEFAULT_DELIVERY_PROVIDER || "borzo"} NOW`);
+    console.log(`CALLING ${defaultProvider} NOW`);
 
     // ── PHASE 1: PINCODE VALIDATION ──
     const pincode = order.shippingAddress?.postalCode;
@@ -233,7 +234,7 @@ export const assignDeliveryPartner = async (orderId) => {
       throw new Error(errorMsg);
     }
 
-    const provider = process.env.DEFAULT_DELIVERY_PROVIDER || "borzo";
+    const provider = process.env.DEFAULT_DELIVERY_PROVIDER || "shadowfax";
     console.log("🚚 [DEBUG] RESOLVED_PROVIDER:", provider);
 
     // ── PHASE 2: WEIGHT CALCULATION ──

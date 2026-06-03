@@ -7,7 +7,7 @@ const PROVIDERS = {
 };
 
 export const getDeliveryProvider = (providerName) => {
-  const defaultProvider = process.env.DEFAULT_DELIVERY_PROVIDER || "borzo";
+  const defaultProvider = process.env.DEFAULT_DELIVERY_PROVIDER || "shadowfax";
   let key = String(providerName || defaultProvider).toLowerCase().trim();
   if (key === "dunzo") {
     key = "borzo";
@@ -15,8 +15,8 @@ export const getDeliveryProvider = (providerName) => {
   let factory = PROVIDERS[key];
 
   if (!factory) {
-    console.warn(`⚠️ [PROVIDER] Delivery provider '${key}' not found. Falling back to borzo.`);
-    key = "borzo";
+    console.warn(`⚠️ [PROVIDER] Delivery provider '${key}' not found. Falling back to shadowfax.`);
+    key = "shadowfax";
     factory = PROVIDERS[key];
   }
 
