@@ -234,6 +234,7 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     const provider = process.env.DEFAULT_DELIVERY_PROVIDER || "borzo";
+    console.log("🚚 [DEBUG] RESOLVED_PROVIDER:", provider);
 
     // ── PHASE 2: WEIGHT CALCULATION ──
     const totalWeightKg = order.items.reduce((sum, item) => {
@@ -273,7 +274,7 @@ export const assignDeliveryPartner = async (orderId) => {
     };
 
     // ── STEP 5: DELIVERY API REQUEST ──
-    console.log("📍 FINAL_BORZO_DROPOFF_ADDRESS:", payload.dropoff.address);
+    console.log("📍 FINAL_DROPOFF_ADDRESS:", payload.dropoff.address);
     logger.info(`📡 [MARK READY] STEP 5 - ${provider.toUpperCase()} API REQUEST for Order ${order.orderNumber}`);
     const task = await createDeliveryTask(payload, { provider });
     

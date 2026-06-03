@@ -62,7 +62,10 @@ export const createShadowfaxProvider = () => {
 
   return {
     async createDeliveryTask(payload) {
+      console.log("🚀 [SHADOWFAX_CREATE_START]", { orderNumber: payload.orderNumber });
+      
       if (!config.apiKey) {
+        console.error("❌ [SHADOWFAX_CREATE_FAILED] Missing API Key");
         throw new Error("SHADOWFAX_API_KEY is required for Shadowfax integration");
       }
 
@@ -73,7 +76,7 @@ export const createShadowfaxProvider = () => {
           client_order_number: payload.orderNumber,
           order_type: "DELIVERY",
           price: payload.totalAmount || 0,
-          payment_mode: "PREPAID", // Assuming prepaid as per usual ecommerce flow, can be adjusted
+          payment_mode: "PREPAID",
           actual_weight: payload.totalWeightKg,
           weight: payload.totalWeightKg,
           callback_url: `${process.env.BASE_URL || ""}/api/delivery/webhook/shadowfax`
@@ -84,7 +87,7 @@ export const createShadowfaxProvider = () => {
           address_line_1: payload.pickup.address,
           city: "Pune",
           state: "Maharashtra",
-          pincode: "411014", // Mithai World Viman Nagar
+          pincode: "411014",
           latitude: payload.pickup.geo?.lat,
           longitude: payload.pickup.geo?.lng
         },
@@ -94,7 +97,7 @@ export const createShadowfaxProvider = () => {
           address_line_1: payload.dropoff.address,
           address_line_2: payload.dropoff.landmark || "",
           pincode: payload.dropoff.pincode,
-          city: "Pune", // Defaulting to Pune as per Mithai World context
+          city: "Pune",
           state: "Maharashtra",
           latitude: payload.dropoff.geo?.lat,
           longitude: payload.dropoff.geo?.lng
@@ -106,25 +109,38 @@ export const createShadowfaxProvider = () => {
         }))
       };
 
-      const data = await request(`${config.baseUrl}/v2/orders/`, {
-        method: "POST",
-        headers: buildHeaders(config),
-        body: JSON.stringify(body)
-      });
+      const url = `${config.baseUrl}/v2/orders/`;
+      console.log("📡 [SHADOWFAX_REQUEST_URL]:", url);
+      console.log("📦 [SHADOWFAX_REQUEST_BODY]:", JSON.stringify(body, null, 2));
 
-      // Shadowfax usually returns { "data": { "id": "SFX...", "awb_number": "..." }, "status": "success" }
-      const shadowfaxOrder = data.data || data;
-      
-      return {
-        taskId: String(shadowfaxOrder.id || shadowfaxOrder.client_order_number || ""),
-        awbNumber: shadowfaxOrder.awb_number || "",
-        status: "DELIVERY_ASSIGNED",
-        trackingUrl: shadowfaxOrder.tracking_url || `https://track.shadowfax.in/track?order_id=${payload.orderNumber}`,
-        rider: {
-          name: "",
-          phone: ""
-        }
-      };
+      try {
+        const data = await request(url, {
+          method: "POST",
+          headers: buildHeaders(config),
+          body: JSON.stringify(body)
+        });
+
+        console.log("✅ [SHADOWFAX_CREATE_SUCCESS]", { taskId: data.data?.id || data.id });
+
+        const shadowfaxOrder = data.data || data;
+        return {
+          taskId: String(shadowfaxOrder.id || shadowfaxOrder.client_order_number || ""),
+          awbNumber: shadowfaxOrder.awb_number || "",
+          status: "DELIVERY_ASSIGNED",
+          trackingUrl: shadowfaxOrder.tracking_url || `https://track.shadowfax.in/track?order_id=${payload.orderNumber}`,
+          rider: {
+            name: "",
+            phone: ""
+          }
+        };
+      } catch (error) {
+        console.error("❌ [SHADOWFAX_CREATE_FAILED]", {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        throw error;
+      }
     },
 
     async getTrackingDetails(taskId) {
