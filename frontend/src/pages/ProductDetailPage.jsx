@@ -22,6 +22,33 @@ function ProductDetailPage() {
 
   const product = useMemo(() => products.find(p => p._id === id), [products, id]);
 
+  const categoryName = useMemo(() => product?.category?.name || "Premium Sweets", [product]);
+  
+  const availableVariants = useMemo(() => 
+    (product?.variants || []).filter(v => v.isActive !== false),
+  [product]);
+
+  useEffect(() => {
+    if (product && !selectedVariant) {
+      if (availableVariants.length > 0) {
+        setSelectedVariant(availableVariants[0]);
+      }
+    }
+  }, [product, availableVariants, selectedVariant]);
+
+  const currentPrice = selectedVariant?.sellingPrice || product?.basePrice || 0;
+  const currentMrp = selectedVariant?.mrp || product?.mrp || 0;
+  const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0;
+  const isOutOfStock = currentStock <= 0 || product?.isActive === false;
+  const isLowStock = !isOutOfStock && currentStock < 10;
+
+  const similarProducts = useMemo(() => {
+    if (!product) return [];
+    return products
+      .filter(p => p.category?._id === product.category?._id && p._id !== product._id)
+      .slice(0, 4);
+  }, [product, products]);
+
   const schemaData = useMemo(() => {
     if (!product) return null;
     return {
