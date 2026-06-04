@@ -4,6 +4,11 @@ import { createShadowfaxProvider } from "./providers/shadowfaxProvider.js";
 const getProvider = () => {
   const selectedProvider = (process.env.DELIVERY_PROVIDER || "borzo").toLowerCase();
   
+  console.log("=========================================");
+  console.log(`🚚 ACTIVE_DELIVERY_PROVIDER: ${selectedProvider.toUpperCase()}`);
+  console.log(`🚚 RUNTIME_ENV_VALUE: ${process.env.DELIVERY_PROVIDER || "NOT_SET"}`);
+  console.log("=========================================");
+
   if (selectedProvider === "shadowfax") {
     return createShadowfaxProvider();
   }

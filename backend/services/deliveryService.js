@@ -77,7 +77,12 @@ const normalizeAndGeocodeAddress = (addr) => {
  */
 export const assignDeliveryPartner = async (orderId) => {
   const selectedProvider = (process.env.DELIVERY_PROVIDER || "borzo").toLowerCase();
-  console.log(`===== DELIVERY FLOW START (${selectedProvider.toUpperCase()}) =====`);
+  
+  console.log("=========================================");
+  console.log(`📡 ASSIGN_DELIVERY_INIT: Order ${orderId}`);
+  console.log(`📡 SELECTED_PROVIDER: ${selectedProvider.toUpperCase()}`);
+  console.log("=========================================");
+
   logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId} (Provider: ${selectedProvider})`);
   
   try {

@@ -116,6 +116,7 @@ const normalizeTask = (data = {}) => {
 };
 
 export const createShadowfaxProvider = () => {
+  console.log("🚚 INITIALIZING_SHADOWFAX_PROVIDER");
   const config = buildConfig();
 
   return {
