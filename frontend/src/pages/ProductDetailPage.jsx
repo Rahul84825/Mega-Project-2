@@ -49,6 +49,35 @@ function ProductDetailPage() {
       .slice(0, 4);
   }, [product, products]);
 
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const variant = selectedVariant || {
+      _id: "default",
+      label: "Default",
+      sellingPrice: product.price || product.basePrice,
+      stock: product.stock
+    };
+
+    dispatch({
+      type: "ADD_ITEM",
+      payload: {
+        productId: product._id,
+        variantId: variant._id,
+        variantLabel: variant.label,
+        name: product.name,
+        price: variant.sellingPrice,
+        image: product.images?.[0] || product.image,
+        quantity: quantity,
+        stock: variant.stock,
+        gstRate: product.gstPercent || 0,
+        packingCharges: product.packingCharges || 0
+      }
+    });
+
+    openCart();
+  };
+
   const schemaData = useMemo(() => {
     if (!product) return null;
     return {
