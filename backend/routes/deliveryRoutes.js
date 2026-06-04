@@ -14,23 +14,37 @@ router.post("/calculate", calculateDelivery);
 router.post("/check-availability", checkAvailability);
 
 /**
- * WEBHOOK: Unified Delivery Status Webhook (Borzo-only)
+ * WEBHOOK: Unified Delivery Status Webhook
  */
 router.post("/webhook/:provider", async (req, res) => {
   const { provider } = req.params;
   const payload = req.body;
 
-  if (provider !== "borzo") {
+  if (provider !== "borzo" && provider !== "shadowfax") {
     return res.status(400).json({ success: false, message: "Invalid provider" });
   }
 
+  // ── WEBHOOK AUTHENTICATION (Shadowfax Only) ──
+  if (provider === "shadowfax") {
+    const authHeader = req.headers.authorization;
+    const shadowfaxToken = process.env.SHADOWFAX_API_KEY;
+
+    if (!authHeader || authHeader !== `Token ${shadowfaxToken}`) {
+      logger.warn(`🚫 [WEBHOOK] Unauthorized Shadowfax attempt`, {
+        providedAuth: authHeader ? "***REDACTED***" : "MISSING",
+        ip: req.ip
+      });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+  }
+
   try {
-    // ── TEMPORARY WEBHOOK DIAGNOSTIC LOGS ──
-    console.log("=========================================");
-    console.log("🚨 BORZO_WEBHOOK_HIT");
-    console.log("📋 BORZO_WEBHOOK_HEADERS:", JSON.stringify(req.headers, null, 2));
-    console.log("📦 BORZO_WEBHOOK_BODY:", JSON.stringify(payload, null, 2));
-    console.log("=========================================");
+    // ── WEBHOOK DIAGNOSTIC LOGS ──
+    logger.info(`🚨 ${provider.toUpperCase()}_WEBHOOK_HIT`, {
+      provider,
+      headers: req.headers,
+      body: payload
+    });
 
     const result = await handleDeliveryWebhook(payload);
 
@@ -50,6 +64,25 @@ router.post("/webhook/:provider", async (req, res) => {
       logger.warn(`⚠️ [WEBHOOK] Order not found for taskId: ${result.taskId}`);
       return res.status(200).json({ success: true });
     }
+
+    // Idempotency: Check if this status/event was already processed
+    const alreadyProcessed = order.delivery?.webhookHistory?.some(h => 
+      h.event === result.event && 
+      new Date(h.receivedAt).getTime() > Date.now() - 5000 // Simple debounce
+    );
+
+    if (alreadyProcessed) {
+      logger.info(`⏭️ [WEBHOOK] Duplicate event ${result.event} for Order ${order.orderNumber} ignored`);
+      return res.status(200).json({ success: true });
+    }
+
+    // Save to webhook history
+    order.delivery.webhookHistory = order.delivery.webhookHistory || [];
+    order.delivery.webhookHistory.push({
+      event: result.event,
+      receivedAt: new Date(),
+      payload: payload
+    });
 
     let statusChanged = false;
 
@@ -115,7 +148,7 @@ router.post("/webhook/:provider", async (req, res) => {
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    logger.error(`❌ [WEBHOOK] Error handling Borzo webhook:`, error);
+    logger.error(`❌ [WEBHOOK] Error handling ${provider} webhook:`, error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

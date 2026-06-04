@@ -73,11 +73,12 @@ const normalizeAndGeocodeAddress = (addr) => {
 
 /**
  * ASSIGN DELIVERY PARTNER
- * Strictly Borzo-only mode.
+ * Supports both Borzo and Shadowfax.
  */
 export const assignDeliveryPartner = async (orderId) => {
-  console.log(`===== DELIVERY FLOW START (BORZO) =====`);
-  logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId}`);
+  const selectedProvider = (process.env.DELIVERY_PROVIDER || "borzo").toLowerCase();
+  console.log(`===== DELIVERY FLOW START (${selectedProvider.toUpperCase()}) =====`);
+  logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId} (Provider: ${selectedProvider})`);
   
   try {
     const order = await Order.findById(orderId);
@@ -97,7 +98,7 @@ export const assignDeliveryPartner = async (orderId) => {
     order.delivery.status = "ASSIGNING";
     await order.save();
 
-    console.log(`CALLING BORZO NOW`);
+    console.log(`CALLING ${selectedProvider.toUpperCase()} NOW`);
 
     // Pincode validation
     const pincode = order.shippingAddress?.postalCode;
@@ -145,18 +146,18 @@ export const assignDeliveryPartner = async (orderId) => {
       totalAmount: order.totals?.grandTotal
     };
 
-    logger.info(`📡 [MARK READY] STEP 5 - BORZO API REQUEST for Order ${order.orderNumber}`);
+    logger.info(`📡 [MARK READY] STEP 5 - ${selectedProvider.toUpperCase()} API REQUEST for Order ${order.orderNumber}`);
     const task = await createDeliveryTask(payload);
     
     if (!task || !task.taskId) {
-      throw new Error(`Borzo failed to return a task ID`);
+      throw new Error(`${selectedProvider} failed to return a task ID`);
     }
 
     const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
     order.delivery = {
       ...(order.delivery || {}),
-      provider: "borzo",
+      provider: selectedProvider,
       providerOrderId: task.taskId,
       trackingId: task.taskId,
       trackingUrl: task.trackingUrl || "",
@@ -174,7 +175,7 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     await order.save();
-    logger.info(`💾 [MARK READY] STEP 7 - BORZO DELIVERY SAVED`);
+    logger.info(`💾 [MARK READY] STEP 7 - ${selectedProvider.toUpperCase()} DELIVERY SAVED`);
 
     const io = getIo();
     if (io) {
@@ -183,7 +184,7 @@ export const assignDeliveryPartner = async (orderId) => {
 
     return order;
   } catch (error) {
-    logger.error("❌ [MARK READY] FAILED at assignDeliveryPartner:", error.message);
+    logger.error(`❌ [MARK READY] FAILED at assignDeliveryPartner (${selectedProvider}):`, error.message);
     try {
       const order = await Order.findById(orderId);
       if (order && order.delivery?.status === "ASSIGNING") {
@@ -218,7 +219,7 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
 };
 
 /**
- * SYNC ACTIVE ORDERS - Borzo-only mode.
+ * SYNC ACTIVE ORDERS - Provider-agnostic mode.
  */
 export const syncActiveOrders = async () => {
   try {
@@ -230,54 +231,42 @@ export const syncActiveOrders = async () => {
 
     if (ordersToSync.length === 0) return;
 
-    console.log(`🔄 [SYNC] Checking status of ${ordersToSync.length} active Borzo orders...`);
+    logger.info(`🔄 [SYNC] Checking status of ${ordersToSync.length} active orders...`);
 
     for (const order of ordersToSync) {
       try {
         const taskId = order.delivery.providerOrderId;
+        const provider = order.delivery.provider || "borzo";
+        
         const task = await getTrackingDetails(taskId);
         if (!task || !task.status) continue;
 
-        let event = "unknown";
-        const rawStatus = task.status.toLowerCase();
-        
-        switch (rawStatus) {
-          case "available":
-          case "searching_courier":
-            event = "searching_courier";
-            break;
-          case "active":
-          case "courier_assigned":
-            event = "courier_assigned";
-            break;
-          case "courier_departed":
-          case "picked_up":
-          case "delivering":
-            event = "picked_up";
-            break;
-          case "completed":
-          case "delivered":
-            event = "delivered";
-            break;
-          case "canceled":
-          case "cancelled":
-            event = "canceled";
-            break;
-          case "failed":
-            event = "failed_delivery";
-            break;
+        // Use handleDeliveryWebhook logic but for a simulated webhook result
+        // since providers now have parseWebhook which handles status mapping.
+        // We simulate a payload that parseWebhook can handle.
+        let result;
+        if (provider === "borzo") {
+          result = await handleDeliveryWebhook({ order: { order_id: taskId, status: task.status, courier: task.rider } });
+        } else if (provider === "shadowfax") {
+          result = await handleDeliveryWebhook({ awb_number: taskId, event: task.status, rider_name: task.rider?.name, rider_contact: task.rider?.phone });
         }
+
+        if (!result || result.event === "unknown") continue;
 
         let statusChanged = false;
 
         // Sync rider
-        if (task.rider?.name && (!order.rider?.name || task.rider.name !== order.rider.name)) {
-          order.rider = task.rider;
+        if (result.rider?.name && (!order.rider?.name || result.rider.name !== order.rider.name)) {
+          order.rider = {
+            name: result.rider.name,
+            phone: result.rider.phone || order.rider?.phone,
+            vehicleNumber: result.rider.vehicleNumber || order.rider?.vehicleNumber
+          };
           statusChanged = true;
         }
 
-        // Map status
-        switch (event) {
+        // Map status (same logic as webhook)
+        switch (result.event) {
           case "searching_courier":
             if (order.delivery.status !== "SEARCHING_FOR_RIDER") {
               order.delivery.status = "SEARCHING_FOR_RIDER";
@@ -293,6 +282,7 @@ export const syncActiveOrders = async () => {
           case "picked_up":
             if (order.status !== "PICKED_UP") {
               order.status = "PICKED_UP";
+              order.statusTimestamps.pickedUpAt = new Date();
               order.delivery.status = "PICKED_UP";
               statusChanged = true;
             }
@@ -300,6 +290,7 @@ export const syncActiveOrders = async () => {
           case "delivered":
             if (order.status !== "DELIVERED") {
               order.status = "DELIVERED";
+              order.statusTimestamps.deliveredAt = new Date();
               order.delivery.status = "DELIVERED";
               statusChanged = true;
             }
@@ -318,7 +309,11 @@ export const syncActiveOrders = async () => {
           const io = getIo();
           if (io) io.emit("order:updated", order.toObject());
         }
-      } catch (err) {}
+      } catch (err) {
+        logger.error(`❌ [SYNC] Error syncing order ${order.orderNumber}:`, err.message);
+      }
     }
-  } catch (error) {}
+  } catch (error) {
+    logger.error("❌ [SYNC] Fatal error in syncActiveOrders:", error.message);
+  }
 };

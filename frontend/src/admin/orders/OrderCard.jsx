@@ -133,7 +133,12 @@ const OrderCard = ({
               <Truck size={18} />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a] mb-0.5">Assigned Rider</div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a]">Assigned Rider</div>
+                <span className="px-1.5 py-0.5 rounded bg-[#8b4513]/10 text-[#8b4513] text-[8px] font-bold uppercase tracking-tighter">
+                  {order.delivery?.provider || "Borzo"}
+                </span>
+              </div>
               <div className="text-xs font-bold text-[#2d1b0e] truncate">{order.rider.name}</div>
               <div className="text-[10px] font-medium text-[#7a5c3a]">{order.rider.phone}</div>
             </div>

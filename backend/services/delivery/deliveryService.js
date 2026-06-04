@@ -1,6 +1,18 @@
 import { createBorzoProvider } from "./providers/borzoProvider.js";
+import { createShadowfaxProvider } from "./providers/shadowfaxProvider.js";
 
-const provider = createBorzoProvider();
+const getProvider = () => {
+  const selectedProvider = (process.env.DELIVERY_PROVIDER || "borzo").toLowerCase();
+  
+  if (selectedProvider === "shadowfax") {
+    return createShadowfaxProvider();
+  }
+  
+  // Default to Borzo
+  return createBorzoProvider();
+};
+
+const provider = getProvider();
 
 export const createDeliveryTask = async (payload) => {
   return provider.createDeliveryTask(payload);
