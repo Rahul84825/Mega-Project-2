@@ -1,9 +1,23 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, isAdmin, authReady, user, token } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    if (authReady && !isAuthenticated) {
+      if (location.pathname === "/checkout") {
+        toast.info("Please login before placing an order.");
+      } else if (location.pathname === "/cart") {
+        toast.info("Please login to continue.");
+      } else if (location.pathname === "/my-orders") {
+        toast.info("Please login to see your orders.");
+      }
+    }
+  }, [authReady, isAuthenticated, location.pathname]);
 
   if (!authReady) {
     return (

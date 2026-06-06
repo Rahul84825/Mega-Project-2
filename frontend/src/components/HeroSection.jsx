@@ -5,8 +5,8 @@ import { getHeroSlides } from "../services/api";
 
 const HERO_CONTENT = {
   subtitle: "Estd. 2020 — Pure Tradition",
-  title: "The Art of Indian",
-  highlight: "Mithai",
+  title: "Mithai World",
+  highlight: "Real Taste Of Pune",
   description: "Experience the finest collection of authentic Indian sweets, handcrafted using premium ingredients and heritage recipes passed through generations.",
   ctaPrimary: "Order Now",
   ctaSecondary: "Our Story"
@@ -82,14 +82,16 @@ function HeroSection() {
 
           <h1 className="serif text-4xl md:text-7xl lg:text-8xl font-medium text-white leading-[1.05] mb-8 tracking-tighter animate-in slide-in-from-bottom-6 fade-in duration-700 delay-300">
             {HERO_CONTENT.title} <br />
-            <span className="text-[var(--gold)] bg-clip-text text-transparent bg-gradient-to-r from-[var(--gold)] via-[var(--saffron)] to-[var(--gold)]">{HERO_CONTENT.highlight}</span>
+            <span className="block mt-2 text-[var(--gold)] bg-clip-text text-transparent bg-gradient-to-r from-[var(--gold)] via-[var(--saffron)] to-[var(--gold)] text-[0.85em] lg:text-[0.8em]">
+              {HERO_CONTENT.highlight}
+            </span>
           </h1>
 
           {/* ── PROMOTIONAL LINE ── */}
           <div className="animate-in slide-in-from-bottom-5 fade-in duration-700 delay-400 mb-8 flex items-center justify-center md:justify-start gap-3">
             <span className="h-px w-8 bg-[var(--gold)]/50" />
-            <span className="text-[var(--saffron)] font-black text-xs md:text-sm tracking-[0.2em] uppercase">
-              🎉 15% OFF on Your First Order
+            <span className="text-[var(--saffron)] font-black text-sm md:text-lg tracking-[0.12em] uppercase drop-shadow-lg">
+              🎉 20% OFF ON YOUR FIRST ORDER
             </span>
             <span className="h-px w-8 bg-[var(--gold)]/50" />
           </div>
@@ -113,6 +115,20 @@ function HeroSection() {
               {HERO_CONTENT.ctaSecondary}
             </button>
           </div>
+        </div>
+      </div>
+      {/* ── OFFER BADGE ── */}
+      <div className="hidden lg:flex absolute top-24 right-16 z-20">
+        <div className="w-36 h-36 rounded-full bg-gradient-to-br from-[var(--gold)] via-[var(--saffron)] to-[#ff9f1c] shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col items-center justify-center text-center border-4 border-white/20">
+          <span className="text-4xl font-black text-white leading-none">
+            20%
+          </span>
+          <span className="text-xs font-black uppercase tracking-wider text-white">
+            OFF
+          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-white/90 mt-1">
+            First Order
+          </span>
         </div>
       </div>
 

@@ -20,7 +20,7 @@ const router = Router();
 router.get("/", protect, adminOnly, getOrdersByStatus);
 router.get("/my-orders", protect, getMyOrders);
 router.get("/:id", protect, adminOnly, getSingleOrder);
-router.post("/", optionalProtect, orderCreateValidation, validateRequest, placeOrder);
+router.post("/", protect, orderCreateValidation, validateRequest, placeOrder);
 router.patch("/:id/accept", protect, adminOnly, acceptOrder);
 router.patch("/:id/reject", protect, adminOnly, rejectOrder);
 router.patch("/:id/preparing", protect, adminOnly, markPreparing);

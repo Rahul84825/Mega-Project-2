@@ -1,12 +1,15 @@
 import { useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { X, ShoppingBag, ArrowRight, Trash2, Minus, Plus, ShoppingCart } from "lucide-react";
+import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 
 function CartDrawer() {
   const { cart, isCartOpen, closeCart, dispatch } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const { subtotal, deliveryFee, gstTotal, packingTotal, total } = calculateTotals(cart);
@@ -21,6 +24,16 @@ function CartDrawer() {
     const newQty = Math.max(1, item.quantity + delta);
     if (item.stock && newQty > item.stock) return;
     dispatch({ type: "UPDATE_QUANTITY", payload: { ...item, quantity: newQty } });
+  };
+
+  const handleCheckout = () => {
+    closeCart();
+    if (!isAuthenticated) {
+      toast.info("Please login before placing an order.");
+      navigate("/login", { state: { from: "/checkout" } });
+      return;
+    }
+    navigate("/checkout");
   };
 
   if (!isCartOpen) return null;
@@ -111,7 +124,7 @@ function CartDrawer() {
             </div>
             
             <button 
-              onClick={() => { closeCart(); navigate("/checkout"); }}
+              onClick={handleCheckout}
               className="w-full btn-primary h-14 shadow-xl"
             >
               Checkout Now <ArrowRight size={18} />

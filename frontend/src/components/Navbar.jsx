@@ -3,9 +3,10 @@ import {
   ChevronDown, Menu, Search, 
   ShoppingBag, User, X, 
   LogOut, Package, LayoutDashboard,
-  Heart, Bell, MapPin, Sparkles
+  Heart, Bell, MapPin, Sparkles, ChevronRight
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
@@ -55,6 +56,15 @@ function Navbar() {
     setMobileOpen(false);
     setDropOpen(false);
     setProfileOpen(false);
+  };
+
+  const handleCartClick = () => {
+    if (!isAuthenticated) {
+      toast.info("Please login to continue.");
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
+    toggleCart();
   };
 
   const isCategoryActive = (slug) => {
@@ -154,7 +164,7 @@ function Navbar() {
             </div>
 
             <button 
-              onClick={toggleCart} 
+              onClick={handleCartClick} 
               className="relative p-2.5 sm:p-3 text-[var(--charcoal)] hover:bg-white hover:text-[var(--burgundy)] hover:shadow-xl hover:-translate-y-0.5 rounded-2xl transition-all duration-300 active:scale-90 group"
             >
               <ShoppingBag size={20} className="group-hover:scale-110 transition-transform duration-500" />

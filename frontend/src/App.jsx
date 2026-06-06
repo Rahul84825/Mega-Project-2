@@ -171,18 +171,22 @@ function App() {
             <Route
               path="/cart"
               element={
-                <StoreLayout hideFooter={true}>
-                  <CartPage />
-                </StoreLayout>
+                <ProtectedRoute>
+                  <StoreLayout hideFooter={true}>
+                    <CartPage />
+                  </StoreLayout>
+                </ProtectedRoute>
               }
             />
 
             <Route
               path="/checkout"
               element={
-                <StoreLayout hideFooter={true}>
-                  <CheckoutPage />
-                </StoreLayout>
+                <ProtectedRoute>
+                  <StoreLayout hideFooter={true}>
+                    <CheckoutPage />
+                  </StoreLayout>
+                </ProtectedRoute>
               }
             />
 
@@ -191,9 +195,11 @@ function App() {
             <Route
               path="/payment-success"
               element={
-                <StoreLayout hideFooter={true}>
-                  <PaymentSuccessPage />
-                </StoreLayout>
+                <ProtectedRoute>
+                  <StoreLayout hideFooter={true}>
+                    <PaymentSuccessPage />
+                  </StoreLayout>
+                </ProtectedRoute>
               }
             />
 

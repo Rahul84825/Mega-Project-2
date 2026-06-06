@@ -5,6 +5,7 @@ import { useCart } from "../context/CartContext";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
+import { toast } from "react-toastify";
 import SimilarProducts from "../components/SimilarProducts";
 import SectionContainer from "../components/home/SectionContainer";
 import { SEO } from "../components/common";
@@ -13,7 +14,7 @@ function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { products, loading } = useProducts();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { dispatch, openCart } = useCart();
   
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -50,6 +51,12 @@ function ProductDetailPage() {
   }, [product, products]);
 
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      toast.info("Please login to continue.");
+      navigate("/login", { state: { from: `/product/${id}` } });
+      return;
+    }
+
     if (!product) return;
 
     const variant = selectedVariant || {
