@@ -68,7 +68,10 @@ const SERVICEABLE_PINCODES = {
   "411011": { tier: 3, label: "Medium Distance (Kasba Peth)" },
   "411002": { tier: 3, label: "Medium Distance (Swargate)" },
   "411003": { tier: 3, label: "Medium Distance (Raviwar Peth)" },
-  "411007": { tier: 3, label: "Medium Distance (Aundh)" }
+  "411007": { tier: 3, label: "Medium Distance (Aundh)" },
+
+  // TIER 4 (15–18 km): ₹120 (Free >= ₹1299)
+  "411105": { tier: 4, label: "Extended Distance (Alandi)" }
 };
 
 /**
@@ -102,10 +105,18 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
         outOfReach: false 
       };
     }
+    if (dist <= 18) {
+      return { 
+        threshold: 1299, 
+        charge: 120, 
+        label: "Extended Distance (15–18 km)", 
+        outOfReach: false 
+      };
+    }
     return { 
       threshold: Infinity, 
       charge: 0, 
-      label: "Sorry, we only deliver within 15 km.", 
+      label: "Sorry, we only deliver within 18 km.", 
       outOfReach: true 
     };
   }
@@ -148,6 +159,16 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     return { 
       threshold: 599, 
       charge: 80, 
+      label: config.label, 
+      outOfReach: false 
+    };
+  }
+
+  // TIER 4: ₹120, FREE >= 1299 (15-18 km)
+  if (config.tier === 4) {
+    return { 
+      threshold: 1299, 
+      charge: 120, 
       label: config.label, 
       outOfReach: false 
     };

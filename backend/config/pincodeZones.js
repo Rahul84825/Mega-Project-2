@@ -120,6 +120,13 @@ export const PINCODE_ZONES = {
     fee: 80,
     eta: "65-90 mins",
     available: true
+  },
+  "411105": {
+    area: "Alandi",
+    city: "Pune",
+    fee: 120,
+    eta: "75-100 mins",
+    available: true
   }
 };
 
