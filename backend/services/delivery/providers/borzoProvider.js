@@ -16,8 +16,8 @@ const buildConfig = () => {
     baseUrl = baseUrl.replace("robot.borzodelivery.com", "robot-in.borzodelivery.com");
   }
 
-  console.log("BORZO TOKEN EXISTS:", !!authToken);
-  console.log("BORZO BASE URL:", baseUrl);
+  // console.log("BORZO TOKEN EXISTS:", !!authToken);
+  // console.log("BORZO BASE URL:", baseUrl);
 
   if (!authToken) {
     logger.error("❌ BORZO_API_TOKEN is missing in environment variables");
@@ -208,20 +208,11 @@ export const createBorzoProvider = () => {
         points: body.points.map(p => ({ addr: p.address, lat: p.latitude, lng: p.longitude }))
       });
 
-      console.log("📍 BORZO_PAYLOAD_ADDRESS (Pickup):", body.points[0].address);
-      console.log("📍 BORZO_PAYLOAD_ADDRESS (Dropoff):", body.points[1].address);
-
-      // ── LOGGING: BORZO_PAYLOAD_ADDRESS ──
-      console.log("📍 BORZO_PAYLOAD_ADDRESS:", JSON.stringify(body.points[1].address, null, 2));
-
       const data = await request(`${config.baseUrl}/create-order`, {
         method: "POST",
         headers: buildHeaders(config),
         body: JSON.stringify(body)
       });
-
-      // ── LOGGING: BORZO_API_RESPONSE ──
-      console.log("📍 BORZO_API_RESPONSE:", JSON.stringify(data, null, 2));
 
       const task = normalizeTask(data);
       logger.info(`✅ [BORZO] Task Created: ${task.taskId}, Status: ${task.status}`);
@@ -315,11 +306,6 @@ export const createBorzoProvider = () => {
       const courier = nestedOrder.courier || payload.courier || {};
       const trackingUrl = nestedOrder.tracking_url || payload.tracking_url || "";
 
-      // ── LOGGING: EXTRACTED_ORDER_ID & EXTRACTED_TASK_ID ──
-      console.log(`🔍 EXTRACTED_ORDER_ID: ${rawOrderId}`);
-      console.log(`🔍 EXTRACTED_TASK_ID: ${rawOrderId}`);
-      console.log(`RAW_BORZO_STATUS: ${rawStatus}`);
-
       let event = "unknown";
       
       /**
@@ -365,8 +351,6 @@ export const createBorzoProvider = () => {
         default:
           event = `borzo_${rawStatus}`; // Fallback
       }
-
-      console.log(`MAPPED_INTERNAL_STATUS: ${event}`);
 
       return {
         provider: "borzo",

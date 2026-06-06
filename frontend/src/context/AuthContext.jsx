@@ -25,20 +25,7 @@ const normalizeUser = (user) => {
 };
 
 const loadInitialAuth = () => {
-  console.log("AUTH_INIT: Loading initial auth from storage");
   const { user, token } = getStoredAuth();
-
-  if (token) {
-    console.log("TOKEN_FOUND: Found token in storage");
-  } else {
-    console.log("TOKEN_MISSING: No token found in storage");
-  }
-
-  if (user) {
-    console.log("USER_FOUND: Found user in storage", user.email);
-  } else {
-    console.log("USER_MISSING: No user found in storage");
-  }
 
   return {
     user: normalizeUser(user),

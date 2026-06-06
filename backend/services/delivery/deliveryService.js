@@ -1,25 +1,10 @@
 import { createBorzoProvider } from "./providers/borzoProvider.js";
-import { createShadowfaxProvider } from "./providers/shadowfaxProvider.js";
 
-const getProvider = () => {
-  const selectedProvider = (process.env.DELIVERY_PROVIDER || "borzo").toLowerCase();
-  
-  console.log("=========================================");
-  console.log(`🚚 ACTIVE_DELIVERY_PROVIDER: ${selectedProvider.toUpperCase()}`);
-  console.log(`🚚 RUNTIME_ENV_VALUE: ${process.env.DELIVERY_PROVIDER || "NOT_SET"}`);
-  console.log("=========================================");
-
-  if (selectedProvider === "shadowfax") {
-    return createShadowfaxProvider();
-  }
-  
-  // Default to Borzo
-  return createBorzoProvider();
-};
-
-const provider = getProvider();
+const provider = createBorzoProvider();
 
 export const createDeliveryTask = async (payload) => {
+  console.log("HANDOVER START");
+  console.log("ORDER ID:", payload.orderNumber);
   return provider.createDeliveryTask(payload);
 };
 

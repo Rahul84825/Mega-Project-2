@@ -14,34 +14,14 @@ router.post("/calculate", calculateDelivery);
 router.post("/check-availability", checkAvailability);
 
 /**
- * WEBHOOK: Unified Delivery Status Webhook
+ * WEBHOOK: Borzo Delivery Status Webhook
  */
-router.post("/webhook/:provider", async (req, res) => {
-  const { provider } = req.params;
+router.post("/webhook/borzo", async (req, res) => {
   const payload = req.body;
-
-  if (provider !== "borzo" && provider !== "shadowfax") {
-    return res.status(400).json({ success: false, message: "Invalid provider" });
-  }
-
-  // ── WEBHOOK AUTHENTICATION (Shadowfax Only) ──
-  if (provider === "shadowfax") {
-    const authHeader = req.headers.authorization;
-    const shadowfaxToken = process.env.SHADOWFAX_API_KEY;
-
-    if (!authHeader || authHeader !== `Token ${shadowfaxToken}`) {
-      logger.warn(`🚫 [WEBHOOK] Unauthorized Shadowfax attempt`, {
-        providedAuth: authHeader ? "***REDACTED***" : "MISSING",
-        ip: req.ip
-      });
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-  }
 
   try {
     // ── WEBHOOK DIAGNOSTIC LOGS ──
-    logger.info(`🚨 ${provider.toUpperCase()}_WEBHOOK_HIT`, {
-      provider,
+    logger.info(`🚨 BORZO_WEBHOOK_HIT`, {
       headers: req.headers,
       body: payload
     });
@@ -148,7 +128,7 @@ router.post("/webhook/:provider", async (req, res) => {
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    logger.error(`❌ [WEBHOOK] Error handling ${provider} webhook:`, error);
+    logger.error(`❌ [WEBHOOK] Error handling Borzo webhook:`, error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

@@ -1,7 +1,7 @@
 import { logger } from "../utils/logger.js";
 import { getIo } from "../socket.js";
 import Order from "../models/Order.js";
-import { createDeliveryTask, getTrackingDetails } from "./delivery/index.js";
+import { createDeliveryTask, getTrackingDetails, handleDeliveryWebhook } from "./delivery/index.js";
 import { validateDeliveryRadius } from "./locationService.js";
 import { getZoneByPincode } from "../config/pincodeZones.js";
 
@@ -72,18 +72,10 @@ const normalizeAndGeocodeAddress = (addr) => {
 };
 
 /**
- * ASSIGN DELIVERY PARTNER
- * Supports both Borzo and Shadowfax.
+ * ASSIGN DELIVERY PARTNER (Borzo)
  */
 export const assignDeliveryPartner = async (orderId) => {
-  const selectedProvider = (process.env.DELIVERY_PROVIDER || "borzo").toLowerCase();
-  
-  console.log("=========================================");
-  console.log(`📡 ASSIGN_DELIVERY_INIT: Order ${orderId}`);
-  console.log(`📡 SELECTED_PROVIDER: ${selectedProvider.toUpperCase()}`);
-  console.log("=========================================");
-
-  logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId} (Provider: ${selectedProvider})`);
+  logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId} (Provider: Borzo)`);
   
   try {
     const order = await Order.findById(orderId);
@@ -103,7 +95,7 @@ export const assignDeliveryPartner = async (orderId) => {
     order.delivery.status = "ASSIGNING";
     await order.save();
 
-    console.log(`CALLING ${selectedProvider.toUpperCase()} NOW`);
+    logger.info(`📡 [MARK READY] CALLING BORZO NOW for Order ${order.orderNumber}`);
 
     // Pincode validation
     const pincode = order.shippingAddress?.postalCode;
@@ -151,18 +143,22 @@ export const assignDeliveryPartner = async (orderId) => {
       totalAmount: order.totals?.grandTotal
     };
 
-    logger.info(`📡 [MARK READY] STEP 5 - ${selectedProvider.toUpperCase()} API REQUEST for Order ${order.orderNumber}`);
+    logger.info(`📡 [MARK READY] STEP 5 - BORZO API REQUEST for Order ${order.orderNumber}`);
+    
+    console.log("HANDOVER START");
+    console.log("ORDER ID:", orderId);
+    
     const task = await createDeliveryTask(payload);
     
     if (!task || !task.taskId) {
-      throw new Error(`${selectedProvider} failed to return a task ID`);
+      throw new Error(`Borzo failed to return a task ID`);
     }
 
     const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
     order.delivery = {
       ...(order.delivery || {}),
-      provider: selectedProvider,
+      provider: "borzo",
       providerOrderId: task.taskId,
       trackingId: task.taskId,
       trackingUrl: task.trackingUrl || "",
@@ -180,7 +176,7 @@ export const assignDeliveryPartner = async (orderId) => {
     }
 
     await order.save();
-    logger.info(`💾 [MARK READY] STEP 7 - ${selectedProvider.toUpperCase()} DELIVERY SAVED`);
+    logger.info(`💾 [MARK READY] STEP 7 - BORZO DELIVERY SAVED`);
 
     const io = getIo();
     if (io) {
@@ -189,7 +185,7 @@ export const assignDeliveryPartner = async (orderId) => {
 
     return order;
   } catch (error) {
-    logger.error(`❌ [MARK READY] FAILED at assignDeliveryPartner (${selectedProvider}):`, error.message);
+    logger.error(`❌ [MARK READY] FAILED at assignDeliveryPartner (Borzo):`, error.message);
     try {
       const order = await Order.findById(orderId);
       if (order && order.delivery?.status === "ASSIGNING") {
@@ -224,37 +220,29 @@ export const scheduleOrderReady = (orderId, etaMinutes) => {
 };
 
 /**
- * SYNC ACTIVE ORDERS - Provider-agnostic mode.
+ * SYNC ACTIVE ORDERS (Borzo)
  */
 export const syncActiveOrders = async () => {
   try {
     const activeStatuses = ["PREPARING", "READY", "PICKED_UP"];
     const ordersToSync = await Order.find({
       status: { $in: activeStatuses },
-      "delivery.providerOrderId": { $exists: true, $ne: "" }
+      "delivery.providerOrderId": { $exists: true, $ne: "" },
+      "delivery.provider": "borzo"
     });
 
     if (ordersToSync.length === 0) return;
 
-    logger.info(`🔄 [SYNC] Checking status of ${ordersToSync.length} active orders...`);
+    logger.info(`🔄 [SYNC] Checking status of ${ordersToSync.length} active Borzo orders...`);
 
     for (const order of ordersToSync) {
       try {
         const taskId = order.delivery.providerOrderId;
-        const provider = order.delivery.provider || "borzo";
         
         const task = await getTrackingDetails(taskId);
         if (!task || !task.status) continue;
 
-        // Use handleDeliveryWebhook logic but for a simulated webhook result
-        // since providers now have parseWebhook which handles status mapping.
-        // We simulate a payload that parseWebhook can handle.
-        let result;
-        if (provider === "borzo") {
-          result = await handleDeliveryWebhook({ order: { order_id: taskId, status: task.status, courier: task.rider } });
-        } else if (provider === "shadowfax") {
-          result = await handleDeliveryWebhook({ awb_number: taskId, event: task.status, rider_name: task.rider?.name, rider_contact: task.rider?.phone });
-        }
+        const result = await handleDeliveryWebhook({ order: { order_id: taskId, status: task.status, courier: task.rider } });
 
         if (!result || result.event === "unknown") continue;
 

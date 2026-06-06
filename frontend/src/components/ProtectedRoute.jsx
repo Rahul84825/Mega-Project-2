@@ -5,13 +5,6 @@ function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, isAdmin, authReady, user, token } = useAuth();
   const location = useLocation();
 
-  console.log(`ROUTE_NAVIGATION: ${location.pathname}`);
-  console.log(`PROTECTED_ROUTE_CHECK: authReady=${authReady}, isAuthenticated=${isAuthenticated}, user=${user ? 'FOUND' : 'MISSING'}, token=${token ? 'FOUND' : 'MISSING'}`);
-
-  if (adminOnly) {
-    console.log(`ADMIN_ROUTE_CHECK: isAdmin=${isAdmin}`);
-  }
-
   if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--cream)]">
