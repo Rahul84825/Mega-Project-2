@@ -3,8 +3,6 @@ import { createBorzoProvider } from "./providers/borzoProvider.js";
 const provider = createBorzoProvider();
 
 export const createDeliveryTask = async (payload) => {
-  console.log("HANDOVER START");
-  console.log("ORDER ID:", payload.orderNumber);
   return provider.createDeliveryTask(payload);
 };
 

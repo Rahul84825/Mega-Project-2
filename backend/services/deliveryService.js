@@ -145,9 +145,6 @@ export const assignDeliveryPartner = async (orderId) => {
 
     logger.info(`📡 [MARK READY] STEP 5 - BORZO API REQUEST for Order ${order.orderNumber}`);
     
-    console.log("HANDOVER START");
-    console.log("ORDER ID:", orderId);
-    
     const task = await createDeliveryTask(payload);
     
     if (!task || !task.taskId) {

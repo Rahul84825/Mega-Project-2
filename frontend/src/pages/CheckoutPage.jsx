@@ -181,7 +181,7 @@ function CheckoutPage() {
     try {
       const { data } = await api.post("/api/coupons/validate", { 
         code: couponCode, 
-        subtotal 
+        orderAmount: subtotal 
       });
       if (data.success) {
         setAppliedCoupon(data.coupon);
