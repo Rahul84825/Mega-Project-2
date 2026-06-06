@@ -127,6 +127,13 @@ export const PINCODE_ZONES = {
     fee: 120,
     eta: "75-100 mins",
     available: true
+  },
+  "412105": {
+    area: "Alandi (Devachi)",
+    city: "Pune",
+    fee: 120,
+    eta: "75-100 mins",
+    available: true
   }
 };
 

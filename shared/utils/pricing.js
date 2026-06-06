@@ -71,7 +71,8 @@ const SERVICEABLE_PINCODES = {
   "411007": { tier: 3, label: "Medium Distance (Aundh)" },
 
   // TIER 4 (15–18 km): ₹120 (Free >= ₹1299)
-  "411105": { tier: 4, label: "Extended Distance (Alandi)" }
+  "411105": { tier: 4, label: "Extended Distance (Alandi)" },
+  "412105": { tier: 4, label: "Extended Distance (Alandi)" }
 };
 
 /**
