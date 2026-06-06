@@ -91,7 +91,7 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     }
     if (dist <= 10) {
       return { 
-        threshold: 299, 
+        threshold: 499, 
         charge: 60, 
         label: "Standard Distance (5–10 km)", 
         outOfReach: false 
@@ -99,7 +99,7 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     }
     if (dist <= 15) {
       return { 
-        threshold: 599, 
+        threshold: 899, 
         charge: 80, 
         label: "Medium Distance (10–15 km)", 
         outOfReach: false 
