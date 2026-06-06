@@ -31,6 +31,9 @@ function Login() {
       const data = await loginUser(form);
 
       if (data?.token && data?.user && login(data.user, data.token)) {
+        if (data.user?.isAdmin !== true) {
+          localStorage.setItem("mithaiworld_login_popup_shown", "true");
+        }
         navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
       }
     } catch (submitError) {
@@ -127,6 +130,9 @@ function Login() {
                 const data = await loginWithGoogle({ idToken: response.credential });
 
                 if (data?.token && data?.user && login(data.user, data.token)) {
+                  if (data.user?.isAdmin !== true) {
+                    localStorage.setItem("mithaiworld_login_popup_shown", "true");
+                  }
                   navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
                 }
               } catch (googleError) {

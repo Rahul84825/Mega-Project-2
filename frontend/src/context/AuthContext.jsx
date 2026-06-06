@@ -139,6 +139,7 @@ export function AuthProvider({ children }) {
     setToken(null);
     setApiAuthToken(null);
     clearStoredAuth();
+    localStorage.removeItem("mithaiworld_login_popup_shown");
 
     if (reason) {
       toast.info(reason);

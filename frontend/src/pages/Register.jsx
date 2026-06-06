@@ -19,6 +19,9 @@ function Register() {
       const data = await registerApi(form);
 
       if (data?.token && data?.user) {
+        if (data.user?.isAdmin !== true) {
+          localStorage.setItem("mithaiworld_login_popup_shown", "true");
+        }
         login(data.user, data.token);
         navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
       } else {

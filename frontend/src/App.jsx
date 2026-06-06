@@ -41,6 +41,7 @@ import { CartProvider } from "./context/CartContext";
 import { ProductProvider } from "./context/ProductContext";
 import GlobalStyle from "./services/utils/GlobalStyle";
 import PromotionBar from "./components/common/PromotionBar";
+import AnnouncementPopup from "./components/common/AnnouncementPopup";
 
 // Store Pages (core pages, loaded early)
 import HomePage from "./pages/HomePage";
@@ -115,6 +116,7 @@ function App() {
           <GlobalStyle />
           <ScrollToTop />
           <ToastContainer position="bottom-right" autoClose={3000} />
+          <AnnouncementPopup />
 
           <Routes>
             {/* ═══════════════════════════════════════════ */}
