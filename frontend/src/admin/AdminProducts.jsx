@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   PlusCircle,
   Pencil,
@@ -25,11 +25,21 @@ const AdminProducts = () => {
   } = useProducts();
   
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [filterCat, setFilterCat] = useState("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [filterCat, setFilterCat] = useState(searchParams.get("category") || "all");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [busyId, setBusyId] = useState("");
   const [expandedStockId, setExpandedStockId] = useState(null);
+
+  // Update URL params when filters change
+  useEffect(() => {
+    const params = {};
+    if (search) params.search = search;
+    if (filterCat !== "all") params.category = filterCat;
+    setSearchParams(params, { replace: true });
+  }, [search, filterCat, setSearchParams]);
 
   // Stable ID selection for keys and state
   const getId = (p) => {
@@ -247,7 +257,7 @@ const AdminProducts = () => {
 
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => navigate("/admin/add-product", { state: { product } })}
+                        onClick={() => navigate("/admin/add-product", { state: { product, fromParams: searchParams.toString() } })}
                         className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#fffaf3] border border-[#e6d3b3] text-[#7a5c3a] active:bg-[#f5e6d3]"
                       >
                         <Pencil size={14} />
@@ -411,7 +421,7 @@ const AdminProducts = () => {
                                 </button>
                               )}
                               <div className="flex items-center gap-1 bg-[#fffaf3] border border-[#e6d3b3] p-1 rounded-xl shadow-sm md:opacity-0 md:group-hover:opacity-100 transition-all">
-                                <button onClick={() => navigate("/admin/add-product", { state: { product } })} className="p-1.5 hover:bg-white hover:text-[#8b4513] text-[#7a5c3a] rounded-lg transition-all" title="Edit">
+                                <button onClick={() => navigate("/admin/add-product", { state: { product, fromParams: searchParams.toString() } })} className="p-1.5 hover:bg-white hover:text-[#8b4513] text-[#7a5c3a] rounded-lg transition-all" title="Edit">
                                   <Pencil size={14} />
                                 </button>
                                 <div className="w-px h-4 bg-[#e6d3b3]" />

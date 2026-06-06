@@ -240,7 +240,9 @@ const AdminProductForm = () => {
       setSaved(true);
       toast.success(isEditMode ? "Mithai updated successfully!" : "Mithai published successfully!");
       await fetchProducts();
-      setTimeout(() => navigate("/admin/products"), 1500);
+      
+      const fromParams = location.state?.fromParams || "";
+      setTimeout(() => navigate(`/admin/products${fromParams ? `?${fromParams}` : ""}`), 1500);
     } catch (err) {
       console.error("Save error:", err);
       
