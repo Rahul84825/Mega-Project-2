@@ -143,10 +143,10 @@ const OrderCard = ({
               <div className="text-[10px] font-medium text-[#7a5c3a]">{order.rider.phone}</div>
             </div>
           </div>
-          {order.delivery?.pickupOtp && status === "READY" && (
+          {status === "READY" && (
             <div className="bg-white px-3 py-1.5 rounded-lg border border-[#e6d3b3] shadow-sm w-fit sm:ml-auto shrink-0">
-              <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a]">Pickup OTP</div>
-              <div className="text-sm font-black text-[#2d1b0e] tracking-widest">{order.delivery.pickupOtp}</div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-[#b67b3a]">Borzo</div>
+              <div className="text-[10px] font-black text-[#2d1b0e] tracking-widest">ASSIGNED</div>
             </div>
           )}
         </div>

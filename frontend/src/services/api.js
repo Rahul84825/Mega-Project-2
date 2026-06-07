@@ -205,16 +205,6 @@ export const updateDeliveryStatus = async (payload, config = {}) => {
   return data;
 };
 
-export const verifyDeliveryOTP = async (payload, config = {}) => {
-  const { data } = await api.post("/api/orders/verify-delivery", payload, withTimeout(config));
-  return data;
-};
-
-export const resendDeliveryOTP = async (payload, config = {}) => {
-  const { data } = await api.post("/api/orders/resend-otp", payload, withTimeout(config));
-  return data;
-};
-
 export const checkDeliveryAvailability = async (pincode, config = {}) => {
   const { data } = await api.post("/api/delivery/check-availability", { pincode }, withTimeout(config));
   return data;

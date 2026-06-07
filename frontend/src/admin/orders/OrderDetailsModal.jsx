@@ -242,13 +242,6 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
               </div>
 
               {/* Status Specific Contextual Cards */}
-              {delivery.pickupOtp && status === "READY" && (
-                <div className="bg-[#fffaf3] border-2 border-dashed border-[#e6d3b3] p-4 sm:p-6 rounded-2xl sm:rounded-3xl text-center">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#b67b3a] mb-2">Handover OTP</p>
-                  <p className="text-3xl sm:text-4xl font-black text-[#2d1b0e] tracking-[0.3em] ml-[0.3em]">{delivery.pickupOtp}</p>
-                </div>
-              )}
-
               {status === "PREPARING" && (
                 <div className="bg-orange-50/50 border border-orange-100 p-4 sm:p-5 rounded-2xl sm:rounded-3xl">
                   <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-orange-600 mb-3 flex items-center gap-2">

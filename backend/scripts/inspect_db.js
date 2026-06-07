@@ -38,7 +38,6 @@ const inspectDb = async () => {
       console.log(`  Provider: ${order.delivery?.provider}`);
       console.log(`  Provider Order ID: ${order.delivery?.providerOrderId}`);
       console.log(`  Delivery Status: ${order.delivery?.status}`);
-      console.log(`  OTP: ${order.delivery?.pickupOtp}`);
       console.log(`  Webhook History Count: ${order.delivery?.webhookHistory?.length || 0}`);
       
       if (order.delivery?.webhookHistory && order.delivery.webhookHistory.length > 0) {

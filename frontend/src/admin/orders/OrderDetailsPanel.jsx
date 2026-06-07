@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone, Truck, ShieldCheck, Timer, User } from "lucide-react";
+import { Mail, MapPin, Phone, Truck, Timer, User } from "lucide-react";
 import { formatCurrency } from "shared/utils/pricing";
 import {
   PAYMENT_METHOD_META,
@@ -10,7 +10,7 @@ import {
 } from "./orderUtils";
 import OrderTimer from "./OrderTimer";
 
-const OrderDetailsPanel = ({ order, onClose, onVerifyOtp, onResendOtp }) => {
+const OrderDetailsPanel = ({ order, onClose }) => {
   if (!order) {
     return (
       <div className="rounded-3xl border border-dashed border-[#e6d3b3] bg-[#fffaf3] p-8 text-center text-sm text-[#7a5c3a]">
@@ -132,31 +132,6 @@ const OrderDetailsPanel = ({ order, onClose, onVerifyOtp, onResendOtp }) => {
           </div>
           {rider.phone && <div className="text-xs text-[#6d4c41]">{rider.phone}</div>}
           {rider.vehicleNumber && <div className="text-xs text-[#6d4c41]">{rider.vehicleNumber}</div>}
-        </div>
-
-        <div className="rounded-2xl border border-[#f0e0c4] bg-[#fff8ec] p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-[#8b4513]">
-            <ShieldCheck className="h-4 w-4" /> Delivery OTP
-          </div>
-          <div className="mt-2 text-sm text-[#2d1b0e]">
-            {order.deliveryVerified ? "Verified" : "Pending"}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => onResendOtp?.(order)}
-              className="rounded-full border border-[#d4a373] px-3 py-1 font-medium text-[#8b4513]"
-            >
-              Resend OTP
-            </button>
-            <button
-              type="button"
-              onClick={() => onVerifyOtp?.(order)}
-              className="rounded-full bg-[#8b4513] px-3 py-1 font-medium text-white"
-            >
-              Verify OTP
-            </button>
-          </div>
         </div>
 
         <div className="rounded-2xl border border-[#f0e0c4] bg-[#fff8ec] p-4">

@@ -125,15 +125,6 @@ export const deliveryStatusValidation = [
   body("deliveryStatus").isIn(["pending", "out_for_delivery", "delivered"]).withMessage("Invalid delivery status")
 ];
 
-export const deliveryOtpValidation = [
-  body("orderId").trim().matches(mongoIdPattern).withMessage("orderId must be a valid MongoDB id"),
-  body("otp").trim().matches(/^\d{4}$/).withMessage("OTP must be a 4-digit code")
-];
-
-export const resendDeliveryOtpValidation = [
-  body("orderId").trim().matches(mongoIdPattern).withMessage("orderId must be a valid MongoDB id")
-];
-
 export const categoryCreateValidation = [
   body("name").trim().isLength(safeString(2, 60)).withMessage("Category name must be between 2 and 60 characters"),
   body("is_active").optional().isBoolean().withMessage("is_active must be a boolean").toBoolean(),

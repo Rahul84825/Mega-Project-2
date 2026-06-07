@@ -142,7 +142,6 @@ const normalizeTask = (data = {}) => {
       phone: order.courier?.phone || "",
       vehicleNumber: order.courier?.car_number || ""
     },
-    pickupOtp: "", // Borzo usually doesn't use pickup OTP in basic flow
     trackingUrl: order.tracking_url || "",
     eta: order.courier_arrival_time_at_pickup || null
   };

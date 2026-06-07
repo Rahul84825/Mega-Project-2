@@ -152,8 +152,6 @@ export const assignDeliveryPartner = async (orderId) => {
       throw new Error(`Borzo failed to return a task ID`);
     }
 
-    const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
-
     order.delivery = {
       ...(order.delivery || {}),
       provider: "borzo",
@@ -161,8 +159,7 @@ export const assignDeliveryPartner = async (orderId) => {
       trackingId: task.taskId,
       trackingUrl: task.trackingUrl || "",
       status: task.rider?.name ? "RIDER_ASSIGNED" : "DELIVERY_ASSIGNED",
-      assignedAt: new Date(),
-      pickupOtp: pickupOtp
+      assignedAt: new Date()
     };
 
     if (task.rider?.name) {
