@@ -147,12 +147,10 @@ export const verifyPayment = async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
     const orderData = extractOrderData(req.body);
 
-    logger.info("🔐 PAYMENT VERIFICATION INITIATED", {
+    logger.info("🔐 PAYMENT_STEP_6_VERIFY_REQUEST_RECEIVED", {
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       hasSignature: !!razorpay_signature,
-      bodyKeys: Object.keys(req.body),
-      orderDataKeys: Object.keys(orderData),
       itemCount: Array.isArray(orderData?.items) ? orderData.items.length : 0,
       timestamp: new Date().toISOString()
     });
@@ -193,9 +191,18 @@ export const verifyPayment = async (req, res) => {
     }
 
     // Verify signature
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      logger.error("❌ RAZORPAY_KEY_SECRET IS MISSING FROM ENVIRONMENT");
+      return res.status(500).json({
+        success: false,
+        message: "Payment configuration error on server"
+      });
+    }
+
     const verificationString = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+      .createHmac("sha256", keySecret)
       .update(verificationString)
       .digest("hex");
 
@@ -206,7 +213,8 @@ export const verifyPayment = async (req, res) => {
         received: razorpay_signature,
         expected: expectedSignature,
         orderId: razorpay_order_id,
-        paymentId: razorpay_payment_id
+        paymentId: razorpay_payment_id,
+        secretPrefix: keySecret.substring(0, 4)
       });
 
       // Notify customer about failed payment if email exists
@@ -227,17 +235,33 @@ export const verifyPayment = async (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message: "Invalid payment signature",
+        message: "Invalid payment signature. Verification failed.",
         details: { reason: "Signature mismatch" }
       });
     }
 
-    // Check if payment already processed (using correct nested field path)
-    const existingOrder = await Order.findOne({ "payment.razorpayPaymentId": razorpay_payment_id });
+    logger.info("🟢 PAYMENT_STEP_7_SIGNATURE_VALID", {
+      razorpayOrderId: razorpay_order_id,
+      timestamp: new Date().toISOString()
+    });
+
+    // Check if payment already processed (check both payment ID and order ID for maximum safety)
+    const existingOrder = await Order.findOne({ 
+      $or: [
+        { "payment.razorpayPaymentId": razorpay_payment_id },
+        { "payment.razorpayOrderId": razorpay_order_id }
+      ]
+    });
+
     if (existingOrder) {
+      logger.warn("⚠️ PAYMENT ALREADY PROCESSED", {
+        orderNumber: existingOrder.orderNumber,
+        razorpayPaymentId: razorpay_payment_id,
+        razorpayOrderId: razorpay_order_id
+      });
       return res.status(409).json({
         success: false,
-        message: "Payment already processed",
+        message: "This payment has already been processed and recorded.",
         order: existingOrder
       });
     }
@@ -355,6 +379,12 @@ export const verifyPayment = async (req, res) => {
     if (!createdOrder) {
       throw new Error("Order creation failed during transaction");
     }
+
+    logger.info("🟢 PAYMENT_STEP_8_ORDER_CREATED", {
+      orderNumber: createdOrder.orderNumber,
+      orderId: createdOrder._id,
+      timestamp: new Date().toISOString()
+    });
 
     // Emit socket event (Standardized)
     const io = getIo();

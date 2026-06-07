@@ -229,9 +229,11 @@ function CheckoutPage() {
     if (!scriptReady) return setErrorMessage("Payment gateway loading...");
     if (!isAvailable) return setErrorMessage("Delivery not available for this location");
     
+    console.log("🔵 PAYMENT_STEP_1_CREATE_ORDER_REQUEST", { amount: total, timestamp: new Date().toISOString() });
     setProcessing(true);
     try {
       const { data: orderData } = await api.post("/api/payment/create-order", { amount: total });
+      console.log("🟢 PAYMENT_STEP_2_CREATE_ORDER_SUCCESS", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
       
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -242,8 +244,13 @@ function CheckoutPage() {
         prefill: { name: form.name, email: form.email, contact: form.phone },
         theme: { color: "#8B1E3F" },
         handler: async (res) => {
+          console.log("🟡 PAYMENT_STEP_4_PAYMENT_SUCCESS_CALLBACK", { 
+            razorpay_order_id: res.razorpay_order_id,
+            razorpay_payment_id: res.razorpay_payment_id,
+            timestamp: new Date().toISOString()
+          });
           try {
-            const { data: verifyData } = await api.post("/api/payment/verify", {
+            const verifyPayload = {
               razorpay_order_id: res.razorpay_order_id,
               razorpay_payment_id: res.razorpay_payment_id,
               razorpay_signature: res.razorpay_signature,
@@ -255,7 +262,6 @@ function CheckoutPage() {
                   state: form.state, 
                   postalCode: form.pincode, 
                   country: "IN",
-                  // Save coordinates if we have them from the backend check
                   geo: deliveryInfo?.geo || null
                 },
                 items: cart.map(i => ({ ...i, productId: i.productId })),
@@ -274,18 +280,38 @@ function CheckoutPage() {
                   geocodedAddress: deliveryInfo?.formattedAddress || ""
                 }
               }
+            };
+            console.log("🔵 PAYMENT_STEP_5_VERIFY_REQUEST_SENT", { 
+              orderId: res.razorpay_order_id, 
+              paymentId: res.razorpay_payment_id,
+              timestamp: new Date().toISOString() 
             });
-            if (verifyData.success) handleOrderSuccess(verifyData.order);
-            else throw new Error("Verification failed");
+            const { data: verifyData } = await api.post("/api/payment/verify", verifyPayload);
+            if (verifyData.success) {
+              console.log("🟢 PAYMENT_STEP_9_PAYMENT_COMPLETED", { orderId: verifyData.order?._id, timestamp: new Date().toISOString() });
+              handleOrderSuccess(verifyData.order);
+            } else {
+              throw new Error(verifyData.message || "Verification failed");
+            }
           } catch (err) {
-            setErrorMessage("Payment verification failed");
+            console.error("❌ PAYMENT_VERIFICATION_ERROR", err);
+            const msg = getApiErrorMessage(err, "Payment verification failed");
+            setErrorMessage(msg);
           }
         },
-        modal: { ondismiss: () => setProcessing(false) }
+        modal: { 
+          ondismiss: () => {
+            console.warn("🟠 PAYMENT_MODAL_DISMISSED");
+            setProcessing(false);
+          }
+        }
       };
+      console.log("🟣 PAYMENT_STEP_3_RAZORPAY_MODAL_OPENED", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
       new window.Razorpay(options).open();
     } catch (err) {
-      setErrorMessage("Could not initiate payment");
+      console.error("❌ PAYMENT_INITIATION_ERROR", err);
+      const msg = getApiErrorMessage(err, "Could not initiate payment");
+      setErrorMessage(msg);
       setProcessing(false);
     }
   };
@@ -300,18 +326,18 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="page-enter min-h-[60vh] bg-[var(--cream)] px-4 py-8 md:py-16">
-      <div className="max-w-5xl lg:max-w-[1440px] mx-auto">
-        <div className="section-title mb-10 lg:mb-14">
-          <h2 className="serif lg:text-6xl text-5xl">Checkout</h2>
-          <p className="lg:text-lg">Complete your order and enjoy premium Indian sweets.</p>
+    <div className="page-enter min-h-[60vh] bg-[var(--cream)] px-4 py-8 md:py-12">
+      <div className="max-w-6xl mx-auto">
+        <div className="section-title mb-8 lg:mb-10">
+          <h2 className="serif lg:text-5xl text-4xl">Checkout</h2>
+          <p className="text-sm lg:text-base opacity-80">Complete your order and enjoy premium Indian sweets.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-10">
           <div className="space-y-6 lg:space-y-10">
             {/* ── STEP 1: ADDRESS ── */}
-            <div className={`bg-white rounded-2xl border border-[var(--surface-border)] p-6 transition-opacity ${step === 2 ? 'opacity-60 grayscale' : ''}`}>
-              <div className="flex items-center gap-3 mb-6">
+            <div className={`bg-white rounded-2xl border border-[var(--surface-border)] p-5 md:p-6 transition-opacity ${step === 2 ? 'opacity-60 grayscale' : ''}`}>
+              <div className="flex items-center gap-3 mb-5">
                 <div className="h-8 w-8 rounded-full bg-[var(--burgundy)] text-white flex items-center justify-center font-medium">1</div>
                 <h3 className="serif text-xl">Delivery Address</h3>
               </div>
@@ -394,24 +420,24 @@ function CheckoutPage() {
 
             {/* ── STEP 2: PAYMENT ── */}
             {step === 2 && (
-              <div className="bg-white rounded-2xl border border-[var(--surface-border)] p-6 animate-in slide-in-from-top-4 duration-500">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="bg-white rounded-2xl border border-[var(--surface-border)] p-5 md:p-6 animate-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="h-8 w-8 rounded-full bg-[var(--burgundy)] text-white flex items-center justify-center font-medium">2</div>
                   <h3 className="serif text-xl">Payment Method</h3>
                 </div>
 
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-6">
                   {[
                     { id: 'razorpay', label: 'Online Payment', desc: 'UPI, Cards, Net Banking', icon: '💳' }
                   ].map(method => (
                     <label 
                       key={method.id}
-                      className="flex items-center p-4 rounded-xl border-2 border-[var(--saffron)] bg-[var(--surface-strong)]/30 transition-all cursor-default"
+                      className="flex items-center p-3 md:p-4 rounded-xl border-2 border-[var(--saffron)] bg-[var(--surface-strong)]/30 transition-all cursor-default"
                     >
                       <div className="text-2xl mr-4">{method.icon}</div>
                       <div className="flex-1">
-                        <div className="font-medium text-[var(--charcoal)]">{method.label}</div>
-                        <div className="text-[11px] text-[var(--muted)]">{method.desc}</div>
+                        <div className="font-medium text-sm text-[var(--charcoal)]">{method.label}</div>
+                        <div className="text-[10px] text-[var(--muted)]">{method.desc}</div>
                       </div>
                       <div className="h-5 w-5 rounded-full border-2 flex items-center justify-center border-[var(--burgundy)]">
                         <div className="h-2.5 w-2.5 rounded-full bg-[var(--burgundy)]" />
@@ -425,7 +451,7 @@ function CheckoutPage() {
                 <button 
                   disabled={processing}
                   onClick={handleOnlinePayment}
-                  className="w-full btn-primary h-12 shadow-lg"
+                  className="w-full btn-primary h-11 md:h-12 shadow-lg text-sm"
                 >
                   {processing ? 'Processing...' : `Place Order (${formatCurrency(total)})`}
                 </button>
@@ -435,21 +461,21 @@ function CheckoutPage() {
 
           {/* ── SIDEBAR: SUMMARY ── */}
           <div className="space-y-6">
-            <div className="bg-[var(--charcoal)] rounded-2xl p-6 text-white sticky top-28 shadow-2xl">
-              <h3 className="serif text-xl text-[var(--saffron)] mb-6">Order Summary</h3>
-              <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6 border-b border-white/10 pb-6">
+            <div className="bg-[var(--charcoal)] rounded-2xl p-5 md:p-6 text-white sticky top-28 shadow-2xl">
+              <h3 className="serif text-xl text-[var(--saffron)] mb-5">Order Summary</h3>
+              <div className="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-2 mb-5 border-b border-white/10 pb-5">
                 {cart.map(item => (
                   <div key={`${item.productId}-${item.variantId}`} className="flex gap-3">
-                    <img src={item.image} className="h-12 w-12 rounded-lg object-cover bg-white/10" alt="" />
-                    <div className="flex-1 min-w-0 text-xs">
+                    <img src={item.image} className="h-10 w-10 rounded-lg object-cover bg-white/10" alt="" />
+                    <div className="flex-1 min-w-0 text-[11px]">
                       <div className="font-medium truncate">{item.name}</div>
                       <div className="text-white/60">{item.variantLabel} × {item.quantity}</div>
                     </div>
-                    <div className="font-medium">{formatCurrency(item.price * item.quantity)}</div>
+                    <div className="font-medium text-xs">{formatCurrency(item.price * item.quantity)}</div>
                   </div>
                 ))}
               </div>
-              <div className="space-y-3 text-xs font-medium text-white/70 mb-6">
+              <div className="space-y-2.5 text-[11px] font-medium text-white/70 mb-5">
                 <div className="flex justify-between">
                   <span>Items (Excl. Tax)</span>
                   <span>{formatCurrency(subtotal)}</span>
