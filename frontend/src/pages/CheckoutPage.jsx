@@ -301,14 +301,14 @@ function CheckoutPage() {
 
   return (
     <div className="page-enter min-h-[60vh] bg-[var(--cream)] px-4 py-8 md:py-16">
-      <div className="max-w-5xl mx-auto">
-        <div className="section-title mb-10">
-          <h2 className="serif">Checkout</h2>
-          <p>Complete your order and enjoy premium Indian sweets.</p>
+      <div className="max-w-5xl lg:max-w-[1440px] mx-auto">
+        <div className="section-title mb-10 lg:mb-14">
+          <h2 className="serif lg:text-6xl text-5xl">Checkout</h2>
+          <p className="lg:text-lg">Complete your order and enjoy premium Indian sweets.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-8 lg:gap-12">
+          <div className="space-y-6 lg:space-y-10">
             {/* ── STEP 1: ADDRESS ── */}
             <div className={`bg-white rounded-2xl border border-[var(--surface-border)] p-6 transition-opacity ${step === 2 ? 'opacity-60 grayscale' : ''}`}>
               <div className="flex items-center gap-3 mb-6">
