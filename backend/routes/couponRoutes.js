@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   validateCoupon,
   getCoupons,
+  getAvailableCoupons,
   createCoupon,
   deleteCoupon
 } from "../controllers/couponController.js";
@@ -11,6 +12,9 @@ const router = Router();
 
 // Public: Validate coupon during checkout
 router.post("/validate", validateCoupon);
+
+// Public: Get visible coupons for checkout discovery
+router.get("/available", getAvailableCoupons);
 
 // Admin: Manage coupons
 router.get("/", protect, adminOnly, getCoupons);

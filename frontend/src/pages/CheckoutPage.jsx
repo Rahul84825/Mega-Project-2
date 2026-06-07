@@ -8,7 +8,8 @@ import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/prici
 import api, { getApiErrorMessage, checkDeliveryAvailability } from "../services/api";
 import StoreMap from "../components/common/StoreMap";
 import LocationCard from "../components/common/LocationCard";
-import { Phone, MessageSquare, MapPin, Truck, MapPinOff, Loader2 } from "lucide-react";
+import AvailableCoupons from "../components/checkout/AvailableCoupons";
+import { Phone, MessageSquare, MapPin, Truck, MapPinOff, Loader2, Tag } from "lucide-react";
 
 let razorpayScriptPromise;
 
@@ -85,6 +86,7 @@ function CheckoutPage() {
   const [deliveryInfo, setDeliveryInfo] = useState(null);
   const [isValidatingPincode, setIsValidatingPincode] = useState(false);
   const [pincodeError, setPincodeError] = useState("");
+  const [showOffers, setShowOffers] = useState(false);
 
   const isMountedRef = useRef(true);
 
@@ -181,7 +183,8 @@ function CheckoutPage() {
     try {
       const { data } = await api.post("/api/coupons/validate", { 
         code: couponCode, 
-        orderAmount: subtotal 
+        orderAmount: subtotal,
+        userId: user?.userId || user?._id
       });
       if (data.success) {
         setAppliedCoupon(data.coupon);
@@ -198,6 +201,15 @@ function CheckoutPage() {
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
+  };
+
+  const handleApplyAvailableCoupon = (code) => {
+    setCouponCode(code);
+    setShowOffers(false);
+    // Auto-trigger validation
+    setTimeout(() => {
+      handleApplyCoupon();
+    }, 100);
   };
 
   const handleOrderSuccess = async (order) => {
@@ -498,6 +510,13 @@ function CheckoutPage() {
                       <span>-{formatCurrency(couponDiscount)}</span>
                     </div>
                   )}
+
+                  <button 
+                    onClick={() => setShowOffers(true)}
+                    className="flex items-center justify-center gap-1.5 w-full py-1.5 text-[9px] font-black uppercase tracking-[0.15em] text-[var(--saffron)] hover:text-white transition-colors border border-[var(--saffron)]/20 rounded-lg bg-[var(--saffron)]/5"
+                  >
+                    <Tag size={10} /> View Available Offers
+                  </button>
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-white/5 mb-2">
@@ -529,8 +548,14 @@ function CheckoutPage() {
           </div>
         </div>
 
-        
-
+        {showOffers && (
+          <AvailableCoupons 
+            subtotal={subtotal} 
+            onApply={handleApplyAvailableCoupon} 
+            onClose={() => setShowOffers(false)} 
+            userId={user?.userId || user?._id}
+          />
+        )}
       </div>
     </div>
   );

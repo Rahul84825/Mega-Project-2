@@ -20,7 +20,8 @@ const AdminCoupons = () => {
     maxDiscount: "",
     expiresAt: "",
     usageLimit: "",
-    description: ""
+    description: "",
+    showOnCheckout: false
   });
 
   const fetchCoupons = async () => {
@@ -38,8 +39,8 @@ const AdminCoupons = () => {
   useEffect(() => { fetchCoupons(); }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleCreateCoupon = async (e) => {
@@ -50,7 +51,7 @@ const AdminCoupons = () => {
       if (data.success) {
         setCoupons(prev => [data.coupon, ...prev]);
         setShowAddModal(false);
-        setForm({ code: "", discountType: "PERCENTAGE", discountValue: "", minOrderAmount: "", maxDiscount: "", expiresAt: "", usageLimit: "", description: "" });
+        setForm({ code: "", discountType: "PERCENTAGE", discountValue: "", minOrderAmount: "", maxDiscount: "", expiresAt: "", usageLimit: "", description: "", showOnCheckout: false });
       }
     } catch (err) {
       alert(getApiErrorMessage(err, "Failed to create coupon"));
@@ -97,9 +98,16 @@ const AdminCoupons = () => {
             
             <div className="relative z-10 flex flex-col h-full">
               <div className="flex items-center justify-between mb-3">
-                <span className="bg-[#f5e6d3] text-[#8b4513] px-2.5 py-0.5 rounded-lg text-[9px] font-black tracking-widest uppercase border border-[#e6d3b3]">
-                  {coupon.code}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="bg-[#f5e6d3] text-[#8b4513] px-2.5 py-0.5 rounded-lg text-[9px] font-black tracking-widest uppercase border border-[#e6d3b3] w-fit">
+                    {coupon.code}
+                  </span>
+                  {coupon.showOnCheckout && (
+                    <span className="flex items-center gap-1 text-[8px] font-black text-emerald-600 uppercase tracking-widest">
+                      <Clock size={8} /> Visible on Checkout
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => handleDeleteCoupon(coupon._id)}
                   className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
@@ -199,6 +207,21 @@ const AdminCoupons = () => {
                 <div className="col-span-2">
                   <label className="text-[9px] font-black uppercase tracking-widest text-[#b67b3a] block mb-1.5 ml-1">Description</label>
                   <textarea name="description" value={form.description} onChange={handleInputChange} className="w-full rounded-xl border-2 border-[#e6d3b3] bg-white p-4 text-xs font-medium text-[#2d1b0e] h-20 outline-none focus:border-[var(--burgundy)]" placeholder="Short description..."></textarea>
+                </div>
+
+                <div className="col-span-2 flex items-center gap-3 bg-white p-4 rounded-xl border-2 border-[#e6d3b3]">
+                  <input 
+                    type="checkbox" 
+                    id="showOnCheckout" 
+                    name="showOnCheckout" 
+                    checked={form.showOnCheckout} 
+                    onChange={handleInputChange}
+                    className="h-5 w-5 accent-emerald-600 rounded border-[#e6d3b3]"
+                  />
+                  <label htmlFor="showOnCheckout" className="text-[10px] font-black uppercase tracking-widest text-[#2d1b0e] cursor-pointer select-none">
+                    Show On Checkout
+                    <span className="block text-[8px] font-bold text-[#b67b3a] lowercase opacity-70">Customers can see and apply this from the checkout page.</span>
+                  </label>
                 </div>
               </div>
 

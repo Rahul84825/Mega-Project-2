@@ -77,12 +77,59 @@ export const getCoupons = async (req, res, next) => {
 };
 
 /**
+ * Public: Get coupons visible on checkout
+ * GET /api/coupons/available
+ */
+export const getAvailableCoupons = async (req, res, next) => {
+  try {
+    const { userId } = req.query;
+    
+    let query = {
+      isActive: true,
+      showOnCheckout: true,
+      expiresAt: { $gt: new Date() }
+    };
+
+    if (userId) {
+      // Find coupons already used by this user
+      const usedCoupons = await Order.find({
+        "customer.userId": userId,
+        status: { $ne: "REJECTED" },
+        "coupon.code": { $exists: true }
+      }).distinct("coupon.code");
+
+      if (usedCoupons.length > 0) {
+        query.code = { $nin: usedCoupons };
+      }
+    }
+
+    const coupons = await Coupon.find(query)
+    .select("code description discountType discountValue minOrderAmount maxDiscount")
+    .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, coupons });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * Admin: Create a coupon
  * POST /api/coupons
  */
 export const createCoupon = async (req, res, next) => {
   try {
-    const { code, discountType, discountValue, minOrderAmount, maxDiscount, expiresAt, usageLimit, description } = req.body;
+    const { 
+      code, 
+      discountType, 
+      discountValue, 
+      minOrderAmount, 
+      maxDiscount, 
+      expiresAt, 
+      usageLimit, 
+      description,
+      showOnCheckout 
+    } = req.body;
 
     const exists = await Coupon.findOne({ code: code.toUpperCase().trim() });
     if (exists) {
@@ -101,7 +148,8 @@ export const createCoupon = async (req, res, next) => {
       maxDiscount,
       expiresAt: expiryDate,
       usageLimit,
-      description
+      description,
+      showOnCheckout: Boolean(showOnCheckout)
     });
 
     return res.status(201).json({ success: true, coupon });
