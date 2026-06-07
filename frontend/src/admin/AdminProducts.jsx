@@ -29,6 +29,7 @@ const AdminProducts = () => {
   
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [filterCat, setFilterCat] = useState(searchParams.get("category") || "all");
+  const [stockFilter, setStockFilter] = useState(searchParams.get("stock") || "all");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [busyId, setBusyId] = useState("");
   const [expandedStockId, setExpandedStockId] = useState(null);
@@ -38,8 +39,17 @@ const AdminProducts = () => {
     const params = {};
     if (search) params.search = search;
     if (filterCat !== "all") params.category = filterCat;
+    if (stockFilter !== "all") params.stock = stockFilter;
     setSearchParams(params, { replace: true });
-  }, [search, filterCat, setSearchParams]);
+  }, [search, filterCat, stockFilter, setSearchParams]);
+
+  // Stock counts (calculated from base products list)
+  const counts = useMemo(() => {
+    const all = products?.length || 0;
+    const inStock = products?.filter(p => p.available === true).length || 0;
+    const outOfStock = products?.filter(p => p.available === false).length || 0;
+    return { all, inStock, outOfStock };
+  }, [products]);
 
   // Stable ID selection for keys and state
   const getId = (p) => {
@@ -126,6 +136,12 @@ const AdminProducts = () => {
         return String(pCat || "").toLowerCase() === filterCat;
       })
       .filter((p) => {
+        if (stockFilter === "all") return true;
+        if (stockFilter === "inStock") return p.available === true;
+        if (stockFilter === "outOfStock") return p.available === false;
+        return true;
+      })
+      .filter((p) => {
         if (!q) return true;
         const name = (p.name || "").toLowerCase();
         const catName = getCategoryName(p.category).toLowerCase();
@@ -133,7 +149,7 @@ const AdminProducts = () => {
         const id = String(p.orderNumber || p._id || "").toLowerCase();
         return name.includes(q) || catName.includes(q) || tags.includes(q) || id.includes(q);
       });
-  }, [products, filterCat, search, categories]);
+  }, [products, filterCat, stockFilter, search, categories]);
 
   const handleDelete = async (id) => {
     await deleteProduct(id);
@@ -176,6 +192,8 @@ const AdminProducts = () => {
             className="w-full h-12 sm:h-14 pl-12 pr-4 bg-white border border-[#e6d3b3] rounded-xl sm:rounded-2xl text-sm font-medium text-[#2d1b0e] placeholder:text-[#a67f52] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/20 focus:border-[#8b4513] transition-all shadow-sm" 
           />
         </div>
+        
+        {/* Category Filter */}
         <div className="relative md:w-72">
            <select 
              value={filterCat} 
@@ -184,6 +202,22 @@ const AdminProducts = () => {
            >
              <option value="all">All Categories</option>
              {(categories || []).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+           </select>
+           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#a67f52]">
+             <ChevronDown size={18} />
+           </div>
+        </div>
+
+        {/* Stock Status Filter */}
+        <div className="relative md:w-64">
+           <select 
+             value={stockFilter} 
+             onChange={(e) => setStockFilter(e.target.value)} 
+             className="w-full h-12 sm:h-14 pl-4 pr-12 bg-white border border-[#e6d3b3] rounded-xl sm:rounded-2xl text-sm font-bold text-[#7a5c3a] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/20 focus:border-[#8b4513] transition-all shadow-sm appearance-none cursor-pointer"
+           >
+             <option value="all">All Products ({counts.all})</option>
+             <option value="inStock">In Stock ({counts.inStock})</option>
+             <option value="outOfStock">Out Of Stock ({counts.outOfStock})</option>
            </select>
            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#a67f52]">
              <ChevronDown size={18} />
