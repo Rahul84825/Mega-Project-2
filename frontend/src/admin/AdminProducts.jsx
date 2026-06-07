@@ -46,8 +46,8 @@ const AdminProducts = () => {
   // Stock counts (calculated from base products list)
   const counts = useMemo(() => {
     const all = products?.length || 0;
-    const inStock = products?.filter(p => p.available === true).length || 0;
-    const outOfStock = products?.filter(p => p.available === false).length || 0;
+    const inStock = products?.filter(p => p.isActive === true).length || 0;
+    const outOfStock = products?.filter(p => p.isActive === false).length || 0;
     return { all, inStock, outOfStock };
   }, [products]);
 
@@ -137,8 +137,8 @@ const AdminProducts = () => {
       })
       .filter((p) => {
         if (stockFilter === "all") return true;
-        if (stockFilter === "inStock") return p.available === true;
-        if (stockFilter === "outOfStock") return p.available === false;
+        if (stockFilter === "inStock") return p.isActive === true;
+        if (stockFilter === "outOfStock") return p.isActive === false;
         return true;
       })
       .filter((p) => {
