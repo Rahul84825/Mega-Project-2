@@ -75,6 +75,7 @@ const normalizeAndGeocodeAddress = (addr) => {
  * ASSIGN DELIVERY PARTNER (Borzo)
  */
 export const assignDeliveryPartner = async (orderId) => {
+  console.log("STEP_REACHED: assignDeliveryPartner");
   logger.info(`🚚 [MARK READY] STEP 4 - ASSIGN DELIVERY CALLED for Order: ${orderId} (Provider: Borzo)`);
   
   try {

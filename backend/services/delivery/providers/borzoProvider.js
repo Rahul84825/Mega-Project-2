@@ -51,6 +51,10 @@ const request = async (url, options = {}) => {
   }
 
   // ── LOGGING: Outgoing Request ──
+  console.log("STEP_REACHED: Borzo API request");
+  console.log(`🌐 [BORZO] URL: ${url}`);
+  console.log(`🌐 [BORZO] Payload:`, JSON.stringify(logBody, null, 2));
+  
   logger.info(`🌐 [BORZO] API Request: ${method.toUpperCase()} ${url}`, {
     headers: {
       ...options.headers,
@@ -72,6 +76,10 @@ const request = async (url, options = {}) => {
     const data = response.data;
 
     // ── LOGGING: API Response ──
+    console.log("STEP_REACHED: Borzo API response");
+    console.log(`📥 [BORZO] Status: ${response.status}`);
+    console.log(`📥 [BORZO] Body:`, JSON.stringify(data, null, 2));
+
     logger.info(`📥 [BORZO] API Response: ${response.status}`, { 
       isSuccessful: data?.is_successful,
       orderId: data?.order?.order_id,
@@ -161,6 +169,7 @@ export const createBorzoProvider = () => {
 
   return {
     async createDeliveryTask(payload) {
+      console.log("STEP_REACHED: borzoProvider.createDeliveryTask");
       logger.info(`🛠️ [BORZO] Building payload for Order ${payload.orderNumber}`);
 
       // Borzo India v1.6 format requirements:

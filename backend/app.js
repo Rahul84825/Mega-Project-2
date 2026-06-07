@@ -170,6 +170,7 @@ if (process.env.NODE_ENV === "production") {
  */
 if (process.env.NODE_ENV !== "production") {
   app.use("/api", (req, res, next) => {
+    console.log(`STEP_REACHED: Route Hit - ${req.method.toUpperCase()} ${req.path}`);
     console.log(`📡 [API] ${req.method.toUpperCase()} ${req.path}`);
     if (Object.keys(req.body).length > 0) {
       console.log(`   Body:`, JSON.stringify(req.body).substring(0, 200));

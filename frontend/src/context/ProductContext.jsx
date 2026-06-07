@@ -504,11 +504,13 @@ export function ProductProvider({ children }) {
   }, [updateOrderState]);
 
   const markOrderPickedUp = useCallback(async (orderId) => {
+    console.log("STEP_REACHED: API endpoint hit (markOrderPickedUp)");
     const { data } = await api.patch(`/api/orders/${orderId}/picked-up`);
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);
 
   const markOrderReady = useCallback(async (orderId) => {
+    console.log("STEP_REACHED: API endpoint hit (markOrderReady)");
     const { data } = await api.patch(`/api/orders/${orderId}/ready`);
     return updateOrderState(data?.order || data);
   }, [updateOrderState]);

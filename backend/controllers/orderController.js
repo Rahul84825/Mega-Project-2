@@ -425,6 +425,8 @@ export const markPreparing = async (req, res) => {
 
 export const markReadyForPickup = async (req, res) => {
   const { id } = req.params;
+  console.log("STEP_REACHED: Controller Hit (markReadyForPickup)");
+  console.log("STEP_REACHED: markReadyForPickup");
   console.log("STEP 1 - MARK READY CLICKED");
   logger.info(`🛎️ [MARK READY] STEP 1 - MARK READY CLICKED for Order: ${id}`);
 
@@ -470,6 +472,8 @@ export const markReadyForPickup = async (req, res) => {
 };
 
 export const markPickedUp = async (req, res) => {
+  console.log("STEP_REACHED: Controller Hit (markPickedUp)");
+  console.log("STEP_REACHED: confirmHandover");
   try {
     const { id } = req.params;
     let order = await Order.findById(id);

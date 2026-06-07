@@ -47,36 +47,32 @@ const BASE_PINCODE = "411014";
 
 // Strict Serviceable Pincodes Mapping
 const SERVICEABLE_PINCODES = {
-  // TIER 1 (0–5 km): FREE DELIVERY
-  "411014": { tier: 1, label: "Local Delivery (Viman Nagar)" },
-  "411006": { tier: 1, label: "Local Delivery (Yerwada)" },
-  "411032": { tier: 1, label: "Local Delivery (Dhanori)" },
+  // 0–5 km: FREE DELIVERY
+  "411014": { threshold: 0, charge: 0, label: "Local Delivery (Viman Nagar)" },
+  "411006": { threshold: 0, charge: 0, label: "Local Delivery (Yerwada)" },
+  "411032": { threshold: 0, charge: 0, label: "Local Delivery (Dhanori)" },
 
-  // TIER 2 (5–10 km): ₹60 (Free >= ₹499)
-  "411047": { tier: 2, label: "Standard Distance (Lohegaon)" },
-  "411015": { tier: 2, label: "Standard Distance (Vishrantwadi)" },
-  "411036": { tier: 2, label: "Standard Distance (Mundhwa)" },
-  "411001": { tier: 2, label: "Standard Distance (Camp)" },
-  "412207": { tier: 2, label: "Standard Distance (Wagholi)" },
+  // 5–10 km: ₹60 (Free >= ₹499)
+  "411047": { threshold: 499, charge: 60, label: "Standard Distance (Lohegaon)" },
+  "411015": { threshold: 499, charge: 60, label: "Standard Distance (Vishrantwadi)" },
+  "411036": { threshold: 499, charge: 60, label: "Standard Distance (Mundhwa)" },
+  "411001": { threshold: 499, charge: 60, label: "Standard Distance (Camp)" },
+  "412207": { threshold: 499, charge: 60, label: "Standard Distance (Wagholi)" },
 
-  // TIER 3 (10–15 km): ₹80 (Free >= ₹899)
-  "411005": { tier: 3, label: "Medium Distance (Shivajinagar)" },
-  "411028": { tier: 3, label: "Medium Distance (Hadapsar)" },
-  "412307": { tier: 3, label: "Medium Distance (Manjari)" },
-  "411040": { tier: 3, label: "Medium Distance (Wanowrie)" },
-  "411004": { tier: 3, label: "Medium Distance (Deccan)" },
-  "411011": { tier: 3, label: "Medium Distance (Kasba Peth)" },
-  "411002": { tier: 3, label: "Medium Distance (Swargate)" },
-  "411003": { tier: 3, label: "Medium Distance (Raviwar Peth)" },
-  "411007": { tier: 3, label: "Medium Distance (Aundh)" },
-
-  // TIER 4 (15–18 km): ₹120 (Free >= ₹1299)
-  "411105": { tier: 4, label: "Extended Distance (Alandi)" },
-  "412105": { tier: 4, label: "Extended Distance (Alandi)" }
+  // 10–15 km: ₹80 (Free >= ₹899)
+  "411005": { threshold: 899, charge: 80, label: "Medium Distance (Shivajinagar)" },
+  "411028": { threshold: 899, charge: 80, label: "Medium Distance (Hadapsar)" },
+  "412307": { threshold: 899, charge: 80, label: "Medium Distance (Manjari)" },
+  "411040": { threshold: 899, charge: 80, label: "Medium Distance (Wanowrie)" },
+  "411004": { threshold: 899, charge: 80, label: "Medium Distance (Deccan)" },
+  "411011": { threshold: 899, charge: 80, label: "Medium Distance (Kasba Peth)" },
+  "411002": { threshold: 899, charge: 80, label: "Medium Distance (Swargate)" },
+  "411003": { threshold: 899, charge: 80, label: "Medium Distance (Raviwar Peth)" },
+  "411007": { threshold: 899, charge: 80, label: "Medium Distance (Aundh)" }
 };
 
 /**
- * Rules for delivery eligibility and fees based on pincode tiers or distance
+ * Rules for delivery eligibility and fees based on pincode or distance
  */
 export const getDeliveryConfig = (pincode = "", distance = null) => {
   // 1. If distance is provided, use it (highest priority)
@@ -106,23 +102,15 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
         outOfReach: false 
       };
     }
-    if (dist <= 18) {
-      return { 
-        threshold: 1299, 
-        charge: 120, 
-        label: "Extended Distance (15–18 km)", 
-        outOfReach: false 
-      };
-    }
     return { 
       threshold: Infinity, 
       charge: 0, 
-      label: "Sorry, we only deliver within 18 km.", 
+      label: "Sorry, we only deliver within 15 km.", 
       outOfReach: true 
     };
   }
 
-  // 2. Fallback to Pincode Tiers
+  // 2. Fallback to Pincode Mapping
   const code = String(pincode).trim();
   const config = SERVICEABLE_PINCODES[code];
 
@@ -135,52 +123,11 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     };
   }
 
-  // TIER 1: FREE (0-5 km)
-  if (config.tier === 1) {
-    return { 
-      threshold: 0, 
-      charge: 0, 
-      label: config.label, 
-      outOfReach: false 
-    };
-  }
-
-  // TIER 2: ₹60, FREE >= 299 (5-10 km)
-  if (config.tier === 2) {
-    return { 
-      threshold: 299, 
-      charge: 60, 
-      label: config.label, 
-      outOfReach: false 
-    };
-  }
-
-  // TIER 3: ₹80, FREE >= 599 (10-15 km)
-  if (config.tier === 3) {
-    return { 
-      threshold: 599, 
-      charge: 80, 
-      label: config.label, 
-      outOfReach: false 
-    };
-  }
-
-  // TIER 4: ₹120, FREE >= 1299 (15-18 km)
-  if (config.tier === 4) {
-    return { 
-      threshold: 1299, 
-      charge: 120, 
-      label: config.label, 
-      outOfReach: false 
-    };
-  }
-
-  // Default Fallback
   return { 
-    threshold: Infinity, 
-    charge: 0, 
-    label: "Sorry, we currently do not deliver to this location.", 
-    outOfReach: true 
+    threshold: config.threshold, 
+    charge: config.charge, 
+    label: config.label, 
+    outOfReach: false 
   };
 };
 

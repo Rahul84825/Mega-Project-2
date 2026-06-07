@@ -1,6 +1,6 @@
 import { calculateDeliveryFee } from "../services/delivery/index.js";
 import { geocodeAddress, calculateHaversineDistance, validateDeliveryRadius } from "../services/locationService.js";
-import { STORE_LOCATION, DELIVERY_PRICING_TIERS } from "../config/location.js";
+import { STORE_LOCATION, DELIVERY_PRICING_CONFIG } from "../config/location.js";
 import { getZoneByPincode } from "../config/pincodeZones.js";
 import { logger } from "../utils/logger.js";
 import { getDeliveryConfig } from "../../shared/utils/pricing.js";

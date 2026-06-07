@@ -182,8 +182,8 @@ const AdminOrders = () => {
               onSelect={() => setSelectedId(order._id)}
               onAccept={(o) => setAcceptModal({ open: true, order: o })}
               onReject={(o) => setRejectModal({ open: true, order: o })}
-              onHandover={(o) => handleAction(o._id, () => markOrderPickedUp(o._id))}
-              onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
+              onHandover={(o) => { console.log("STEP_REACHED: Admin button click (Handover)"); handleAction(o._id, () => markOrderPickedUp(o._id)); }}
+              onMarkReady={(o) => { console.log("STEP_REACHED: Admin button click (Mark Ready)"); handleAction(o._id, () => markOrderReady(o._id)); }}
               onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
               isBusy={busyOrderId === order._id}
             />
