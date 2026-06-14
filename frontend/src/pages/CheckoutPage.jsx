@@ -50,7 +50,19 @@ function CheckoutPage() {
       const parsed = saved ? JSON.parse(saved) : null;
       const lastPincode = localStorage.getItem("mithai-world-last-pincode") || "";
       
-      const baseForm = parsed?.form || { name: "", phone: "", email: "", address: "", city: "", pincode: "", state: "Maharashtra" };
+      const baseForm = parsed?.form || { 
+        name: "", 
+        phone: "", 
+        email: "", 
+        address: "", // Keep for compatibility
+        flatNo: "",
+        buildingName: "",
+        area: "",
+        landmark: "",
+        city: "", 
+        pincode: "", 
+        state: "Maharashtra"
+      };
       
       // Prioritize pincode from shared storage if it exists and form pincode is empty
       if (lastPincode && !baseForm.pincode) {
@@ -117,7 +129,27 @@ function CheckoutPage() {
     return true; // Default to true until validation completes
   }, [pincodeError, deliveryInfo, form.pincode]);
 
-  const isAddressValid = form.name && form.phone && form.address && form.city && form.pincode.length === 6 && isAvailable;
+  const fullAddressSummary = useMemo(() => {
+    return [
+      form.flatNo,
+      form.buildingName,
+      form.area,
+      form.landmark,
+      form.city,
+      form.state,
+      form.pincode
+    ].filter(Boolean).map(s => String(s).trim()).join(", ");
+  }, [form]);
+
+  const isAddressValid = form.name && 
+                        form.phone && 
+                        form.flatNo && 
+                        form.buildingName && 
+                        form.area && 
+                        form.city && 
+                        form.state && 
+                        form.pincode.length === 6 && 
+                        isAvailable;
 
   useEffect(() => {
     loadRazorpayScript().then(setScriptReady);
@@ -250,17 +282,39 @@ function CheckoutPage() {
             timestamp: new Date().toISOString()
           });
           try {
+            // Automatically generate full address string
+            const generatedFullAddress = [
+              form.flatNo,
+              form.buildingName,
+              form.area,
+              form.landmark,
+              form.city,
+              form.state,
+              form.pincode
+            ].filter(Boolean).map(s => String(s).trim()).join(", ");
+
             const verifyPayload = {
               razorpay_order_id: res.razorpay_order_id,
               razorpay_payment_id: res.razorpay_payment_id,
               razorpay_signature: res.razorpay_signature,
               orderData: {
-                customer: { ...form, userId: user?.userId || user?._id },
+                customer: { 
+                  name: form.name, 
+                  phone: form.phone, 
+                  email: form.email, 
+                  userId: user?.userId || user?._id 
+                },
                 shippingAddress: { 
-                  line1: form.address, 
+                  line1: generatedFullAddress, // Backward compatibility
+                  flatNo: form.flatNo,
+                  buildingName: form.buildingName,
+                  area: form.area,
+                  landmark: form.landmark,
                   city: form.city, 
                   state: form.state, 
+                  pincode: form.pincode,
                   postalCode: form.pincode, 
+                  fullAddress: generatedFullAddress,
                   country: "IN",
                   geo: deliveryInfo?.geo || null
                 },
@@ -275,6 +329,7 @@ function CheckoutPage() {
                   currency: "INR",
                   couponCode: appliedCoupon?.code
                 },
+                notes: "",
                 metadata: {
                   distanceKm: deliveryInfo?.distanceKm || 0,
                   geocodedAddress: deliveryInfo?.formattedAddress || ""
@@ -356,24 +411,49 @@ function CheckoutPage() {
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Email</label>
                     <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="john@example.com" />
                   </div>
-                  <div className="md:col-span-2 relative">
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Full Address</label>
-                    <input name="address" value={form.address} onChange={handleChange} className="input-field" placeholder="Flat, Street, Area" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
-                    <div className="relative">
-                      <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="411014" />
-                      {isValidatingPincode && (
-                        <div className="absolute right-4 bottom-3 text-[var(--burgundy)]">
-                          <Loader2 size={18} className="animate-spin" />
-                        </div>
-                      )}
+
+                  {/* ── STRUCTURED ADDRESS FIELDS ── */}
+                  <div className="grid grid-cols-2 gap-4 md:col-span-2">
+                    <div>
+                      <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Flat / House No</label>
+                      <input name="flatNo" value={form.flatNo} onChange={handleChange} className="input-field" placeholder="403" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Building / Society</label>
+                      <input name="buildingName" value={form.buildingName} onChange={handleChange} className="input-field" placeholder="Sunshine Residency" />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">City</label>
-                    <input name="city" value={form.city} onChange={handleChange} className="input-field" placeholder="Pune" readOnly />
+
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Area / Locality</label>
+                    <input name="area" value={form.area} onChange={handleChange} className="input-field" placeholder="Viman Nagar" />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Landmark (Optional)</label>
+                    <input name="landmark" value={form.landmark} onChange={handleChange} className="input-field" placeholder="Near Phoenix Mall" />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 md:col-span-2">
+                    <div>
+                      <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">City</label>
+                      <input name="city" value={form.city} onChange={handleChange} className="input-field" placeholder="Pune" readOnly />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">State</label>
+                      <input name="state" value={form.state} onChange={handleChange} className="input-field" placeholder="Maharashtra" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
+                      <div className="relative">
+                        <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="411014" />
+                        {isValidatingPincode && (
+                          <div className="absolute right-4 bottom-3 text-[var(--burgundy)]">
+                            <Loader2 size={18} className="animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
                   {pincodeError && (
@@ -412,7 +492,7 @@ function CheckoutPage() {
               {step === 2 && (
                 <div className="text-sm font-medium text-[var(--charcoal)]">
                   {form.name} • {form.phone} <br />
-                  {form.address}, {form.city} - {form.pincode}
+                  {fullAddressSummary}
                   <button onClick={() => setStep(1)} className="text-[var(--burgundy)] font-medium ml-2 underline">Edit</button>
                 </div>
               )}

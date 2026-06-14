@@ -23,10 +23,15 @@ const addressSchema = new mongoose.Schema(
   {
     line1: { type: String, trim: true, required: true },
     line2: { type: String, trim: true, default: "" },
+    flatNo: { type: String, trim: true, default: "" },
+    buildingName: { type: String, trim: true, default: "" },
+    area: { type: String, trim: true, default: "" },
     landmark: { type: String, trim: true, default: "" },
     city: { type: String, trim: true, required: true },
     state: { type: String, trim: true, required: true },
+    pincode: { type: String, trim: true, default: "" },
     postalCode: { type: String, trim: true, required: true },
+    fullAddress: { type: String, trim: true, default: "" },
     country: { type: String, trim: true, default: "IN" },
     geo: {
       lat: { type: Number, default: null },

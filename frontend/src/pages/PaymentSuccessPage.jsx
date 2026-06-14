@@ -122,7 +122,11 @@ function PaymentSuccessPage() {
               <div className="flex gap-3">
                 <MapPin size={16} className="text-[var(--muted)] shrink-0" />
                 <div className="text-sm font-medium text-[var(--charcoal)]">
-                  {order.shippingAddress?.line1 || "No Address Provided"}, {order.shippingAddress?.city || ""}, {order.shippingAddress?.postalCode || ""}
+                  {order.shippingAddress?.fullAddress || (
+                    <>
+                      {order.shippingAddress?.line1 || "No Address Provided"}{order.shippingAddress?.city ? `, ${order.shippingAddress.city}` : ""}{order.shippingAddress?.postalCode ? ` - ${order.shippingAddress.postalCode}` : ""}
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3 text-sm">

@@ -76,7 +76,7 @@ const CategoryModal = ({ category, onSave, onClose }) => {
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-md px-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[24px] border border-[var(--surface-border)] shadow-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-[24px] border border-slate-200 shadow-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-8">
           <h3 className="serif text-xl font-medium text-[var(--charcoal)]">{category ? "Edit Category" : "Add Category"}</h3>
           <button onClick={onClose} className="p-2 hover:bg-[var(--cream)] rounded-full transition-colors"><X size={20} /></button>
@@ -93,7 +93,7 @@ const CategoryModal = ({ category, onSave, onClose }) => {
             <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-2 block">Cover Image</label>
             <div 
               onClick={() => !loading && fileInputRef.current?.click()}
-              className="aspect-video rounded-2xl border-2 border-dashed border-[var(--surface-border)] bg-[var(--cream)]/30 overflow-hidden flex flex-col items-center justify-center cursor-pointer relative group transition-all hover:bg-[var(--cream)]/50"
+              className="aspect-video rounded-2xl border-2 border-dashed border-slate-200 bg-[var(--cream)]/30 overflow-hidden flex flex-col items-center justify-center cursor-pointer relative group transition-all hover:bg-[var(--cream)]/50"
             >
               {form.imagePreview ? (
                 <img src={form.imagePreview} className="w-full h-full object-cover" alt="Category Preview" />
@@ -126,7 +126,7 @@ const CategoryModal = ({ category, onSave, onClose }) => {
             </div>
           </div>
 
-          <div className="space-y-3 pt-2 border-t border-[var(--surface-border)]">
+          <div className="space-y-3 pt-2 border-t border-slate-200">
             {[
               { id: 'is_active', label: 'Category Active', desc: 'Visible in storefront' },
               { id: 'showInNavbar', label: 'Show in Navbar', desc: 'Display in top menu' },
@@ -220,7 +220,7 @@ function AdminCategories() {
       </div>
 
       {filteredCategories.length === 0 ? (
-        <div className="py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
+        <div className="py-20 text-center rounded-3xl border-2 border-dashed border-slate-200 bg-white">
           <div className="h-12 w-12 rounded-full bg-[var(--cream)] flex items-center justify-center mx-auto mb-4 text-[var(--muted)]">
             <Package size={24} />
           </div>
@@ -230,7 +230,7 @@ function AdminCategories() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredCategories.map((cat) => (
-            <div key={cat._id} className="bg-white rounded-3xl border border-[var(--surface-border)] overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full shadow-sm">
+            <div key={cat._id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full shadow-sm">
               <div className="relative aspect-video overflow-hidden bg-[var(--cream)]">
                 {cat.image ? (
                   <img src={cat.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
@@ -255,7 +255,7 @@ function AdminCategories() {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-[var(--surface-border)] flex justify-between items-center text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">
+                <div className="mt-auto pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] font-medium uppercase tracking-widest text-[var(--muted)]">
                   <span>{linkedProductCount(cat.slug)} Products</span>
                   <span>Order: {cat.order}</span>
                 </div>
@@ -269,7 +269,7 @@ function AdminCategories() {
 
       {deleteConfirm && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-md px-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[24px] border border-[var(--surface-border)] shadow-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[24px] border border-slate-200 shadow-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500 shadow-inner">
               <Trash2 size={32} />
             </div>

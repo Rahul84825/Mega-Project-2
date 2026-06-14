@@ -173,11 +173,14 @@ const MyOrders = () => {
 
                   <div className="space-y-6">
                     <div>
-                      <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-3">Delivery Address</div>
                       <div className="flex items-start gap-2 text-xs text-[var(--muted)] leading-relaxed">
                         <MapPin size={14} className="text-[var(--gold)] shrink-0 mt-0.5" />
                         <span>
-                          {order.shippingAddress.line1}, {order.shippingAddress.city} - {order.shippingAddress.postalCode}
+                          {order.shippingAddress.fullAddress || (
+                            <>
+                              {order.shippingAddress.line1}{order.shippingAddress.city ? `, ${order.shippingAddress.city}` : ""}{order.shippingAddress.postalCode ? ` - ${order.shippingAddress.postalCode}` : ""}
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>

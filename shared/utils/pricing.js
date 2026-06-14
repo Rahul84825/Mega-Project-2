@@ -48,9 +48,9 @@ const BASE_PINCODE = "411014";
 // Strict Serviceable Pincodes Mapping
 const SERVICEABLE_PINCODES = {
   // 0–5 km: FREE DELIVERY
-  "411014": { threshold: 0, charge: 0, label: "Local Delivery (Viman Nagar)" },
-  "411006": { threshold: 0, charge: 0, label: "Local Delivery (Yerwada)" },
-  "411032": { threshold: 0, charge: 0, label: "Local Delivery (Dhanori)" },
+  "411014": { threshold: 99, charge: 30, label: "Local Delivery (Viman Nagar)" },
+  "411006": { threshold: 99, charge: 30, label: "Local Delivery (Yerwada)" },
+  "411032": { threshold: 99, charge: 30, label: "Local Delivery (Dhanori)" },
 
   // 5–10 km: ₹60 (Free >= ₹499)
   "411047": { threshold: 499, charge: 60, label: "Standard Distance (Lohegaon)" },
@@ -80,8 +80,8 @@ export const getDeliveryConfig = (pincode = "", distance = null) => {
     const dist = Number(distance);
     if (dist <= 5) {
       return { 
-        threshold: 0, 
-        charge: 0, 
+        threshold: 99, 
+        charge: 30, 
         label: "Local Delivery (0–5 km)", 
         outOfReach: false 
       };

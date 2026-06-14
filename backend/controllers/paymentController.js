@@ -334,10 +334,17 @@ export const verifyPayment = async (req, res) => {
           },
           shippingAddress: {
             line1: orderData?.shippingAddress?.line1 || orderData?.customer?.address || "",
+            flatNo: orderData?.shippingAddress?.flatNo || "",
+            buildingName: orderData?.shippingAddress?.buildingName || "",
+            area: orderData?.shippingAddress?.area || "",
+            landmark: orderData?.shippingAddress?.landmark || "",
             city: orderData?.shippingAddress?.city || orderData?.customer?.city || "",
             state: orderData?.shippingAddress?.state || orderData?.customer?.state || "Maharashtra",
+            pincode: orderData?.shippingAddress?.pincode || "",
             postalCode: orderData?.shippingAddress?.postalCode || orderData?.shippingAddress?.pincode || orderData?.customer?.pincode || orderData?.customer?.postalCode || "",
-            country: "IN"
+            fullAddress: orderData?.shippingAddress?.fullAddress || orderData?.shippingAddress?.line1 || "",
+            country: "IN",
+            geo: orderData?.shippingAddress?.geo || null
           },
           items: itemSnapshots,
           payment: {

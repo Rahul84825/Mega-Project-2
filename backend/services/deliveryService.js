@@ -34,16 +34,30 @@ const normalizeAndGeocodeAddress = (addr) => {
     };
   }
 
+  // Use new structured fields if available, otherwise fallback to line1/line2
+  const flatNo = String(addr.flatNo || "").trim();
+  const buildingName = String(addr.buildingName || "").trim();
+  const area = String(addr.area || "").trim();
   const line1 = String(addr.line1 || "").trim();
   const line2 = String(addr.line2 || "").trim();
   const landmark = String(addr.landmark || "").trim();
   const city = String(addr.city || "Pune").trim();
   const state = String(addr.state || "Maharashtra").trim();
-  const pincode = String(addr.postalCode || "").trim();
+  const pincode = String(addr.pincode || addr.postalCode || "").trim();
 
   const addressParts = [];
-  if (line1) addressParts.push(line1);
-  if (line2) addressParts.push(line2);
+  
+  if (flatNo || buildingName || area) {
+    // Structured address generation
+    if (flatNo) addressParts.push(flatNo);
+    if (buildingName) addressParts.push(buildingName);
+    if (area) addressParts.push(area);
+  } else {
+    // Legacy fallback
+    if (line1) addressParts.push(line1);
+    if (line2) addressParts.push(line2);
+  }
+
   if (landmark) addressParts.push(`Near ${landmark}`);
   addressParts.push(city);
   addressParts.push(state);
