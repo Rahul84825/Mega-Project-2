@@ -181,7 +181,7 @@ function CheckoutPage() {
           setDeliveryInfo(data);
           if (data.deliveryAvailable) {
             // Auto-fill City from authoritative backend data
-            setForm(prev => ({ ...prev, city: data.city || "Pune" }));
+            setForm(prev => ({ ...prev, city: data.city || "Pune", state: data.state || "Maharashtra" }));
           } else {
             setPincodeError(data.message || "Delivery unavailable for this pincode.");
           }
