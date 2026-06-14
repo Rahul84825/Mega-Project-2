@@ -401,37 +401,37 @@ function CheckoutPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Full Name</label>
-                    <input name="name" value={form.name} onChange={handleChange} className="input-field" placeholder="John Doe" />
+                    <input name="name" value={form.name} onChange={handleChange} className="input-field" placeholder="Name" />
                   </div>
                   <div>
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Phone Number</label>
-                    <input name="phone" value={form.phone} onChange={handleChange} className="input-field" placeholder="+91 98765 43210" />
+                    <input name="phone" value={form.phone} onChange={handleChange} className="input-field" placeholder="9876543210" />
                   </div>
                   <div>
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Email</label>
-                    <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="john@example.com" />
+                    <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="[EMAIL_ADDRESS]" />
                   </div>
 
                   {/* ── STRUCTURED ADDRESS FIELDS ── */}
                   <div className="grid grid-cols-2 gap-4 md:col-span-2">
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Flat / House No</label>
-                      <input name="flatNo" value={form.flatNo} onChange={handleChange} className="input-field" placeholder="403" />
+                      <input name="flatNo" value={form.flatNo} onChange={handleChange} className="input-field" placeholder="Flat no." />
                     </div>
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Building / Society</label>
-                      <input name="buildingName" value={form.buildingName} onChange={handleChange} className="input-field" placeholder="Sunshine Residency" />
+                      <input name="buildingName" value={form.buildingName} onChange={handleChange} className="input-field" placeholder="Building name" />
                     </div>
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Area / Locality</label>
-                    <input name="area" value={form.area} onChange={handleChange} className="input-field" placeholder="Viman Nagar" />
+                    <input name="area" value={form.area} onChange={handleChange} className="input-field" placeholder="Area" />
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Landmark (Optional)</label>
-                    <input name="landmark" value={form.landmark} onChange={handleChange} className="input-field" placeholder="Near Phoenix Mall" />
+                    <input name="landmark" value={form.landmark} onChange={handleChange} className="input-field" placeholder="Landmark" />
                   </div>
 
                   <div className="grid grid-cols-3 gap-4 md:col-span-2">
@@ -446,7 +446,7 @@ function CheckoutPage() {
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
                       <div className="relative">
-                        <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="411014" />
+                        <input name="pincode" value={form.pincode} onChange={handleChange} className="input-field" placeholder="Pincode" />
                         {isValidatingPincode && (
                           <div className="absolute right-4 bottom-3 text-[var(--burgundy)]">
                             <Loader2 size={18} className="animate-spin" />
