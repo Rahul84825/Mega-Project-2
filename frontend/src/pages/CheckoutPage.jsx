@@ -59,7 +59,7 @@ function CheckoutPage() {
         buildingName: "",
         area: "",
         landmark: "",
-        city: "", 
+        city: "Pune", 
         pincode: "", 
         state: "Maharashtra"
       };
@@ -71,7 +71,7 @@ function CheckoutPage() {
       
       return baseForm;
     } catch {
-      return { name: "", phone: "", email: "", address: "", city: "", pincode: localStorage.getItem("mithai-world-last-pincode") || "", state: "Maharashtra" };
+      return { name: "", phone: "", email: "", address: "", city: "Pune", pincode: localStorage.getItem("mithai-world-last-pincode") || "", state: "Maharashtra" };
     }
   });
 
@@ -441,7 +441,7 @@ function CheckoutPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">State</label>
-                      <input name="state" value={form.state} onChange={handleChange} className="input-field" placeholder="Maharashtra" />
+                      <input name="state" value={form.state} onChange={handleChange} className="input-field" placeholder="Maharashtra" readOnly />
                     </div>
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Pincode</label>
