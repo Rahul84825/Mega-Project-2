@@ -187,7 +187,7 @@ function CheckoutPage() {
           }
         }
       } catch (err) {
-        setPincodeError(getApiErrorMessage(err, "Could not validate pincode."));
+        setPincodeError(getApiErrorMessage(err, "Could not validate pincode.")); 
         setDeliveryInfo(null);
       } finally {
         setIsValidatingPincode(false);
