@@ -159,6 +159,12 @@ function PaymentSuccessPage() {
                   <span>{formatCurrency(order.totals?.packingTotal || order.packingTotal)}</span>
                 </div>
               )}
+              {(order.coupon?.code || (order.totals?.couponDiscount || 0) > 0) && (
+                <div className="flex justify-between text-[10px] font-medium text-blue-600">
+                  <span>Discount {order.coupon?.code ? `(${order.coupon.code})` : ""}</span>
+                  <span>-{formatCurrency(order.totals?.couponDiscount || order.discountTotal || 0)}</span>
+                </div>
+              )}
               <div className="h-px bg-[var(--surface-border)] my-2" />
               <div className="flex justify-between text-lg font-medium text-[var(--charcoal)]">
                 <span>Total</span>

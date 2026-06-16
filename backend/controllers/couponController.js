@@ -55,6 +55,8 @@ export const validateCoupon = async (req, res, next) => {
         code: coupon.code,
         discountType: coupon.discountType,
         discountValue: coupon.discountValue,
+        minOrderAmount: coupon.minOrderAmount,
+        maxDiscount: coupon.maxDiscount,
         calculatedDiscount: Math.round(discount)
       }
     });

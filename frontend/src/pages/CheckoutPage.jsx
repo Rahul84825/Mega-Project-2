@@ -409,7 +409,7 @@ function CheckoutPage() {
                   </div>
                   <div>
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">Email</label>
-                    <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="[EMAIL_ADDRESS]" />
+                    <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="Email" />
                   </div>
 
                   {/* ── STRUCTURED ADDRESS FIELDS ── */}

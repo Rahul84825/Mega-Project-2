@@ -168,13 +168,18 @@ export const calculateTotals = (items = [], options = {}) => {
   // Calculate Coupon Discount
   let couponDiscount = 0;
   if (coupon && netSubtotal > 0) {
-    if (coupon.discountType === "PERCENTAGE") {
-      couponDiscount = (netSubtotal * normalizeNumber(coupon.discountValue)) / 100;
-      if (coupon.maxDiscount) {
-        couponDiscount = Math.min(couponDiscount, normalizeNumber(coupon.maxDiscount));
+    // Re-validate minimum order amount requirement dynamically
+    const minAmount = normalizeNumber(coupon.minOrderAmount || 0);
+    
+    if (netSubtotal >= minAmount) {
+      if (coupon.discountType === "PERCENTAGE") {
+        couponDiscount = (netSubtotal * normalizeNumber(coupon.discountValue)) / 100;
+        if (coupon.maxDiscount) {
+          couponDiscount = Math.min(couponDiscount, normalizeNumber(coupon.maxDiscount));
+        }
+      } else {
+        couponDiscount = normalizeNumber(coupon.discountValue);
       }
-    } else {
-      couponDiscount = normalizeNumber(coupon.discountValue);
     }
   }
 
@@ -183,15 +188,16 @@ export const calculateTotals = (items = [], options = {}) => {
   // Dynamic Delivery Logic
   const deliveryConfig = getDeliveryConfig(pincode, distance);
   const DELIVERY_THRESHOLD = deliveryConfig.threshold;
-  const DELIVERY_CHARGE = deliveryConfig.charge;
+  
+  // Determine base charge: prioritize manual override (e.g., from backend validation), fallback to config
+  const DELIVERY_CHARGE = (manualShipping !== null && manualShipping !== undefined) 
+    ? normalizeNumber(manualShipping) 
+    : deliveryConfig.charge;
 
   let shippingFee = 0;
   if (netSubtotal > 0) {
-    if (manualShipping !== null && manualShipping !== undefined) {
-      shippingFee = normalizeNumber(manualShipping);
-    } else {
-      shippingFee = netSubtotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
-    }
+    // BUSINESS RULE: Delivery fee is FREE if subtotal meets or exceeds threshold
+    shippingFee = netSubtotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
   }
 
   // Calculate final total (Exclusive GST + Packing + Delivery)

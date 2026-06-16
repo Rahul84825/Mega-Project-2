@@ -217,15 +217,19 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
                     <span className="shrink-0">{formatCurrency(order?.totals?.gstTotal || 0)}</span>
                   </div>
                   <div className="flex justify-between text-xs font-bold text-[#7a5c3a] gap-2">
+                    <span className="uppercase tracking-widest opacity-60">Packing Charges</span>
+                    <span className="shrink-0">{formatCurrency(order?.totals?.packingTotal || order?.packingCharges || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-[#7a5c3a] gap-2">
                     <span className="uppercase tracking-widest opacity-60">Delivery</span>
-                    <span className={`shrink-0 ${(order?.totals?.shippingFee || 0) === 0 ? "text-emerald-600" : ""}`}>
-                      {(order?.totals?.shippingFee || 0) > 0 ? formatCurrency(order?.totals?.shippingFee) : "FREE"}
+                    <span className={`shrink-0 ${(order?.totals?.shippingFee || order?.deliveryFee || 0) === 0 ? "text-emerald-600" : ""}`}>
+                      {(order?.totals?.shippingFee || order?.deliveryFee || 0) > 0 ? formatCurrency(order?.totals?.shippingFee || order?.deliveryFee) : "FREE"}
                     </span>
                   </div>
-                  {order.coupon?.code && (
+                  {(order.coupon?.code || (order?.totals?.couponDiscount || 0) > 0) && (
                     <div className="flex justify-between text-xs font-bold text-blue-600 bg-blue-50/50 p-2 rounded-lg gap-2">
-                      <span className="uppercase tracking-widest">Discount</span>
-                      <span className="shrink-0">-{formatCurrency(order?.totals?.couponDiscount || 0)}</span>
+                      <span className="uppercase tracking-widest">Discount {order.coupon?.code ? `(${order.coupon.code})` : ""}</span>
+                      <span className="shrink-0">-{formatCurrency(order?.totals?.couponDiscount || order?.discountTotal || 0)}</span>
                     </div>
                   )}
                   <div className="h-px bg-[#e6d3b3] my-2 sm:my-4" />
