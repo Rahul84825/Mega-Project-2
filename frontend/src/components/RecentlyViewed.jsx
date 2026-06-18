@@ -51,13 +51,12 @@ const RecentlyViewed = () => {
           </div>
         </div>
 
-        {/* Horizontal Scroll on Mobile/Tablet, Grid on Desktop */}
-        <div className="flex flex-nowrap overflow-x-auto pb-8 -mx-4 px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0 md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 no-scrollbar snap-x">
+        <div className="responsive-grid">
           {items.map((item, idx) => (
             <div 
               key={item._id || item.id} 
-              className="min-w-[260px] sm:min-w-[280px] md:min-w-0 shrink-0 snap-start animate-in fade-in slide-in-from-right-4 duration-700 fill-mode-both"
-              style={{ animationDelay: `${idx * 100}ms` }}
+              className="animate-in fade-in slide-in-from-bottom-6 duration-700 fill-mode-both"
+              style={{ animationDelay: `${idx * 50}ms` }}
             >
               <ProductCard
                 product={item}
