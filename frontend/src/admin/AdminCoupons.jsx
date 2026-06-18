@@ -165,7 +165,7 @@ const AdminCoupons = () => {
             </div>
 
             <form onSubmit={handleCreateCoupon} className="p-8 overflow-y-auto max-h-[80vh] custom-scrollbar space-y-5">
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="col-span-2">
                   <label className="text-[9px] font-black uppercase tracking-widest text-[#b67b3a] block mb-1.5 ml-1">Coupon Code</label>
                   <input required name="code" value={form.code} onChange={handleInputChange} className="w-full h-12 rounded-xl border-2 border-[#e6d3b3] bg-white px-4 text-xs font-black text-[#2d1b0e] uppercase focus:border-[var(--burgundy)] outline-none transition-all" placeholder="WELCOME10" />

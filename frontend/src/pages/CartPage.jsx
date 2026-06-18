@@ -103,7 +103,7 @@ function CartPage() {
             {cart.map((item) => (
               <div
                 key={`${item.productId}::${item.variantId}`}
-                className="group bg-white rounded-[24px] border border-[#e8d4b4] p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col sm:row gap-5 items-start sm:items-center"
+                className="group bg-white rounded-[24px] border border-[#e8d4b4] p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row gap-5 items-start sm:items-center"
               >
                 {/* Image */}
                 <div className="w-20 h-20 md:w-24 md:h-24 bg-[#fffaf3] rounded-2xl border border-[#f5e6d3] overflow-hidden shrink-0 group-hover:scale-105 transition-transform">

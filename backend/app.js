@@ -33,6 +33,10 @@ const getFrontendOrigin = () => {
 // --- CORS Configuration ---
 const allowedOrigins = [
   getFrontendOrigin(),
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
   "https://mithaipune.com",
   "https://www.mithaipune.com",
   "http://mithaipune.com",
@@ -45,7 +49,7 @@ const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin.replace(/\/$/, ""))) {
       callback(null, true);
     } else {

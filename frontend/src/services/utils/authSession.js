@@ -46,8 +46,8 @@ export const decodeJwtPayload = (token) => {
 export const isTokenExpired = (token) => {
   const payload = decodeJwtPayload(token);
 
-  if (!payload?.exp) {
-    return false;
+  if (!payload || typeof payload.exp !== "number") {
+    return true;
   }
 
   // Add a 60-second buffer to handle minor clock skew between client and server

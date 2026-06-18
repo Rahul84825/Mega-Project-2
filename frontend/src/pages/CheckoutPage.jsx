@@ -434,7 +434,7 @@ function CheckoutPage() {
                     <input name="landmark" value={form.landmark} onChange={handleChange} className="input-field" placeholder="Landmark" />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 md:col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:col-span-2">
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] block mb-1.5">City</label>
                       <input name="city" value={form.city} onChange={handleChange} className="input-field" placeholder="Pune" readOnly />

@@ -113,7 +113,7 @@ function ProductCard({ product }) {
         </div>
 
         {/* Dynamic Variant Selector (Mobile Optimized) */}
-        {availableVariants.length > 1 && (
+        {availableVariants.length > 1 ? (
           <div className="flex flex-wrap gap-1.5 min-h-[28px] sm:min-h-[32px]">
             {availableVariants.slice(0, 3).map((v, i) => {
               const vOutOfStock = v.stock <= 0;
@@ -138,6 +138,8 @@ function ProductCard({ product }) {
               <span className="text-[8px] font-bold text-[var(--muted)] flex items-center opacity-40">+{availableVariants.length - 3}</span>
             )}
           </div>
+        ) : (
+          <div className="min-h-[28px] sm:min-h-[32px] w-full" />
         )}
 
         {/* Pricing & Add to Cart */}

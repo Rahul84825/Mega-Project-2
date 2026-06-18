@@ -115,7 +115,7 @@ function ProductDetailPage() {
   if (!product) return <div className="min-h-[60vh] flex items-center justify-center bg-[var(--cream)] serif text-2xl font-medium">Sweet not found.</div>;
 
   return (
-    <div className="page-enter bg-[var(--cream)] min-h-[60vh] pb-20">
+    <div className="page-enter bg-[var(--cream)] min-h-[60vh] pb-32 sm:pb-36 lg:pb-20">
       <SEO 
         title={product.name}
         description={product.description?.substring(0, 160) || `Buy premium ${product.name} online at Mithai World. Traditional Indian sweets delivered fresh in Pune.`}
@@ -194,7 +194,7 @@ function ProductDetailPage() {
             {availableVariants.length > 1 && (
               <div className="mb-10">
                 <h4 className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-4">Select Quantity / Size</h4>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
                   {availableVariants.map((v, i) => {
                     const vOutOfStock = v.stock <= 0;
                     return (
@@ -267,6 +267,21 @@ function ProductDetailPage() {
           <SimilarProducts titleCategory={categoryName} products={similarProducts} />
         </div>
       </SectionContainer>
+
+      {/* Floating sticky bottom Add-to-Cart bar for mobile/tablet */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[var(--surface-border)] px-4 py-3 z-50 flex items-center justify-between gap-4 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+        <div className="flex flex-col shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Total Price</span>
+          <span className="text-base font-black text-[var(--charcoal)]">{formatCurrency(currentPrice * quantity)}</span>
+        </div>
+        <button 
+          disabled={isOutOfStock || quantity > currentStock}
+          onClick={handleAddToCart}
+          className="flex-1 btn-primary h-12 rounded-xl shadow-lg disabled:grayscale disabled:opacity-50 flex items-center justify-center text-xs uppercase tracking-widest font-black"
+        >
+          <span>{isOutOfStock ? "Sold Out" : "Add to Bag"}</span> <ShoppingBag size={16} className="ml-1.5" />
+        </button>
+      </div>
     </div>
   );
 }

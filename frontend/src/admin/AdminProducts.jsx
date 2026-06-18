@@ -174,7 +174,7 @@ const AdminProducts = () => {
         </div>
         <button 
           onClick={() => navigate("/admin/add-product", { state: null })} 
-          className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-[#8b4513] text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest hover:bg-[#6b3410] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 shrink-0"
+          className="w-full lg:w-auto h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-[#8b4513] text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest hover:bg-[#6b3410] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 shrink-0"
         >
           <PlusCircle size={18} /> Add New Mithai
         </button>
@@ -194,7 +194,7 @@ const AdminProducts = () => {
         </div>
         
         {/* Category Filter */}
-        <div className="relative md:w-72">
+        <div className="relative w-full lg:w-72">
            <select 
              value={filterCat} 
              onChange={(e) => setFilterCat(e.target.value)} 
@@ -209,7 +209,7 @@ const AdminProducts = () => {
         </div>
 
         {/* Stock Status Filter */}
-        <div className="relative md:w-64">
+        <div className="relative w-full lg:w-64">
            <select 
              value={stockFilter} 
              onChange={(e) => setStockFilter(e.target.value)} 
@@ -228,7 +228,7 @@ const AdminProducts = () => {
       {/* DATA GRID & MOBILE CARDS */}
       <div className="space-y-4">
         {/* Mobile View: Cards */}
-        <div className="grid grid-cols-1 gap-4 md:hidden">
+        <div className="grid grid-cols-1 gap-4 lg:hidden">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-[32px] border border-[#e6d3b3] p-12 text-center shadow-sm">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#fffaf3] mb-4 text-[#d4a373]">
@@ -339,7 +339,7 @@ const AdminProducts = () => {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="hidden md:block bg-white rounded-[32px] border border-[#e6d3b3] shadow-sm overflow-hidden">
+        <div className="hidden lg:block bg-white rounded-[32px] border border-[#e6d3b3] shadow-sm overflow-hidden">
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>

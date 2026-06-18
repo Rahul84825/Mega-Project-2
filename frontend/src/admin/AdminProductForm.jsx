@@ -291,7 +291,7 @@ const AdminProductForm = () => {
               {errors.name && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.name}</p>}
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">Category</label>
                 <select value={form.category} onChange={e => set("category", e.target.value)} className="input-field cursor-pointer">
@@ -314,7 +314,7 @@ const AdminProductForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-1.5 block">GST % (Info only)</label>
                 <input type="number" value={form.gstPercent} onChange={e => set("gstPercent", e.target.value)} className="input-field" />
@@ -349,7 +349,7 @@ const AdminProductForm = () => {
                 return (
                   <div key={v.id} className={`p-4 rounded-2xl border relative group transition-colors ${v.isAvailable ? 'bg-[var(--cream)]/30 border-[var(--surface-border)]' : 'bg-gray-50 border-gray-200'}`}>
                     <button onClick={() => removeVariant(v.id)} className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X size={12} /></button>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
                         <label className="text-[9px] font-medium text-[var(--muted)] mb-1 block">Label (e.g. 500g)</label>
                         <input value={v.label} onChange={e => updateVariant(v.id, "label", e.target.value)} className={`input-field h-9 text-xs ${variantErrors[`${v.id}.label`] ? 'border-red-500' : ''}`} disabled={!v.isAvailable} />
@@ -379,7 +379,7 @@ const AdminProductForm = () => {
                          <span className="text-[var(--muted)] italic">{TAX_MESSAGE}</span>
                       </div>
                       
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                          <div className="bg-white/50 p-2 rounded-lg border border-[var(--surface-border)]/50">
                             <p className="text-[8px] font-bold text-[var(--muted)] uppercase tracking-tighter mb-0.5">Net Selling</p>
                             <p className="text-xs font-bold text-[var(--charcoal)]">

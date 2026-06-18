@@ -27,7 +27,7 @@ function Login() {
     try {
       setLoading(true);
       setError("");
-      logout({ redirectToLogin: false });
+      logout({ redirect: false });
       const data = await loginUser(form);
 
       if (data?.token && data?.user && login(data.user, data.token)) {
@@ -126,7 +126,7 @@ function Login() {
               try {
                 setGoogleLoading(true);
                 setError("");
-                logout({ redirectToLogin: false });
+                logout({ redirect: false });
                 const data = await loginWithGoogle({ idToken: response.credential });
 
                 if (data?.token && data?.user && login(data.user, data.token)) {

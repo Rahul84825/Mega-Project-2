@@ -134,7 +134,7 @@ export function AuthProvider({ children }) {
     return true;
   }, []);
 
-  const logout = useCallback(({ redirectToLogin = false, reason } = {}) => {
+  const logout = useCallback(({ redirectToLogin = false, reason, redirect = true } = {}) => {
     setUser(null);
     setToken(null);
     setApiAuthToken(null);
@@ -143,14 +143,16 @@ export function AuthProvider({ children }) {
 
     if (reason) {
       toast.info(reason);
-    } else {
+    } else if (redirect) {
       toast.success("Successfully logged out");
     }
 
-    if (redirectToLogin) {
-      navigate("/login", { replace: true });
-    } else {
-      navigate("/", { replace: true });
+    if (redirect) {
+      if (redirectToLogin) {
+        navigate("/login", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     }
   }, [navigate]);
 

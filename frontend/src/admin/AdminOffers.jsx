@@ -221,7 +221,7 @@ const OfferModal = ({ offer, products, categories, onSave, onClose }) => {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted)] mb-2 block">Priority</label>
                 <input type="number" value={form.priority} onChange={(e) => set("priority", e.target.value)} className="input-field" />

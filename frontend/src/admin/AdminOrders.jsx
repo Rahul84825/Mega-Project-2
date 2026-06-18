@@ -129,44 +129,45 @@ const AdminOrders = () => {
   return (
     <div className="space-y-6 page-enter max-w-full overflow-x-hidden">
       {/* ── HEADER ── */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
-        <div className="section-title mb-0 w-full lg:w-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-3">
+      <div className="bg-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
+        <div className="section-title mb-0 w-full">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-medium uppercase tracking-widest mb-2.5">
             <Sparkles size={12} /> Realtime Control
           </div>
-          <h2 className="serif text-2xl sm:text-3xl md:text-4xl">Orders Management</h2>
-          <p className="text-xs sm:text-sm">{orders.length} total orders · {formatCurrency(totalRevenue)} revenue</p>
+          <h2 className="serif text-xl sm:text-2xl md:text-3xl">Orders Management</h2>
+          <p className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">{orders.length} total orders · {formatCurrency(totalRevenue)} revenue</p>
         </div>
+      </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
-          <button 
-            onClick={handleManualSync}
-            disabled={busyOrderId === "sync"}
-            className="w-fit h-10 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm shrink-0"
-          >
-            {busyOrderId === "sync" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
-            <span className="truncate">Sync Delivery</span>
-          </button>
-          <div className="relative w-full sm:w-64">
+      {/* ── STICKY CONTROL & TABS ROW ── */}
+      <div className="sticky top-0 bg-[#fffaf3] z-20 -mx-3 px-3 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8 py-3 space-y-3 border-b border-[#e6d3b3]/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
             <input
               type="text"
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-10 w-full h-10"
+              className="input-field pl-10 w-full h-9 text-xs"
             />
           </div>
+          <button 
+            onClick={handleManualSync}
+            disabled={busyOrderId === "sync"}
+            className="w-full sm:w-auto h-9 px-4 rounded-xl border border-[#e6d3b3] bg-white text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:bg-[#f5e6d3] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm shrink-0"
+          >
+            {busyOrderId === "sync" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+            <span className="truncate">Sync Delivery</span>
+          </button>
         </div>
+        <OrderTabs activeTab={activeTab} counts={tabCounts} onSelect={setActiveTab} />
       </div>
-
-      {/* ── TABS ── */}
-      <OrderTabs activeTab={activeTab} counts={tabCounts} onSelect={setActiveTab} />
 
       {/* ── ORDERS LIST ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
         {filteredOrders.length === 0 ? (
-          <div className="col-span-full py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
+          <div className="col-span-full py-10 sm:py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
             <div className="h-12 w-12 rounded-full bg-[var(--cream)] flex items-center justify-center mx-auto mb-4 text-[var(--muted)]">
               <Filter size={24} />
             </div>
