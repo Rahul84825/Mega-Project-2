@@ -114,10 +114,6 @@ function Navbar() {
                 placeholder="Search treats..." 
                 className="bg-transparent w-full h-full text-sm font-medium focus:outline-none placeholder:text-gray-400 transition-all"
               />
-              <div className={`hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100 text-[9px] font-bold text-gray-400 transition-all duration-500 ${searchFocused ? 'opacity-0 translate-x-4' : 'opacity-100'}`}>
-                <span className="border-b-2 border-gray-300 px-0.5">CMD</span>
-                <span>K</span>
-              </div>
             </div>
           </div>
 
