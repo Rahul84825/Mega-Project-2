@@ -1,0 +1,9 @@
+{
+  "appId": "com.mithaiworld.app",
+  "appName": "Mithai World",
+  "webDir": "dist",
+  "server": {
+    "url": "https://www.mithaipune.com",
+    "cleartext": false
+  }
+}

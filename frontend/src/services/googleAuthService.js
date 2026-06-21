@@ -34,18 +34,29 @@ export const loadGoogleScript = () => {
     const existingScript = document.querySelector(GOOGLE_SCRIPT_SELECTOR);
 
     if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(true), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error("Google Identity Services failed to load")), { once: true });
-      return;
+      if (window.google?.accounts?.id) {
+        resolve(true);
+        return;
+      }
+      console.log("Removing stale or failed Google script tag from DOM to avoid hanging promise.");
+      existingScript.remove();
     }
 
+    console.log("Injecting fresh Google Identity Services script...");
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.defer = true;
     script.dataset.googleIdentity = "true";
-    script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error("Google Identity Services failed to load"));
+    script.onload = () => {
+      console.log("Google Identity Services script loaded successfully.");
+      resolve(true);
+    };
+    script.onerror = (err) => {
+      console.log("Google Identity Services script failed to load. Cleaning up script tag.");
+      script.remove();
+      reject(new Error("Google Identity Services failed to load"));
+    };
     document.head.appendChild(script);
   }).catch((error) => {
     scriptPromise = null;
