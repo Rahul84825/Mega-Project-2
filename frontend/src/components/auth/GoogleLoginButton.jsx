@@ -32,22 +32,39 @@ function GoogleLoginButton({ onCredential, clientId, className = "" }) {
       setAndroidLoading(true);
       setErrorText("");
       
+      const androidClientId = "53177357536-roif1v4kllp72jketot1257mts32bq30.apps.googleusercontent.com";
+      const webClientId = "53177357536-prea1mestrvmsou2137mqe1auh64ep14.apps.googleusercontent.com";
+      let finalClientId = resolvedClientId;
+
+      console.log("Exact Client ID at runtime:", finalClientId);
+
+      if (finalClientId === androidClientId) {
+        console.log("Android Client ID detected in initialize(). Replacing it with the Web Client ID:", webClientId);
+        finalClientId = webClientId;
+      }
+
       console.log("INITIALIZE START");
       if (!GoogleSignIn || typeof GoogleSignIn.initialize !== "function") {
         throw new Error("GoogleSignIn native plugin is not loaded or supported.");
       }
 
       if (!isGoogleSignInInitialized) {
+        console.log("Calling GoogleSignIn.initialize() with client ID:", finalClientId);
         await GoogleSignIn.initialize({
-          clientId: resolvedClientId,
+          clientId: finalClientId,
         });
         isGoogleSignInInitialized = true;
       }
-      console.log("INITIALIZE SUCCESS");
+      console.log("initialize success");
 
       const result = await GoogleSignIn.signIn();
-      console.log("SIGN IN SUCCESS", result ? "Token received" : "No result");
+      console.log("signIn success", result);
       
+      if (result) {
+        console.log("returned idToken:", result.idToken);
+        console.log("returned user profile:", result.profile);
+      }
+
       if (!result?.idToken) {
         throw new Error("Failed to obtain Google ID Token.");
       }
@@ -56,8 +73,8 @@ function GoogleLoginButton({ onCredential, clientId, className = "" }) {
         onCredential({ credential: blockToken(result.idToken) });
       }
     } catch (err) {
-      console.log("INITIALIZE FAILED", err);
-      console.error("Android Google Sign-In error:", err);
+      console.log("INITIALIZE FAILED or SIGN IN FAILED", err);
+      console.error("Android Google Sign-In full error object:", err);
       // Suppress errors that happen when user closes/cancels the native dialog
       if (err?.message && !err.message.toLowerCase().includes("cancel")) {
         setErrorText(err.message || "Google Sign-In failed.");
