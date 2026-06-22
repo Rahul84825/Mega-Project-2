@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -44,6 +44,7 @@ import { ProductProvider } from "./context/ProductContext";
 import GlobalStyle from "./services/utils/GlobalStyle";
 import PromotionBar from "./components/common/PromotionBar";
 import AnnouncementPopup from "./components/common/AnnouncementPopup";
+import SplashScreen from "./components/SplashScreen";
 
 // Store Pages (core pages, loaded early)
 import HomePage from "./pages/HomePage";
@@ -139,6 +140,7 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const lastBackPress = useRef(0);
+  const [showReactSplash, setShowReactSplash] = useState(true);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
@@ -206,6 +208,10 @@ function App() {
           <ScrollToTop />
           <ToastContainer position="bottom-right" autoClose={3000} />
           <AnnouncementPopup />
+
+          {showReactSplash && (
+            <SplashScreen onComplete={() => setShowReactSplash(false)} />
+          )}
 
           <Routes>
             {/* ═══════════════════════════════════════════ */}
