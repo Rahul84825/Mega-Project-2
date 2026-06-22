@@ -8,6 +8,7 @@ import http from "http";
 import mongoose from "mongoose";
 import app from "./app.js";
 import { initializeSocket } from "./socket.js";
+import { startReminderScheduler } from "./services/notificationService.js";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
@@ -64,6 +65,9 @@ const boot = async () => {
   try {
     console.log("🚀 BOOT: Connecting to database...");
     await connectDB();
+
+    // Start background FCM reminder scheduler
+    startReminderScheduler();
 
     // Start accepting HTTP and Socket.IO traffic.
     server.listen(PORT, () => {

@@ -17,7 +17,8 @@ import toast from "../services/utils/toast";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { products, orders, fetchOrders } = useProducts();
+  const { products, orders, fetchOrders, alertingOrderIds } = useProducts();
+  const hasNewOrderAlert = alertingOrderIds && alertingOrderIds.length > 0;
   const [loading, setLoading] = useState(true);
   const [reportStats, setReportStats] = useState({
     totalUsers: 0,
@@ -96,6 +97,23 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6 md:space-y-12 page-enter pb-20">
+      {hasNewOrderAlert && (
+        <div className="bg-red-600 text-white px-5 py-4 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse shadow-lg border border-red-700">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🚨</span>
+            <div>
+              <span className="font-black text-sm tracking-wider uppercase block">🔴 NEW ORDER WAITING</span>
+              <span className="text-[10px] opacity-90 font-medium">There are {alertingOrderIds.length} pending order(s) requiring acceptance!</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate("/admin/orders")} 
+            className="w-full sm:w-auto bg-white text-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-red-50 transition-all active:scale-95 cursor-pointer text-center"
+          >
+            Go to Orders Page
+          </button>
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-white p-5 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
         <div className="section-title mb-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-strong)] text-[var(--burgundy)] text-[10px] font-bold uppercase tracking-widest mb-3">

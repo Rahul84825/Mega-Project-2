@@ -15,6 +15,7 @@ import {
   sendOrderPlacedEmail,
   sendAdminNewOrderAlert
 } from "../services/emailService.js";
+import { sendNewOrderPushNotification } from "../services/notificationService.js";
 
 const getRazorpayClient = () => {
   const keyId = process.env.RAZORPAY_KEY_ID;
@@ -409,6 +410,7 @@ export const verifyPayment = async (req, res) => {
     sendPaymentSuccessEmail(createdOrder).catch(err => logger.error("Failed to send payment success email", err));
     sendOrderPlacedEmail(createdOrder).catch(err => logger.error("Failed to send order placed email", err));
     sendAdminNewOrderAlert(createdOrder).catch(err => logger.error("Failed to send admin alert email", err));
+    sendNewOrderPushNotification(createdOrder).catch(err => logger.error("Failed to send FCM order notification", err));
 
     return res.status(200).json({
       success: true,

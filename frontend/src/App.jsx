@@ -1,7 +1,9 @@
-import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { App as CapApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 // ── UTILS ──
 /**
@@ -108,7 +110,94 @@ function StoreLayout({ children, hideFooter = false }) {
   );
 }
 
+const closeActiveModal = () => {
+  const overlays = document.querySelectorAll(".fixed.inset-0");
+  for (const overlay of overlays) {
+    if (overlay.offsetWidth > 0 || overlay.offsetHeight > 0) {
+      const buttons = overlay.querySelectorAll("button");
+      for (const btn of buttons) {
+        const hasX = btn.querySelector("svg") || btn.innerHTML.includes("svg");
+        const hasCancelText = btn.textContent.toLowerCase().includes("cancel") 
+          || btn.textContent.toLowerCase().includes("close")
+          || btn.textContent.toLowerCase().includes("dismiss");
+        
+        if (hasX || hasCancelText) {
+          btn.click();
+          return true;
+        }
+      }
+      if (buttons.length > 0) {
+        buttons[0].click();
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const lastBackPress = useRef(0);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    const handleBackButton = async () => {
+      if (closeActiveModal()) {
+        console.log("Back button: Closed active modal/drawer.");
+        return;
+      }
+
+      const path = location.pathname;
+
+      if (path.startsWith("/product/")) {
+        console.log("Back button: Navigating from Product Details to Products page.");
+        navigate("/sweets");
+        return;
+      }
+
+      if (path === "/checkout") {
+        console.log("Back button: Navigating from Checkout to Cart.");
+        navigate("/cart");
+        return;
+      }
+
+      if (path === "/my-orders" || path === "/admin/orders") {
+        console.log("Back button: Navigating back from Orders.");
+        navigate(-1);
+        return;
+      }
+
+      if (path === "/" || path === "/admin") {
+        const now = Date.now();
+        if (now - lastBackPress.current < 2000) {
+          console.log("Back button: Exiting app.");
+          CapApp.exitApp();
+        } else {
+          lastBackPress.current = now;
+          toast.info("Press back again to exit", {
+            position: "bottom-center",
+            autoClose: 2000,
+            toastId: "exit-toast"
+          });
+        }
+        return;
+      }
+
+      console.log("Back button: Standard back navigation.");
+      navigate(-1);
+    };
+
+    const backButtonListener = CapApp.addListener("backButton", handleBackButton);
+
+    return () => {
+      backButtonListener.then(l => l.remove());
+    };
+  }, [location, navigate]);
+
   return (
     <ErrorBoundary>
       <CartProvider>

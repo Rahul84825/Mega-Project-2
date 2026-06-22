@@ -10,6 +10,7 @@ import {
   storeAuth
 } from "../services/utils/authSession";
 import { toast } from "../services/utils/toast";
+import { initPushNotifications, unregisterPushNotifications } from "../services/pushNotificationService";
 
 const AuthContext = createContext(null);
 
@@ -135,6 +136,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(({ redirectToLogin = false, reason, redirect = true } = {}) => {
+    if (user?.isAdmin === true) {
+      unregisterPushNotifications().catch(err => console.error("FCM: Failed to unregister push notifications:", err));
+    }
+
     setUser(null);
     setToken(null);
     setApiAuthToken(null);
@@ -154,7 +159,13 @@ export function AuthProvider({ children }) {
         navigate("/", { replace: true });
       }
     }
-  }, [navigate]);
+  }, [navigate, user]);
+
+  useEffect(() => {
+    if (authReady && user && user.isAdmin) {
+      initPushNotifications(true);
+    }
+  }, [authReady, user]);
 
   const value = useMemo(
     () => ({

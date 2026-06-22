@@ -20,6 +20,8 @@ const AdminOrders = () => {
     markOrderReady,
     markOrderPickedUp,
     markOrderDelivered,
+    alertingOrderIds,
+    clearOrderAlert
   } = useProducts();
 
   const [activeTab, setActiveTab] = useState("NEW");
@@ -28,6 +30,15 @@ const AdminOrders = () => {
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [rejectModal, setRejectModal] = useState({ open: false, order: null });
   const [acceptModal, setAcceptModal] = useState({ open: false, order: null });
+
+  const hasNewOrderAlert = alertingOrderIds && alertingOrderIds.length > 0;
+
+  // Clear order alert when opened/viewed
+  useEffect(() => {
+    if (selectedId) {
+      clearOrderAlert(selectedId);
+    }
+  }, [selectedId, clearOrderAlert]);
 
   // ── AUTO-REFRESH LOGIC FOR ACTIVE ORDERS (FIXED) ──
   const ordersRef = useRef(orders);
@@ -128,6 +139,17 @@ const AdminOrders = () => {
 
   return (
     <div className="space-y-6 page-enter max-w-full overflow-x-hidden">
+      {hasNewOrderAlert && (
+        <div className="bg-red-600 text-white px-5 py-4 rounded-[24px] flex items-center justify-between gap-3 animate-pulse shadow-lg border border-red-700">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🚨</span>
+            <div>
+              <span className="font-black text-sm tracking-wider uppercase block">🔴 NEW ORDER WAITING</span>
+              <span className="text-[10px] opacity-90 font-medium">There are {alertingOrderIds.length} pending order(s) requiring acceptance! Click on an order to view and stop the alert.</span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── HEADER ── */}
       <div className="bg-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border border-[#e6d3b3] shadow-sm">
         <div className="section-title mb-0 w-full">

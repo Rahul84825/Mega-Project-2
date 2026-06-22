@@ -183,3 +183,45 @@ export const googleLogin = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const saveFcmToken = async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body || {};
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: "fcmToken is required" });
+    }
+
+    const { userId, isAdmin } = req.user;
+
+    if (!isAdmin) {
+      return res.status(403).json({ success: false, message: "Only admin devices are registered for push notifications" });
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { fcmTokens: fcmToken }
+    });
+
+    return res.status(200).json({ success: true, message: "FCM token registered successfully" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleteFcmToken = async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body || {};
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: "fcmToken is required" });
+    }
+
+    const { userId } = req.user;
+
+    await User.findByIdAndUpdate(userId, {
+      $pull: { fcmTokens: fcmToken }
+    });
+
+    return res.status(200).json({ success: true, message: "FCM token unregistered successfully" });
+  } catch (error) {
+    return next(error);
+  }
+};

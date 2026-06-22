@@ -1,0 +1,34 @@
+{
+  "project_info": {
+    "project_number": "53177357536",
+    "project_id": "mithai-world-app",
+    "storage_bucket": "mithai-world-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53177357536:android:b20df38c92e105db02ab11",
+        "android_client_info": {
+          "package_name": "com.mithaiworld.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "53177357536-prea1mestrvmsou2137mqe1auh64ep14.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDummyKeyForCompilationOnly"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

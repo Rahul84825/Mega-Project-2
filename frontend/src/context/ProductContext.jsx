@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
 import api from "../services/api";
 import { socket } from "../services/socket";
 import { calculateTotals } from "shared/utils/pricing";
@@ -205,6 +205,70 @@ export function ProductProvider({ children }) {
   const { isAdmin } = useAuth();
   const audioRef = useRef(null);
 
+  // Alert state for pending orders
+  const [alertingOrderIds, setAlertingOrderIds] = useState([]);
+
+  // Manage browser tab title
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (alertingOrderIds.length > 0) {
+        document.title = `(${alertingOrderIds.length}) New Order - Mithai World`;
+      } else {
+        document.title = "Mithai World Admin";
+      }
+    }
+  }, [alertingOrderIds]);
+
+  // Sync alerting list with state.orders (remove resolved ones and populate placed ones)
+  useEffect(() => {
+    if (state.orders.length > 0 && isAdmin === true) {
+      const placedOrders = state.orders.filter(o => o.status === "PLACED").map(o => o._id);
+      setAlertingOrderIds(prev => {
+        // Find placed orders that are not yet in the alerting list
+        const missing = placedOrders.filter(id => !prev.includes(id));
+        // Keep only those in prev that are still in placed status
+        const filtered = prev.filter(id => placedOrders.includes(id));
+        const combined = [...new Set([...filtered, ...missing])];
+        
+        const same = combined.length === prev.length && combined.every(id => prev.includes(id));
+        return same ? prev : combined;
+      });
+    }
+  }, [state.orders, isAdmin]);
+
+  const playNotification = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.warn("🔔 Audio playback failed (blocked by browser):", err);
+          audioRef.current.load();
+        });
+      }
+    }
+  }, []);
+
+  // Manage the repeating audio loop (every 15s)
+  useEffect(() => {
+    if (isAdmin === true && alertingOrderIds.length > 0) {
+      // Play immediately
+      playNotification();
+
+      const interval = setInterval(() => {
+        playNotification();
+      }, 15000);
+
+      return () => clearInterval(interval);
+    }
+  }, [alertingOrderIds, isAdmin, playNotification]);
+
+  const clearOrderAlert = useCallback((orderId) => {
+    setAlertingOrderIds(prev => prev.filter(id => id !== orderId));
+  }, []);
+
   // Initialize audio object and handle autoplay "unlocking"
   useEffect(() => {
     if (typeof window !== "undefined" && !audioRef.current) {
@@ -240,23 +304,6 @@ export function ProductProvider({ children }) {
         window.removeEventListener("keydown", unlockAudio);
         window.removeEventListener("touchstart", unlockAudio);
       };
-    }
-  }, []);
-
-  const playNotification = useCallback(() => {
-    if (audioRef.current) {
-      // Stop current playback if any
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.warn("🔔 Audio playback failed (blocked by browser):", err);
-          // Fallback: try to reload
-          audioRef.current.load();
-        });
-      }
     }
   }, []);
 
@@ -362,7 +409,7 @@ export function ProductProvider({ children }) {
         // Play notification ONLY if user is confirmed as Admin
         // This ensures customers don't hear the Swiggy-style alert
         if (isAdmin === true) {
-          playNotification();
+          setAlertingOrderIds(prev => [...new Set([...prev, order._id])]);
         }
       }
     };
@@ -587,7 +634,9 @@ export function ProductProvider({ children }) {
     updateOffer,
     deleteOffer,
     toggleOffer,
-    playNotification
+    playNotification,
+    alertingOrderIds,
+    clearOrderAlert
   };
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;
