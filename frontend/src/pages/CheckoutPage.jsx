@@ -10,6 +10,8 @@ import StoreMap from "../components/common/StoreMap";
 import LocationCard from "../components/common/LocationCard";
 import AvailableCoupons from "../components/checkout/AvailableCoupons";
 import { Phone, MessageSquare, MapPin, Truck, MapPinOff, Loader2, Tag } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Checkout } from "capacitor-razorpay";
 
 let razorpayScriptPromise;
 
@@ -258,11 +260,96 @@ function CheckoutPage() {
   };
 
   const handleOnlinePayment = async () => {
-    if (!scriptReady) return setErrorMessage("Payment gateway loading...");
+    const isNative = Capacitor.isNativePlatform();
+    if (!isNative && !scriptReady) return setErrorMessage("Payment gateway loading...");
     if (!isAvailable) return setErrorMessage("Delivery not available for this location");
     
     console.log("🔵 PAYMENT_STEP_1_CREATE_ORDER_REQUEST", { amount: total, timestamp: new Date().toISOString() });
     setProcessing(true);
+    
+    // Helper function for backend payment verification
+    const verifyPaymentOnBackend = async (res) => {
+      console.log("🟡 PAYMENT_STEP_4_PAYMENT_SUCCESS_CALLBACK", { 
+        razorpay_order_id: res.razorpay_order_id,
+        razorpay_payment_id: res.razorpay_payment_id,
+        timestamp: new Date().toISOString()
+      });
+      try {
+        // Automatically generate full address string
+        const generatedFullAddress = [
+          form.flatNo,
+          form.buildingName,
+          form.area,
+          form.landmark,
+          form.city,
+          form.state,
+          form.pincode
+        ].filter(Boolean).map(s => String(s).trim()).join(", ");
+
+        const verifyPayload = {
+          razorpay_order_id: res.razorpay_order_id,
+          razorpay_payment_id: res.razorpay_payment_id,
+          razorpay_signature: res.razorpay_signature,
+          orderData: {
+            customer: { 
+              name: form.name, 
+              phone: form.phone, 
+              email: form.email, 
+              userId: user?.userId || user?._id 
+            },
+            shippingAddress: { 
+              line1: generatedFullAddress, // Backward compatibility
+              flatNo: form.flatNo,
+              buildingName: form.buildingName,
+              area: form.area,
+              landmark: form.landmark,
+              city: form.city, 
+              state: form.state, 
+              pincode: form.pincode,
+              postalCode: form.pincode, 
+              fullAddress: generatedFullAddress,
+              country: "IN",
+              geo: deliveryInfo?.geo || null
+            },
+            items: cart.map(i => ({ ...i, productId: i.productId })),
+            amount: total,
+            totals: { 
+              itemsSubtotal: subtotal, 
+              shippingFee: deliveryFee, 
+              gstTotal, 
+              packingTotal,
+              grandTotal: total, 
+              currency: "INR",
+              couponCode: appliedCoupon?.code
+            },
+            notes: "",
+            metadata: {
+              distanceKm: deliveryInfo?.distanceKm || 0,
+              geocodedAddress: deliveryInfo?.formattedAddress || ""
+            }
+          }
+        };
+        console.log("🔵 PAYMENT_STEP_5_VERIFY_REQUEST_SENT", { 
+          orderId: res.razorpay_order_id, 
+          paymentId: res.razorpay_payment_id,
+          timestamp: new Date().toISOString() 
+        });
+        const { data: verifyData } = await api.post("/api/payment/verify", verifyPayload);
+        if (verifyData.success) {
+          console.log("🟢 PAYMENT_STEP_9_PAYMENT_COMPLETED", { orderId: verifyData.order?._id, timestamp: new Date().toISOString() });
+          handleOrderSuccess(verifyData.order);
+        } else {
+          throw new Error(verifyData.message || "Verification failed");
+        }
+      } catch (err) {
+        console.error("❌ PAYMENT_VERIFICATION_ERROR", err);
+        const msg = getApiErrorMessage(err, "Payment verification failed");
+        setErrorMessage(msg);
+      } finally {
+        setProcessing(false);
+      }
+    };
+
     try {
       const { data: orderData } = await api.post("/api/payment/create-order", { amount: total });
       console.log("🟢 PAYMENT_STEP_2_CREATE_ORDER_SUCCESS", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
@@ -274,95 +361,53 @@ function CheckoutPage() {
         name: "Mithai World",
         order_id: orderData.orderId,
         prefill: { name: form.name, email: form.email, contact: form.phone },
-        theme: { color: "#8B1E3F" },
-        handler: async (res) => {
-          console.log("🟡 PAYMENT_STEP_4_PAYMENT_SUCCESS_CALLBACK", { 
-            razorpay_order_id: res.razorpay_order_id,
-            razorpay_payment_id: res.razorpay_payment_id,
-            timestamp: new Date().toISOString()
-          });
-          try {
-            // Automatically generate full address string
-            const generatedFullAddress = [
-              form.flatNo,
-              form.buildingName,
-              form.area,
-              form.landmark,
-              form.city,
-              form.state,
-              form.pincode
-            ].filter(Boolean).map(s => String(s).trim()).join(", ");
-
-            const verifyPayload = {
-              razorpay_order_id: res.razorpay_order_id,
-              razorpay_payment_id: res.razorpay_payment_id,
-              razorpay_signature: res.razorpay_signature,
-              orderData: {
-                customer: { 
-                  name: form.name, 
-                  phone: form.phone, 
-                  email: form.email, 
-                  userId: user?.userId || user?._id 
-                },
-                shippingAddress: { 
-                  line1: generatedFullAddress, // Backward compatibility
-                  flatNo: form.flatNo,
-                  buildingName: form.buildingName,
-                  area: form.area,
-                  landmark: form.landmark,
-                  city: form.city, 
-                  state: form.state, 
-                  pincode: form.pincode,
-                  postalCode: form.pincode, 
-                  fullAddress: generatedFullAddress,
-                  country: "IN",
-                  geo: deliveryInfo?.geo || null
-                },
-                items: cart.map(i => ({ ...i, productId: i.productId })),
-                amount: total,
-                totals: { 
-                  itemsSubtotal: subtotal, 
-                  shippingFee: deliveryFee, 
-                  gstTotal, 
-                  packingTotal,
-                  grandTotal: total, 
-                  currency: "INR",
-                  couponCode: appliedCoupon?.code
-                },
-                notes: "",
-                metadata: {
-                  distanceKm: deliveryInfo?.distanceKm || 0,
-                  geocodedAddress: deliveryInfo?.formattedAddress || ""
-                }
-              }
-            };
-            console.log("🔵 PAYMENT_STEP_5_VERIFY_REQUEST_SENT", { 
-              orderId: res.razorpay_order_id, 
-              paymentId: res.razorpay_payment_id,
-              timestamp: new Date().toISOString() 
-            });
-            const { data: verifyData } = await api.post("/api/payment/verify", verifyPayload);
-            if (verifyData.success) {
-              console.log("🟢 PAYMENT_STEP_9_PAYMENT_COMPLETED", { orderId: verifyData.order?._id, timestamp: new Date().toISOString() });
-              handleOrderSuccess(verifyData.order);
-            } else {
-              throw new Error(verifyData.message || "Verification failed");
-            }
-          } catch (err) {
-            console.error("❌ PAYMENT_VERIFICATION_ERROR", err);
-            const msg = getApiErrorMessage(err, "Payment verification failed");
-            setErrorMessage(msg);
-          }
-        },
-        modal: { 
-          ondismiss: () => {
-            console.warn("🟠 PAYMENT_MODAL_DISMISSED");
-            setProcessing(false);
-          }
-        }
+        theme: { color: "#8B1E3F" }
       };
-      console.log("🟣 PAYMENT_STEP_3_RAZORPAY_MODAL_OPENED", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
-      new window.Razorpay(options).open();
+
+      if (isNative) {
+        console.log("🟣 NATIVE_PAYMENT_STEP_3_RAZORPAY_SDK_OPENED", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
+        try {
+          const res = await Checkout.open(options);
+          if (res && res.response) {
+            await verifyPaymentOnBackend(res.response);
+          } else {
+            throw new Error("Payment failed: Empty response from Native Checkout SDK");
+          }
+        } catch (checkoutError) {
+          console.warn("🟠 NATIVE_PAYMENT_DISMISSED or FAILED", checkoutError);
+          let errorMsg = "Payment was cancelled or failed.";
+          if (checkoutError && typeof checkoutError === "object") {
+            errorMsg = checkoutError.description || checkoutError.message || errorMsg;
+          } else if (typeof checkoutError === "string") {
+            errorMsg = checkoutError;
+          }
+          setErrorMessage(errorMsg);
+          setProcessing(false);
+        }
+      } else {
+        const webOptions = {
+          ...options,
+          handler: async (res) => {
+            await verifyPaymentOnBackend(res);
+          },
+          modal: { 
+            ondismiss: () => {
+              console.warn("🟠 PAYMENT_MODAL_DISMISSED");
+              setProcessing(false);
+            }
+          }
+        };
+        console.log("🟣 PAYMENT_STEP_3_RAZORPAY_MODAL_OPENED", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
+        console.log("RAZORPAY OPTIONS OBJECT:", {
+          ...webOptions,
+          handler: webOptions.handler ? "[Function: handler]" : null,
+          modal: {
+            ...webOptions.modal,
+            ondismiss: webOptions.modal?.ondismiss ? "[Function: ondismiss]" : null
+          }
+        });
+        new window.Razorpay(webOptions).open();
+      }
     } catch (err) {
       console.error("❌ PAYMENT_INITIATION_ERROR", err);
       const msg = getApiErrorMessage(err, "Could not initiate payment");
