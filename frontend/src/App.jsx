@@ -45,7 +45,6 @@ import { ProductProvider } from "./context/ProductContext";
 import GlobalStyle from "./services/utils/GlobalStyle";
 import PromotionBar from "./components/common/PromotionBar";
 import AnnouncementPopup from "./components/common/AnnouncementPopup";
-import SplashScreen from "./components/SplashScreen";
 
 // Store Pages (core pages, loaded early)
 import HomePage from "./pages/HomePage";
@@ -141,7 +140,6 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const lastBackPress = useRef(0);
-  const [showReactSplash, setShowReactSplash] = useState(true);
 
   // Hide native splash screen as soon as React is ready (mounted)
   useEffect(() => {
@@ -218,10 +216,6 @@ function App() {
           <ScrollToTop />
           <ToastContainer position="bottom-right" autoClose={3000} />
           <AnnouncementPopup />
-
-          {showReactSplash && (
-            <SplashScreen onComplete={() => setShowReactSplash(false)} />
-          )}
 
           <Routes>
             {/* ═══════════════════════════════════════════ */}
