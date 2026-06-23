@@ -4,6 +4,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
+import { SplashScreen as CapSplashScreen } from "@capacitor/splash-screen";
 
 // ── UTILS ──
 /**
@@ -141,6 +142,15 @@ function App() {
   const navigate = useNavigate();
   const lastBackPress = useRef(0);
   const [showReactSplash, setShowReactSplash] = useState(true);
+
+  // Hide native splash screen as soon as React is ready (mounted)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      CapSplashScreen.hide().catch(err => {
+        console.warn("Failed to hide native splash screen:", err);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
