@@ -2,16 +2,17 @@
   "appId": "com.mithaiworld.app",
   "appName": "Mithai World",
   "webDir": "dist",
-  "server": {
-    "url": "https://www.mithaipune.com",
-    "cleartext": false
-  },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 0,
       "launchAutoHide": false,
       "backgroundColor": "#FFF3E0",
       "androidScaleType": "CENTER_CROP"
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "CapacitorCookies": {
+      "enabled": true
     }
   }
 }

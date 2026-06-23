@@ -4,7 +4,8 @@ import { getStoredToken, notifySessionExpired } from "./utils/authSession";
 const getBackendUrl = () => {
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("192.168.")) {
+    const isNative = window.Capacitor?.isNativePlatform() || window.location.protocol === "capacitor:";
+    if (isNative || (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("192.168."))) {
       return "https://mega-project-2-b880.onrender.com";
     }
   }

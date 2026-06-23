@@ -42,6 +42,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./context/CartContext";
 import { ProductProvider } from "./context/ProductContext";
+import { useAuth } from "./context/AuthContext";
 import GlobalStyle from "./services/utils/GlobalStyle";
 import PromotionBar from "./components/common/PromotionBar";
 import AnnouncementPopup from "./components/common/AnnouncementPopup";
@@ -140,15 +141,19 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const lastBackPress = useRef(0);
+  const { authReady } = useAuth();
 
-  // Hide native splash screen as soon as React is ready (mounted)
+  // Hide native splash screen as soon as React app is ready and auth state is restored
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      CapSplashScreen.hide().catch(err => {
-        console.warn("Failed to hide native splash screen:", err);
-      });
+    if (Capacitor.isNativePlatform() && authReady) {
+      const timer = setTimeout(() => {
+        CapSplashScreen.hide().catch(err => {
+          console.warn("Failed to hide native splash screen:", err);
+        });
+      }, 200);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [authReady]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
