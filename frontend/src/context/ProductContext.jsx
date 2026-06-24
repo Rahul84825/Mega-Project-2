@@ -317,7 +317,7 @@ export function ProductProvider({ children }) {
     try {
       const [resProducts, resOrders, resCategories, resOffers] = await Promise.allSettled([
         api.get("/api/products"),
-        api.get("/api/orders"),
+        isAdmin ? api.get("/api/orders") : Promise.resolve({ data: [] }),
         api.get("/api/categories"),
         api.get("/api/offers")
       ]);
@@ -391,8 +391,10 @@ export function ProductProvider({ children }) {
     if (!socket.connected) socket.connect();
 
     const handleConnect = () => {
-      console.log(`📡 SOCKET_CONNECTED: Client socket connected/reconnected. Pulling fresh orders...`);
-      fetchOrders();
+      if (isAdmin === true) {
+        console.log(`📡 SOCKET_CONNECTED: Client socket connected/reconnected. Pulling fresh orders...`);
+        fetchOrders();
+      }
     };
 
     const handleNewOrder = (order) => {

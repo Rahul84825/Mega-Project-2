@@ -88,7 +88,7 @@ const Sidebar = ({ mobile = false, collapsed, setCollapsed, mobileOpen, setMobil
       </button>
       
       <button
-        onClick={() => { logout({ redirectToLogin: true }); }}
+        onClick={() => { logout(); }}
         className={`flex items-center gap-3 ${collapsed && !mobile ? 'justify-center w-10 h-10 mx-auto px-0' : 'w-full px-3 py-2.5'} rounded-xl text-sm font-medium text-red-600 hover:bg-[#d4a373] transition-all`}
         title={collapsed && !mobile ? "Logout" : undefined}
       >

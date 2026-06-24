@@ -111,7 +111,6 @@ export function AuthProvider({ children }) {
       setApiAuthToken(null);
       clearStoredAuth();
       toast.error(message);
-      navigate("/login", { replace: true, state: { message } });
     };
 
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
@@ -135,7 +134,7 @@ export function AuthProvider({ children }) {
     return true;
   }, []);
 
-  const logout = useCallback(({ redirectToLogin = false, reason, redirect = true } = {}) => {
+  const logout = useCallback(({ reason, redirect = true } = {}) => {
     if (user?.isAdmin === true) {
       unregisterPushNotifications().catch(err => console.error("FCM: Failed to unregister push notifications:", err));
     }
@@ -153,11 +152,7 @@ export function AuthProvider({ children }) {
     }
 
     if (redirect) {
-      if (redirectToLogin) {
-        navigate("/login", { replace: true });
-      } else {
-        navigate("/", { replace: true });
-      }
+      navigate("/", { replace: true });
     }
   }, [navigate, user]);
 
