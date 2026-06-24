@@ -36,6 +36,12 @@ const loadInitialAuth = () => {
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
+  
+  if (typeof window !== "undefined" && window.startupTimestamps && !window.startupTimestamps.authInit) {
+    window.startupTimestamps.authInit = Date.now();
+    console.log("MithaiWorldStartup: AUTH_CONTEXT_INIT_MS: " + window.startupTimestamps.authInit + " (diff from html: " + (window.startupTimestamps.authInit - window.startupTimestamps.htmlLoad) + "ms)");
+  }
+
   const initialAuth = useMemo(() => {
     const auth = loadInitialAuth();
     // Synchronously set the API token during initialization to prevent 
@@ -52,6 +58,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     console.log("AUTH_RESTORED: Auth state initialized from storage");
+    if (typeof window !== "undefined" && window.startupTimestamps) {
+      window.startupTimestamps.authReady = Date.now();
+      console.log("MithaiWorldStartup: AUTH_READY_MS: " + window.startupTimestamps.authReady + " (diff from html: " + (window.startupTimestamps.authReady - window.startupTimestamps.htmlLoad) + "ms)");
+    }
     setAuthReady(true);
   }, []);
 

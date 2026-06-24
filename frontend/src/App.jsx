@@ -147,10 +147,21 @@ function App() {
   useEffect(() => {
     if (Capacitor.isNativePlatform() && authReady) {
       const timer = setTimeout(() => {
-        CapSplashScreen.hide().catch(err => {
+        if (typeof window !== "undefined" && window.startupTimestamps) {
+          window.startupTimestamps.splashHideStart = Date.now();
+          console.log("MithaiWorldStartup: SPLASH_HIDE_START_MS: " + window.startupTimestamps.splashHideStart + " (diff from html: " + (window.startupTimestamps.splashHideStart - window.startupTimestamps.htmlLoad) + "ms)");
+        }
+        
+        CapSplashScreen.hide().then(() => {
+          if (typeof window !== "undefined" && window.startupTimestamps) {
+            window.startupTimestamps.splashHideEnd = Date.now();
+            console.log("MithaiWorldStartup: SPLASH_HIDE_END_MS: " + window.startupTimestamps.splashHideEnd + " (diff from html: " + (window.startupTimestamps.splashHideEnd - window.startupTimestamps.htmlLoad) + "ms)");
+            console.log("MithaiWorldStartup: FULL_TIMESTAMPS_JSON: " + JSON.stringify(window.startupTimestamps));
+          }
+        }).catch(err => {
           console.warn("Failed to hide native splash screen:", err);
         });
-      }, 200);
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [authReady]);

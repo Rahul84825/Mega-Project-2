@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      window.startupTimestamps = { htmlLoad: Date.now() };
+      console.log("MithaiWorldStartup: WEBVIEW_HTML_LOAD_MS: " + window.startupTimestamps.htmlLoad);
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mithai World</title>
