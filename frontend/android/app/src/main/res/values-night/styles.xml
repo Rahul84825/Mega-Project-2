@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <!-- Background for pre-Android 12 devices in dark mode -->
-        <item name="android:background">@drawable/splash</item>
         <!-- Background and Icon for Android 12+ in dark mode -->
         <item name="android:windowSplashScreenBackground">#8B1E3F</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo_dark</item>
