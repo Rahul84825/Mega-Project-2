@@ -108,8 +108,10 @@ export const storeAuth = ({ user, token }) => {
   try {
     if (user && token) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, token }));
+      console.log("TOKEN_SAVED: Auth token saved to storage");
       localStorage.setItem(LEGACY_TOKEN_KEY, token);
       localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
+      console.log("USER_SAVED: User profile saved to storage");
       return;
     }
 

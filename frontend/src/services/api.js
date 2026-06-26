@@ -81,7 +81,22 @@ export const getApiErrorMessage = (error, fallback = "Something went wrong. Plea
     return "Request canceled";
   }
 
-  return error?.response?.data?.message || error?.message || fallback;
+  const rawMessage = error?.response?.data?.message || error?.message || fallback;
+  
+  // Clean database or validation messages as a robust backup shield
+  const lowerMsg = String(rawMessage).toLowerCase();
+  if (
+    lowerMsg.includes("validation failed") ||
+    lowerMsg.includes("imagesnapshot") ||
+    lowerMsg.includes("mongodb") ||
+    lowerMsg.includes("mongoose") ||
+    lowerMsg.includes("cast error") ||
+    lowerMsg.includes("syntaxerror")
+  ) {
+    return "Something went wrong while creating your order. Please contact support if the issue continues.";
+  }
+
+  return rawMessage;
 };
 
 export const getProducts = async (page = 1, limit = 20, config = {}) => {

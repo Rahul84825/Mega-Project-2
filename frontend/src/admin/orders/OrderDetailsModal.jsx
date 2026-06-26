@@ -6,6 +6,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { formatCurrency } from "shared/utils/pricing";
+import { PLACEHOLDER_IMAGE } from "../../utils/imageHelper";
 import { 
   resolveStatus, 
   resolvePaymentMethod, 
@@ -184,7 +185,12 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
                   <div key={idx} className="p-4 sm:p-6 flex items-center gap-4 sm:gap-6">
                     <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-[#fffaf3] border border-[#e6d3b3]/30 overflow-hidden shrink-0">
                       {item.imageSnapshot || item.image ? (
-                        <img src={item.imageSnapshot || item.image} className="h-full w-full object-cover mix-blend-multiply" alt="" />
+                        <img 
+                          src={item.imageSnapshot || item.image} 
+                          onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                          className="h-full w-full object-cover mix-blend-multiply" 
+                          alt="" 
+                        />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-[#e6d3b3]"><Package size={20} /></div>
                       )}

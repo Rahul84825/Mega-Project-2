@@ -5,6 +5,7 @@ import {
   CreditCard, Truck, Receipt, CheckCircle2, XCircle, Loader2
 } from "lucide-react";
 import { formatCurrency } from "shared/utils/pricing";
+import { PLACEHOLDER_IMAGE } from "../../utils/imageHelper";
 import { 
   resolveStatus, 
   resolvePaymentMethod, 
@@ -174,7 +175,12 @@ const OrderCard = ({
                 <div key={idx} className="flex items-center gap-3 sm:gap-4 p-3 rounded-xl border border-dashed border-[#e6d3b3] bg-white">
                   <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-[#fffaf3] border border-[#f0e0c4] overflow-hidden shrink-0">
                     {item.imageSnapshot || item.image ? (
-                      <img src={item.imageSnapshot || item.image} alt="" className="h-full w-full object-cover mix-blend-multiply" />
+                      <img 
+                        src={item.imageSnapshot || item.image} 
+                        onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                        alt="" 
+                        className="h-full w-full object-cover mix-blend-multiply" 
+                      />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-[#e6d3b3]"><Package size={16} /></div>
                     )}

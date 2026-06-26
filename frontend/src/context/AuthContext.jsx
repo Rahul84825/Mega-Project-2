@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { setApiAuthToken } from "../services/api";
 import {
@@ -56,12 +56,22 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(initialAuth.token);
   const [authReady, setAuthReady] = useState(false);
 
+  // Keep refs in sync with state to prevent stale closures in event listeners
+  const tokenRef = useRef(token);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    tokenRef.current = token;
+    userRef.current = user;
+  }, [token, user]);
+
   useEffect(() => {
     console.log("AUTH_RESTORED: Auth state initialized from storage");
     if (typeof window !== "undefined" && window.startupTimestamps) {
       window.startupTimestamps.authReady = Date.now();
       console.log("MithaiWorldStartup: AUTH_READY_MS: " + window.startupTimestamps.authReady + " (diff from html: " + (window.startupTimestamps.authReady - window.startupTimestamps.htmlLoad) + "ms)");
     }
+    console.log("AUTH_READY: Auth state is fully initialized and ready");
     setAuthReady(true);
   }, []);
 
@@ -95,15 +105,24 @@ export function AuthProvider({ children }) {
         const nextAuth = event.newValue ? JSON.parse(event.newValue) : null;
         const nextToken = nextAuth?.token || null;
 
+        // Prevent infinite loops on WebView/Capacitor environments where item set triggers event in same window
+        if (nextToken === tokenRef.current) {
+          return;
+        }
+
         if (nextToken && isTokenExpired(nextToken)) {
+          console.log("AUTH_CONTEXT_SETUSER: Token in storage is expired, setting user to null");
           setUser(null);
           setToken(null);
           return;
         }
 
-        setUser(normalizeUser(nextAuth?.user || null));
+        const normalizedNextUser = normalizeUser(nextAuth?.user || null);
+        console.log("AUTH_CONTEXT_SETUSER: Storage event updated user state", normalizedNextUser);
+        setUser(normalizedNextUser);
         setToken(nextToken);
       } catch (_error) {
+        console.log("AUTH_CONTEXT_SETUSER: Error parsing storage event, clearing auth state");
         setUser(null);
         setToken(null);
       }
@@ -116,6 +135,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handleSessionExpired = (event) => {
       const message = event?.detail?.message || "Session expired, please login again";
+      console.log("AUTH_CONTEXT_SETUSER: Session expired event triggered, clearing user state");
       setUser(null);
       setToken(null);
       setApiAuthToken(null);
@@ -131,6 +151,7 @@ export function AuthProvider({ children }) {
     const normalizedToken = nextToken || null;
 
     if (!normalizedToken || isTokenExpired(normalizedToken)) {
+      console.log("AUTH_CONTEXT_SETUSER: Login rejected due to expired or missing token");
       setUser(null);
       setToken(null);
       clearStoredAuth();
@@ -138,7 +159,9 @@ export function AuthProvider({ children }) {
       return false;
     }
 
-    setUser(normalizeUser(nextUser || null));
+    const normalizedNextUser = normalizeUser(nextUser || null);
+    console.log("AUTH_CONTEXT_SETUSER: Setting user profile in AuthContext", normalizedNextUser);
+    setUser(normalizedNextUser);
     setToken(normalizedToken);
     setApiAuthToken(normalizedToken);
     return true;
@@ -149,6 +172,7 @@ export function AuthProvider({ children }) {
       unregisterPushNotifications().catch(err => console.error("FCM: Failed to unregister push notifications:", err));
     }
 
+    console.log("AUTH_CONTEXT_SETUSER: Logging out user, setting state to null");
     setUser(null);
     setToken(null);
     setApiAuthToken(null);

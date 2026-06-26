@@ -143,6 +143,11 @@ function App() {
   const lastBackPress = useRef(0);
   const { authReady } = useAuth();
 
+  // Track global route changes
+  useEffect(() => {
+    console.log("ROUTE_AFTER_REDIRECT: Successfully routed to " + location.pathname + (location.search || ""));
+  }, [location]);
+
   // Hide native splash screen as soon as React app is ready and auth state is restored
   useEffect(() => {
     if (Capacitor.isNativePlatform() && authReady) {

@@ -1,6 +1,7 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatCurrency } from "shared/utils/pricing";
+import { PLACEHOLDER_IMAGE } from "../utils/imageHelper";
 
 function CartItem({ item }) {
   const { dispatch } = useCart();
@@ -26,7 +27,8 @@ function CartItem({ item }) {
     <div className="rounded-xl border border-[#f1dfc5] bg-[#fff8ee] p-3">
       <div className="flex gap-3">
         <img
-          src={item.image}
+          src={item.image || PLACEHOLDER_IMAGE}
+          onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
           alt={item.name}
           className="h-20 w-20 flex-shrink-0 rounded-xl object-cover border border-[#f0dfc6]"
         />

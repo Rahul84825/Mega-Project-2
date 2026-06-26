@@ -6,6 +6,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
+import { PLACEHOLDER_IMAGE } from "../utils/imageHelper";
 
 function CartDrawer() {
   const { cart, isCartOpen, closeCart, dispatch } = useCart();
@@ -74,7 +75,12 @@ function CartDrawer() {
             cart.map((item) => (
               <div key={`${item.productId}-${item.variantId}`} className="flex gap-4 group">
                 <div className="h-20 w-20 rounded-xl overflow-hidden bg-[var(--surface-strong)] shrink-0 border border-[var(--surface-border)]">
-                  <img src={item.image} alt="" className="h-full w-full object-cover" />
+                  <img 
+                    src={item.image || PLACEHOLDER_IMAGE} 
+                    onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                    alt="" 
+                    className="h-full w-full object-cover" 
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">

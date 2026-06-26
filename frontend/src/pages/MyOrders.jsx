@@ -8,6 +8,7 @@ import {
   CreditCard, Truck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { PLACEHOLDER_IMAGE } from "../utils/imageHelper";
 
 const STATUS_META = {
   PLACED: { label: "Order Placed", cls: "bg-blue-100 text-blue-700", icon: Clock },
@@ -131,7 +132,12 @@ const MyOrders = () => {
                     <div className="space-y-3">
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center gap-4">
-                          <img src={item.imageSnapshot || item.image} alt="" className="h-12 w-12 rounded-lg object-cover bg-[var(--surface-strong)]" />
+                          <img 
+                            src={item.imageSnapshot || item.image || PLACEHOLDER_IMAGE} 
+                            onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                            alt="" 
+                            className="h-12 w-12 rounded-lg object-cover bg-[var(--surface-strong)]" 
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-[var(--charcoal)] truncate">{item.titleSnapshot || item.name}</div>
                             <div className="text-[10px] text-[var(--muted)]">

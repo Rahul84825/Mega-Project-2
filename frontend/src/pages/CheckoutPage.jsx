@@ -11,7 +11,10 @@ import LocationCard from "../components/common/LocationCard";
 import AvailableCoupons from "../components/checkout/AvailableCoupons";
 import { Phone, MessageSquare, MapPin, Truck, MapPinOff, Loader2, Tag } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
 import { Checkout } from "capacitor-razorpay";
+import { toast } from "react-toastify";
+import { PLACEHOLDER_IMAGE } from "../utils/imageHelper";
 
 let razorpayScriptPromise;
 
@@ -35,6 +38,67 @@ const loadRazorpayScript = () => {
   });
 
   return razorpayScriptPromise;
+};
+
+const parseRazorpayError = (error) => {
+  // Log the complete error object to console for debugging
+  console.log("RAZORPAY_FAILURE_DETAIL:", error);
+
+  let errorObj = error;
+  if (typeof error === "string") {
+    try {
+      errorObj = JSON.parse(error);
+    } catch (e) {
+      // Not a JSON string, wrap it in an object
+      errorObj = { message: error };
+    }
+  }
+
+  // Normalize: Razorpay Web SDK passes { error: { code, description, ... } }
+  const details = (errorObj && errorObj.error) ? errorObj.error : errorObj;
+
+  const code = String(details?.code || "").toLowerCase();
+  const description = String(details?.description || "").toLowerCase();
+  const message = String(details?.message || "").toLowerCase();
+  const reason = String(details?.reason || "").toLowerCase();
+
+  // Combine all text fields for keyword search
+  const combinedText = `${code} ${description} ${message} ${reason}`;
+
+  // Check for timeout first, because timeout messages might contain the word "cancel"
+  const isTimeout = 
+    combinedText.includes("timeout") || 
+    combinedText.includes("time out") || 
+    combinedText.includes("delay in response") ||
+    combinedText.includes("did not respond");
+
+  const isCancelled = 
+    !isTimeout && (
+      combinedText.includes("cancel") || 
+      combinedText.includes("dismiss") ||
+      reason === "payment_cancelled"
+    );
+
+  const isNetwork = 
+    combinedText.includes("network") || 
+    combinedText.includes("connection") || 
+    combinedText.includes("connect") || 
+    combinedText.includes("internet") || 
+    combinedText.includes("offline");
+
+  let friendlyMessage = "Something went wrong while processing payment. Please try again.";
+  if (isCancelled) {
+    friendlyMessage = "Payment cancelled. You can try again anytime.";
+  } else if (isTimeout) {
+    friendlyMessage = "The payment app did not respond. Please try again.";
+  } else if (isNetwork) {
+    friendlyMessage = "Unable to connect to payment gateway. Check your internet connection.";
+  }
+
+  return {
+    friendlyMessage,
+    isCancelled
+  };
 };
 
 const CHECKOUT_STORAGE_KEY = "mithai-world-checkout-state";
@@ -260,18 +324,34 @@ function CheckoutPage() {
   };
 
   const handleOnlinePayment = async () => {
+    console.log("CHECKOUT_START");
+    setErrorMessage(""); // Clear any previous error message before starting payment flow
     const isNative = Capacitor.isNativePlatform();
     if (!isNative && !scriptReady) return setErrorMessage("Payment gateway loading...");
     if (!isAvailable) return setErrorMessage("Delivery not available for this location");
     
     console.log("🔵 PAYMENT_STEP_1_CREATE_ORDER_REQUEST", { amount: total, timestamp: new Date().toISOString() });
+    console.log("CREATE_ORDER_START");
     setProcessing(true);
     
     // Helper function for backend payment verification
-    const verifyPaymentOnBackend = async (res) => {
+    const verifyPaymentOnBackend = async (rawRes) => {
+      console.log("VERIFY_PAYMENT_START");
+      
+      // Normalize response: Capacitor Razorpay plugin may return response as a JSON string or an object
+      let res = rawRes;
+      if (Capacitor.isNativePlatform() && typeof rawRes === "string") {
+        try {
+          res = JSON.parse(rawRes);
+          console.log("Parsed Razorpay response string successfully:", res);
+        } catch (e) {
+          console.error("Failed to parse Razorpay response string:", e);
+        }
+      }
+
       console.log("🟡 PAYMENT_STEP_4_PAYMENT_SUCCESS_CALLBACK", { 
-        razorpay_order_id: res.razorpay_order_id,
-        razorpay_payment_id: res.razorpay_payment_id,
+        razorpay_order_id: res?.razorpay_order_id,
+        razorpay_payment_id: res?.razorpay_payment_id,
         timestamp: new Date().toISOString()
       });
       try {
@@ -287,9 +367,9 @@ function CheckoutPage() {
         ].filter(Boolean).map(s => String(s).trim()).join(", ");
 
         const verifyPayload = {
-          razorpay_order_id: res.razorpay_order_id,
-          razorpay_payment_id: res.razorpay_payment_id,
-          razorpay_signature: res.razorpay_signature,
+          razorpay_order_id: res?.razorpay_order_id || res?.razorpayOrderId || res?.orderId || res?.order_id || "",
+          razorpay_payment_id: res?.razorpay_payment_id || res?.razorpayPaymentId || res?.paymentId || res?.payment_id || "",
+          razorpay_signature: res?.razorpay_signature || res?.razorpaySignature || res?.signature || "",
           orderData: {
             customer: { 
               name: form.name, 
@@ -330,18 +410,22 @@ function CheckoutPage() {
           }
         };
         console.log("🔵 PAYMENT_STEP_5_VERIFY_REQUEST_SENT", { 
-          orderId: res.razorpay_order_id, 
-          paymentId: res.razorpay_payment_id,
+          orderId: verifyPayload.razorpay_order_id, 
+          paymentId: verifyPayload.razorpay_payment_id,
           timestamp: new Date().toISOString() 
         });
+        console.log("🔵 DEBUG_VERIFY_PAYLOAD_FULL:", JSON.stringify(verifyPayload, null, 2));
         const { data: verifyData } = await api.post("/api/payment/verify", verifyPayload);
         if (verifyData.success) {
+          console.log("VERIFY_PAYMENT_SUCCESS");
           console.log("🟢 PAYMENT_STEP_9_PAYMENT_COMPLETED", { orderId: verifyData.order?._id, timestamp: new Date().toISOString() });
           handleOrderSuccess(verifyData.order);
         } else {
+          console.log("VERIFY_PAYMENT_FAILED");
           throw new Error(verifyData.message || "Verification failed");
         }
       } catch (err) {
+        console.log("VERIFY_PAYMENT_FAILED");
         console.error("❌ PAYMENT_VERIFICATION_ERROR", err);
         const msg = getApiErrorMessage(err, "Payment verification failed");
         setErrorMessage(msg);
@@ -352,6 +436,9 @@ function CheckoutPage() {
 
     try {
       const { data: orderData } = await api.post("/api/payment/create-order", { amount: total });
+      console.log("CREATE_ORDER_SUCCESS");
+      console.log("RAZORPAY_ORDER_ID:", orderData.orderId);
+      console.log("RAZORPAY_AMOUNT:", orderData.amount);
       console.log("🟢 PAYMENT_STEP_2_CREATE_ORDER_SUCCESS", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
       
       const options = {
@@ -365,38 +452,65 @@ function CheckoutPage() {
       };
 
       if (isNative) {
+        console.log("RAZORPAY_OPEN");
         console.log("🟣 NATIVE_PAYMENT_STEP_3_RAZORPAY_SDK_OPENED", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
+        
+        let appStateListener;
+        try {
+          appStateListener = CapApp.addListener('appStateChange', (state) => {
+            if (!state.isActive) {
+              console.log("APP_PAUSED");
+              console.log("UPI_APP_LAUNCHED");
+            } else {
+              console.log("APP_RESUMED");
+            }
+          });
+        } catch (listenerErr) {
+          console.warn("Failed to register appStateChange listener:", listenerErr);
+        }
+
         try {
           const res = await Checkout.open(options);
           if (res && res.response) {
+            console.log("RAZORPAY_SUCCESS");
             await verifyPaymentOnBackend(res.response);
           } else {
+            console.log("RAZORPAY_FAILURE");
             throw new Error("Payment failed: Empty response from Native Checkout SDK");
           }
         } catch (checkoutError) {
-          console.warn("🟠 NATIVE_PAYMENT_DISMISSED or FAILED", checkoutError);
-          let errorMsg = "Payment was cancelled or failed.";
-          if (checkoutError && typeof checkoutError === "object") {
-            errorMsg = checkoutError.description || checkoutError.message || errorMsg;
-          } else if (typeof checkoutError === "string") {
-            errorMsg = checkoutError;
+          console.log("RAZORPAY_FAILURE");
+          const { friendlyMessage, isCancelled } = parseRazorpayError(checkoutError);
+          if (isCancelled) {
+            console.log("RAZORPAY_DISMISSED");
+            toast.info(friendlyMessage);
+          } else {
+            console.warn("🟠 NATIVE_PAYMENT_FAILED", checkoutError);
+            setErrorMessage(friendlyMessage);
           }
-          setErrorMessage(errorMsg);
           setProcessing(false);
+        } finally {
+          if (appStateListener) {
+            appStateListener.then(l => l.remove()).catch(err => console.warn("Failed to remove appStateChange listener:", err));
+          }
         }
       } else {
         const webOptions = {
           ...options,
           handler: async (res) => {
+            console.log("RAZORPAY_SUCCESS");
             await verifyPaymentOnBackend(res);
           },
           modal: { 
             ondismiss: () => {
+              console.log("RAZORPAY_DISMISSED");
               console.warn("🟠 PAYMENT_MODAL_DISMISSED");
+              toast.info("Payment cancelled. You can try again anytime.");
               setProcessing(false);
             }
           }
         };
+        console.log("RAZORPAY_OPEN");
         console.log("🟣 PAYMENT_STEP_3_RAZORPAY_MODAL_OPENED", { orderId: orderData.orderId, timestamp: new Date().toISOString() });
         console.log("RAZORPAY OPTIONS OBJECT:", {
           ...webOptions,
@@ -406,7 +520,17 @@ function CheckoutPage() {
             ondismiss: webOptions.modal?.ondismiss ? "[Function: ondismiss]" : null
           }
         });
-        new window.Razorpay(webOptions).open();
+        const rzp = new window.Razorpay(webOptions);
+        rzp.on("payment.failed", function (response) {
+          const { friendlyMessage, isCancelled } = parseRazorpayError(response.error);
+          if (isCancelled) {
+            toast.info(friendlyMessage);
+          } else {
+            setErrorMessage(friendlyMessage);
+          }
+          setProcessing(false);
+        });
+        rzp.open();
       }
     } catch (err) {
       console.error("❌ PAYMENT_INITIATION_ERROR", err);
@@ -591,7 +715,12 @@ function CheckoutPage() {
               <div className="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-2 mb-5 border-b border-white/10 pb-5">
                 {cart.map(item => (
                   <div key={`${item.productId}-${item.variantId}`} className="flex gap-3">
-                    <img src={item.image} className="h-10 w-10 rounded-lg object-cover bg-white/10" alt="" />
+                    <img 
+                      src={item.image || PLACEHOLDER_IMAGE} 
+                      onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                      className="h-10 w-10 rounded-lg object-cover bg-white/10" 
+                      alt="" 
+                    />
                     <div className="flex-1 min-w-0 text-[11px]">
                       <div className="font-medium truncate">{item.name}</div>
                       <div className="text-white/60">{item.variantLabel} × {item.quantity}</div>

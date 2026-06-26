@@ -34,7 +34,9 @@ function Login() {
         if (data.user?.isAdmin !== true) {
           localStorage.setItem("mithaiworld_login_popup_shown", "true");
         }
-        navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
+        const dest = data.user?.isAdmin === true ? "/admin" : "/";
+        console.log("ROUTE_BEFORE_REDIRECT: Navigating from /login to " + dest);
+        navigate(dest, { replace: true });
       }
     } catch (submitError) {
       setError(getApiErrorMessage(submitError, "Unable to sign in."));
@@ -123,19 +125,32 @@ function Login() {
                 return;
               }
 
+              // Identify if it's Web platform to log click
+              const isAndroid = window.Capacitor?.platform === "android" || (typeof window !== "undefined" && /android/i.test(navigator.userAgent || ""));
+              if (!isAndroid) {
+                console.log("GOOGLE_BUTTON_CLICKED: Web Google button clicked");
+              }
+
+              console.log("GOOGLE_IDTOKEN_RECEIVED: Google ID Token received in Login callback");
+
               try {
                 setGoogleLoading(true);
                 setError("");
+                console.log("GOOGLE_BACKEND_REQUEST: Sending Google ID Token to backend");
                 logout({ redirect: false });
                 const data = await loginWithGoogle({ idToken: response.credential });
+                console.log("GOOGLE_BACKEND_RESPONSE: Received response from backend", data);
 
                 if (data?.token && data?.user && login(data.user, data.token)) {
                   if (data.user?.isAdmin !== true) {
                     localStorage.setItem("mithaiworld_login_popup_shown", "true");
                   }
-                  navigate(data.user?.isAdmin === true ? "/admin" : "/", { replace: true });
+                  const dest = data.user?.isAdmin === true ? "/admin" : "/";
+                  console.log("ROUTE_BEFORE_REDIRECT: Navigating from /login to " + dest);
+                  navigate(dest, { replace: true });
                 }
               } catch (googleError) {
+                console.error("Google login backend error:", googleError);
                 setError(getApiErrorMessage(googleError, "Google login failed."));
               } finally {
                 setGoogleLoading(false);

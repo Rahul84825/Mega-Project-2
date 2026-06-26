@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import SimilarProducts from "../components/SimilarProducts";
 import SectionContainer from "../components/home/SectionContainer";
 import { SEO } from "../components/common";
+import { PLACEHOLDER_IMAGE } from "../utils/imageHelper";
 
 function ProductDetailPage() {
   const { id } = useParams();
@@ -134,7 +135,12 @@ function ProductDetailPage() {
           {/* ── IMAGES ── */}
           <div className="lg:col-span-6 space-y-6">
             <div className="aspect-[4/5] md:aspect-video lg:aspect-square rounded-3xl overflow-hidden bg-white border border-[var(--surface-border)] shadow-xl group">
-              <img src={product.images[activeImage]} alt="" className={`w-full h-full object-cover transition-transform duration-700 ${isOutOfStock ? 'opacity-60' : 'group-hover:scale-105'}`} />
+              <img 
+                src={product.images?.[activeImage] || PLACEHOLDER_IMAGE} 
+                onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                alt="" 
+                className={`w-full h-full object-cover transition-transform duration-700 ${isOutOfStock ? 'opacity-60' : 'group-hover:scale-105'}`} 
+              />
             </div>
             {product.images.length > 1 && (
               <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">

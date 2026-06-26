@@ -31,6 +31,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
   }
 
   if (!isAuthenticated) {
+    console.log("ROUTE_BEFORE_REDIRECT: Redirecting from " + location.pathname + " to /login");
     console.log("PROTECTED_ROUTE_REDIRECT: User not authenticated, redirecting to login");
     return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   }

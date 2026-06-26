@@ -49,7 +49,7 @@ const orderItemSchema = new mongoose.Schema(
       required: true
     },
     titleSnapshot: { type: String, required: true, trim: true },
-    imageSnapshot: { type: String, required: true, trim: true },
+    imageSnapshot: { type: String, default: "", trim: true },
     selectedVariant: {
       variantId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       label: { type: String, trim: true },
@@ -85,7 +85,7 @@ const orderSchema = new mongoose.Schema(
     customer: {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       name: { type: String, required: true, trim: true },
-      email: { type: String, required: true, lowercase: true, trim: true },
+      email: { type: String, lowercase: true, trim: true },
       phone: { type: String, required: true, trim: true }
     },
     shippingAddress: { type: addressSchema, required: true },

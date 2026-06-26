@@ -232,7 +232,7 @@ export const calculateTotals = (items = [], options = {}) => {
 export const getVariantPricingSnapshot = (product, variant) => {
   if (!product) return null;
   
-  const isVariant = !!variant;
+  const isVariant = !!variant && variant._id !== "no-variant" && variant.id !== "no-variant";
   const target = isVariant ? variant : product;
   
   const mrp = Math.round(normalizeNumber(target.mrp));

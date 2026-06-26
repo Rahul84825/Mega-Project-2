@@ -291,6 +291,7 @@ export const verifyPayment = async (req, res) => {
     }
 
     let createdOrder;
+    logger.info("ORDER_CREATE_START");
     // Execute stock reservation AND order creation inside the same transaction
     await session.withTransaction(async () => {
       try {
@@ -324,7 +325,7 @@ export const verifyPayment = async (req, res) => {
         }
 
         // Create order in database within the transaction
-        const [orderDoc] = await Order.create([{
+        const orderPayload = {
           orderId: generateOrderId(),
           orderNumber: `ORD-RZP-${Date.now().toString(36).toUpperCase()}`,
           customer: {
@@ -375,19 +376,27 @@ export const verifyPayment = async (req, res) => {
             razorpayOrderStatus: razorpayOrder.status,
             ...orderData?.metadata
           }
-        }], { session });
+        };
+
+        console.log("ORDER_PAYLOAD", JSON.stringify(orderPayload, null, 2));
+
+        // Create order in database within the transaction
+        const [orderDoc] = await Order.create([orderPayload], { session });
 
         createdOrder = orderDoc;
       } catch (err) {
+        logger.error("ORDER_CREATE_FAILED");
         logger.error("❌ TRANSACTION FAILED", { error: err.message });
         throw err;
       }
     });
 
     if (!createdOrder) {
+      logger.error("ORDER_CREATE_FAILED");
       throw new Error("Order creation failed during transaction");
     }
 
+    logger.info("ORDER_CREATE_SUCCESS");
     logger.info("🟢 PAYMENT_STEP_8_ORDER_CREATED", {
       orderNumber: createdOrder.orderNumber,
       orderId: createdOrder._id,
@@ -420,7 +429,8 @@ export const verifyPayment = async (req, res) => {
   } catch (error) {
     logger.error("❌ PAYMENT VERIFICATION FAILED", {
       errorMessage: error.message,
-      errorCode: error.code
+      errorCode: error.code,
+      stack: error.stack
     });
 
     if (error instanceof InventoryError) {
@@ -433,7 +443,7 @@ export const verifyPayment = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to verify payment"
+      message: "Something went wrong while creating your order. Please contact support if the issue continues."
     });
   } finally {
     if (session) {

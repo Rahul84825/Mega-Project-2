@@ -150,7 +150,15 @@ export const reserveStock = async ({
     itemSnapshots.push({
       productId,
       titleSnapshot: product.name,
-      imageSnapshot: product.image || item?.image || "",
+      imageSnapshot:
+        product.image ||
+        product.imageUrl ||
+        product.images?.[0] ||
+        item?.image ||
+        item?.imageUrl ||
+        item?.images?.[0] ||
+        item?.variantImage ||
+        "",
       selectedVariant: {
         variantId: isSimpleProduct ? null : (variant?._id || null),
         label: variant?.label || "Default",

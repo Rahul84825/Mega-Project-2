@@ -28,6 +28,7 @@ function GoogleLoginButton({ onCredential, clientId, className = "" }) {
 
   const handleAndroidLogin = async () => {
     try {
+      console.log("GOOGLE_BUTTON_CLICKED: Android Google button clicked");
       console.log("ANDROID START");
       setAndroidLoading(true);
       setErrorText("");
@@ -57,6 +58,7 @@ function GoogleLoginButton({ onCredential, clientId, className = "" }) {
       }
       console.log("initialize success");
 
+      console.log("GOOGLE_SIGNIN_STARTED: Native Google sign-in started");
       const result = await GoogleSignIn.signIn();
       console.log("signIn success", result);
       
@@ -68,6 +70,9 @@ function GoogleLoginButton({ onCredential, clientId, className = "" }) {
       if (!result?.idToken) {
         throw new Error("Failed to obtain Google ID Token.");
       }
+
+      console.log("GOOGLE_SIGNIN_SUCCESS: Native Google sign-in succeeded");
+      console.log("GOOGLE_IDTOKEN_RECEIVED: Google ID Token received");
 
       if (typeof onCredential === "function") {
         onCredential({ credential: blockToken(result.idToken) });

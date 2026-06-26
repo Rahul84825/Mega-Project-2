@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { calculateTotals, formatCurrency, TAX_MESSAGE } from "shared/utils/pricing";
 import { checkDeliveryAvailability, getApiErrorMessage } from "../services/api";
 import { MapPin, Truck, Loader2, Info, ArrowRight } from "lucide-react";
+import { PLACEHOLDER_IMAGE } from "../utils/imageHelper";
 
 function CartPage() {
   const { cart, dispatch } = useCart();
@@ -108,7 +109,8 @@ function CartPage() {
                 {/* Image */}
                 <div className="w-20 h-20 md:w-24 md:h-24 bg-[#fffaf3] rounded-2xl border border-[#f5e6d3] overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
                   <img
-                    src={item.image}
+                    src={item.image || PLACEHOLDER_IMAGE}
+                    onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
                     alt={item.name}
                     className="w-full h-full object-cover mix-blend-multiply p-2"
                   />

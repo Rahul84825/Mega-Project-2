@@ -125,47 +125,46 @@ export const placeOrder = async (req, res) => {
         await Coupon.updateOne({ _id: coupon._id }, { $inc: { usedCount: 1 } }, { session });
       }
 
-      const [orderDoc] = await Order.create(
-        [
-          {
-            orderId,
-            orderNumber,
-            customer: {
-              ...orderData.customer,
-              userId: req.user?.userId || orderData.customer?.userId || null
-            },
-            shippingAddress: orderData.shippingAddress,
-            items: itemSnapshots,
-            payment: {
-              method: orderData?.payment?.method || orderData?.paymentMethod || "RAZORPAY",
-              status: orderData?.payment?.status || "PENDING",
-              gateway: orderData?.payment?.gateway || "",
-              razorpayOrderId: orderData?.payment?.razorpayOrderId,
-              razorpayPaymentId: orderData?.payment?.razorpayPaymentId,
-              razorpaySignature: orderData?.payment?.razorpaySignature
-            },
-            status: "PLACED",
-            statusTimestamps: { placedAt: new Date() },
-            preparation: {
-              etaMinutes: Number(orderData?.preparation?.etaMinutes ?? null)
-            },
-            delivery: orderData?.delivery || {},
-            rider: orderData?.rider || {},
-            totals: {
-              ...totals,
-              currency: orderData?.totals?.currency || "INR"
-            },
-            coupon: coupon ? {
-              code: coupon.code,
-              discountType: coupon.discountType,
-              discountValue: coupon.discountValue
-            } : undefined,
-            notes: orderData?.notes || "",
-            metadata: orderData?.metadata || {}
-          }
-        ],
-        { session }
-      );
+      const orderPayload = {
+        orderId,
+        orderNumber,
+        customer: {
+          ...orderData.customer,
+          userId: req.user?.userId || orderData.customer?.userId || null
+        },
+        shippingAddress: orderData.shippingAddress,
+        items: itemSnapshots,
+        payment: {
+          method: orderData?.payment?.method || orderData?.paymentMethod || "RAZORPAY",
+          status: orderData?.payment?.status || "PENDING",
+          gateway: orderData?.payment?.gateway || "",
+          razorpayOrderId: orderData?.payment?.razorpayOrderId,
+          razorpayPaymentId: orderData?.payment?.razorpayPaymentId,
+          razorpaySignature: orderData?.payment?.razorpaySignature
+        },
+        status: "PLACED",
+        statusTimestamps: { placedAt: new Date() },
+        preparation: {
+          etaMinutes: Number(orderData?.preparation?.etaMinutes ?? null)
+        },
+        delivery: orderData?.delivery || {},
+        rider: orderData?.rider || {},
+        totals: {
+          ...totals,
+          currency: orderData?.totals?.currency || "INR"
+        },
+        coupon: coupon ? {
+          code: coupon.code,
+          discountType: coupon.discountType,
+          discountValue: coupon.discountValue
+        } : undefined,
+        notes: orderData?.notes || "",
+        metadata: orderData?.metadata || {}
+      };
+
+      console.log("ORDER_PAYLOAD", JSON.stringify(orderPayload, null, 2));
+
+      const [orderDoc] = await Order.create([orderPayload], { session });
 
       createdOrder = orderDoc;
     });
@@ -209,7 +208,8 @@ export const placeOrder = async (req, res) => {
       errorMessage: error.message,
       errorCode: error.code,
       errorStatus: error.status,
-      isInventoryError: error instanceof InventoryError
+      isInventoryError: error instanceof InventoryError,
+      stack: error.stack
     });
 
     if (error instanceof InventoryError) {
@@ -227,7 +227,7 @@ export const placeOrder = async (req, res) => {
     logger.error("Order placement failed", { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to place order"
+      message: "Something went wrong while creating your order. Please contact support if the issue continues."
     });
   } finally {
     session.endSession();
