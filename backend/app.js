@@ -137,7 +137,12 @@ app.use(globalLimiter);
 /**
  * PARSING & VALIDATION
  */
-app.use(express.json({ limit: "10kb" })); // Reduced from 20kb for security
+app.use(express.json({
+  limit: "10kb",
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+})); // Reduced from 20kb for security
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 /**
@@ -201,7 +206,7 @@ app.get("/api/health", (_req, res) => {
  */
 
 // Authentication routes (strict rate limiting)
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 
 // Payment debugging middleware (logs all payment requests in detail)
 app.use("/api/payment", (req, res, next) => {
@@ -263,7 +268,9 @@ app.use("/api/upload", rateLimit({
 }), uploadRoutes);
 
 // Debug routes (development/debugging only)
-app.use("/api/debug", debugRoutes);
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api/debug", debugRoutes);
+}
 
 // Admin reporting routes
 app.use("/api/reports", reportRoutes);

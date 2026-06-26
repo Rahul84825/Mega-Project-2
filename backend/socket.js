@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 
 let io;
 
@@ -56,16 +57,33 @@ export const initializeSocket = (httpServer) => {
       return next(new Error("Unauthorized socket origin"));
     }
 
+    // Hardened: Verify JWT token if provided in handshake auth
+    const token = socket.handshake.auth?.token;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        socket.data = {
+          userId: decoded.userId,
+          isAdmin: decoded.isAdmin === true
+        };
+      } catch (err) {
+        console.warn(`⚠️ Socket auth token verification failed: ${err.message}`);
+        // Allow unauthenticated/guest sockets to connect for public events (e.g., stock:updated),
+        // but do not grant them admin status or join them to the admin room.
+      }
+    }
+
     return next();
   });
 
   io.on("connection", (socket) => {
-    const role = socket.handshake.auth?.role || socket.data?.role || "user";
+    const isAdmin = socket.data?.isAdmin === true;
 
-    if (role === "admin") {
-      console.log(`📡 SOCKET_CONNECTED (Admin): ${socket.id}`);
+    if (isAdmin) {
+      socket.join("admin-room");
+      console.log(`📡 SOCKET_CONNECTED (Admin - Joined Room): ${socket.id} (User: ${socket.data.userId})`);
     } else {
-      console.log(`📡 SOCKET_CONNECTED: ${socket.id}`);
+      console.log(`📡 SOCKET_CONNECTED (Guest/Customer): ${socket.id}`);
     }
 
     socket.on("disconnect", (reason) => {

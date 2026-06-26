@@ -58,7 +58,7 @@ const emitOrderEvent = (event, payload) => {
     console.log(`📡 EVENT_PAYLOAD:`, JSON.stringify(payload, null, 2));
     console.log("=========================================");
     
-    io.emit(mappedEvent, payload);
+    io.to("admin-room").emit(mappedEvent, payload);
   }
 };
 
@@ -136,7 +136,7 @@ export const placeOrder = async (req, res) => {
         items: itemSnapshots,
         payment: {
           method: orderData?.payment?.method || orderData?.paymentMethod || "RAZORPAY",
-          status: orderData?.payment?.status || "PENDING",
+          status: "PENDING", // Hardened: Force PENDING for direct placements. PAID status requires server-side signature verification via /verify.
           gateway: orderData?.payment?.gateway || "",
           razorpayOrderId: orderData?.payment?.razorpayOrderId,
           razorpayPaymentId: orderData?.payment?.razorpayPaymentId,
@@ -335,21 +335,39 @@ export const rejectOrder = async (req, res) => {
 
     if (payMethod === "RAZORPAY" && payStatus === "PAID" && rzpPaymentId) {
       const razorpay = getRazorpayClient();
-      if (razorpay) {
-        try {
-          const total = Number(order.totals?.grandTotal || order.total || 0);
-          if (total > 0) {
-            const refund = await razorpay.payments.refund(rzpPaymentId, {
-              amount: Math.round(total * 100),
-              notes: { reason: rejectionReason, orderNumber: order.orderNumber }
-            });
-            order.payment.status = "REFUNDED";
-            order.payment.refundId = refund.id;
-            logger.info(`✅ Refund success: ${refund.id}`);
-          }
-        } catch (rzpErr) {
-          logger.error(`❌ Refund failed: ${rzpErr.message}`);
+      if (!razorpay) {
+        logger.error("❌ Refund aborted: Razorpay client could not be initialized");
+        return res.status(500).json({
+          success: false,
+          message: "Payment gateway configuration error on server. Rejection aborted."
+        });
+      }
+
+      try {
+        const total = Number(order.totals?.grandTotal || order.total || 0);
+        if (total > 0) {
+          const refund = await razorpay.payments.refund(rzpPaymentId, {
+            amount: Math.round(total * 100),
+            notes: { reason: rejectionReason, orderNumber: order.orderNumber }
+          });
+          order.payment.status = "REFUNDED";
+          order.payment.refundStatus = "SUCCESS";
+          order.payment.refundId = refund.id;
+          logger.info(`✅ Refund success: ${refund.id}`);
         }
+      } catch (rzpErr) {
+        logger.error(`❌ Refund failed: ${rzpErr.message}`);
+        order.payment.refundStatus = "FAILED";
+        if (!order.metadata) order.metadata = {};
+        order.metadata.lastRefundError = rzpErr.message;
+        order.markModified("metadata");
+        order.markModified("payment");
+        await order.save(); // Save the refund failure status for admin auditing
+
+        return res.status(500).json({
+          success: false,
+          message: `Rejection aborted: Razorpay refund failed (${rzpErr.message}). Please verify gateway balance/credentials and try again.`
+        });
       }
     }
 

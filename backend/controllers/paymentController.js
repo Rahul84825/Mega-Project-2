@@ -8,6 +8,7 @@ import { getIo } from "../socket.js";
 import { logger } from "../utils/logger.js";
 import generateOrderId from "../utils/orderIdGenerator.js";
 import { InventoryError, reserveStock } from "../services/inventoryService.js";
+import PendingCheckout from "../models/PendingCheckout.js";
 
 import {
   sendPaymentSuccessEmail,
@@ -77,12 +78,13 @@ const extractOrderData = (body) => {
 
 export const createPaymentOrder = async (req, res) => {
   try {
-    const { amount, currency = "INR", receipt } = req.body;
+    const { amount, currency = "INR", receipt, orderData } = req.body;
 
     logger.info("📝 Payment order creation initiated", {
       receivedAmount: amount,
       currency: currency,
       receipt: receipt,
+      hasOrderData: !!orderData,
       timestamp: new Date().toISOString()
     });
 
@@ -110,6 +112,17 @@ export const createPaymentOrder = async (req, res) => {
       currency,
       receipt: receipt || `receipt_${Date.now()}`
     });
+
+    // Hardened Webhook: Store checkout details linked to Razorpay Order ID
+    if (orderData) {
+      await PendingCheckout.create({
+        razorpayOrderId: razorpayOrder.id,
+        orderData
+      });
+      logger.info("💾 PendingCheckout session saved for reconciliation", {
+        razorpayOrderId: razorpayOrder.id
+      });
+    }
 
     logger.info("✅ Razorpay order created successfully", {
       orderId: razorpayOrder.id,
@@ -384,6 +397,9 @@ export const verifyPayment = async (req, res) => {
         const [orderDoc] = await Order.create([orderPayload], { session });
 
         createdOrder = orderDoc;
+
+        // Hardened Webhook: Clean up the PendingCheckout session since verification succeeded
+        await PendingCheckout.deleteOne({ razorpayOrderId: razorpay_order_id }).session(session);
       } catch (err) {
         logger.error("ORDER_CREATE_FAILED");
         logger.error("❌ TRANSACTION FAILED", { error: err.message });
@@ -412,7 +428,7 @@ export const verifyPayment = async (req, res) => {
       console.log(`📡 ORDER_ID: ${payload.orderNumber}`);
       console.log(`📡 EVENT_PAYLOAD:`, JSON.stringify(payload, null, 2));
       console.log("=========================================");
-      io.emit("order:new", payload);
+      io.to("admin-room").emit("order:new", payload);
     }
 
     // Send emails asynchronously
@@ -445,6 +461,206 @@ export const verifyPayment = async (req, res) => {
       success: false,
       message: "Something went wrong while creating your order. Please contact support if the issue continues."
     });
+  } finally {
+    if (session) {
+      await session.endSession();
+    }
+  }
+};
+
+/**
+ * WEBHOOK: Secure Razorpay Webhook Handler
+ * Verifies webhook signature and performs asynchronous payment reconciliation
+ */
+export const handleRazorpayWebhook = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const signature = req.headers["x-razorpay-signature"];
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      logger.warn("⚠️ RAZORPAY_WEBHOOK_SECRET is not configured. Webhook processing skipped.");
+      return res.status(200).json({ success: true, message: "Webhook secret not set" });
+    }
+
+    if (!signature) {
+      logger.error("❌ RAZORPAY WEBHOOK ERROR: Missing x-razorpay-signature header");
+      return res.status(400).json({ success: false, message: "Missing signature header" });
+    }
+
+    // Hardened: Verify webhook signature using the captured raw body buffer
+    const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body);
+    const shasum = crypto.createHmac("sha256", webhookSecret);
+    shasum.update(rawBody);
+    const digest = shasum.digest("hex");
+
+    if (digest !== signature) {
+      logger.error("❌ RAZORPAY WEBHOOK SIGNATURE VALIDATION FAILED", {
+        received: signature,
+        expected: digest
+      });
+      return res.status(400).json({ success: false, message: "Signature mismatch" });
+    }
+
+    const event = req.body.event;
+    logger.info(`🚨 RAZORPAY_WEBHOOK_RECEIVED: ${event}`, { event });
+
+    if (event === "payment.captured") {
+      const paymentEntity = req.body.payload?.payment?.entity;
+      const razorpay_payment_id = paymentEntity?.id;
+      const razorpay_order_id = paymentEntity?.order_id;
+
+      if (!razorpay_payment_id || !razorpay_order_id) {
+        logger.warn("⚠️ [WEBHOOK] Webhook payload missing payment or order ID");
+        return res.status(400).json({ success: false, message: "Missing IDs" });
+      }
+
+      // Check if order already exists (idempotency check)
+      const existingOrder = await Order.findOne({
+        $or: [
+          { "payment.razorpayPaymentId": razorpay_payment_id },
+          { "payment.razorpayOrderId": razorpay_order_id }
+        ]
+      });
+
+      if (existingOrder) {
+        logger.info("⏭️ [WEBHOOK] Razorpay payment already processed. Ignoring.", {
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id
+        });
+        return res.status(200).json({ success: true, message: "Order already processed" });
+      }
+
+      // Fetch checkout details from temporary PendingCheckout session
+      const checkout = await PendingCheckout.findOne({ razorpayOrderId: razorpay_order_id });
+      if (!checkout) {
+        logger.error("❌ [WEBHOOK] No PendingCheckout found. Reconcile aborted.", {
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id
+        });
+        return res.status(200).json({ success: true, message: "Checkout session expired or not found" });
+      }
+
+      const orderData = checkout.orderData;
+      let createdOrder;
+
+      // Execute stock reservation and order creation inside a unified transaction
+      await session.withTransaction(async () => {
+        // ── COUPON VALIDATION ──
+        let coupon = null;
+        const couponCode = orderData?.couponCode || orderData?.totals?.couponCode;
+        if (couponCode) {
+          const foundCoupon = await Coupon.findOne({ code: String(couponCode).toUpperCase().trim() });
+          if (foundCoupon) {
+            const validation = foundCoupon.isValid(orderData?.totals?.itemsSubtotal || 0);
+            if (validation.valid) {
+              coupon = foundCoupon;
+            }
+          }
+        }
+
+        const { itemSnapshots, totals } = await reserveStock({
+          items: orderData?.items || [],
+          session,
+          orderNumber: `RZP-${Date.now()}`,
+          reason: "Razorpay webhook payment reconciliation",
+          coupon,
+          discountTotal: orderData?.totals?.discountTotal || 0,
+          shippingFee: orderData?.totals?.shippingFee || 0,
+          pincode: orderData?.shippingAddress?.postalCode || orderData?.customer?.pincode || "",
+          roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
+        });
+
+        if (coupon) {
+          await Coupon.updateOne({ _id: coupon._id }, { $inc: { usedCount: 1 } }, { session });
+        }
+
+        const orderPayload = {
+          orderId: generateOrderId(),
+          orderNumber: `ORD-RZP-${Date.now().toString(36).toUpperCase()}`,
+          customer: {
+            userId: orderData?.customer?.userId || null,
+            name: orderData?.customer?.name || "Guest",
+            email: orderData?.customer?.email || "",
+            phone: orderData?.customer?.phone || ""
+          },
+          shippingAddress: {
+            line1: orderData?.shippingAddress?.line1 || orderData?.customer?.address || "",
+            flatNo: orderData?.shippingAddress?.flatNo || "",
+            buildingName: orderData?.shippingAddress?.buildingName || "",
+            area: orderData?.shippingAddress?.area || "",
+            landmark: orderData?.shippingAddress?.landmark || "",
+            city: orderData?.shippingAddress?.city || orderData?.customer?.city || "",
+            state: orderData?.shippingAddress?.state || orderData?.customer?.state || "Maharashtra",
+            pincode: orderData?.shippingAddress?.pincode || "",
+            postalCode: orderData?.shippingAddress?.postalCode || orderData?.shippingAddress?.pincode || orderData?.customer?.pincode || orderData?.customer?.postalCode || "",
+            fullAddress: orderData?.shippingAddress?.fullAddress || orderData?.shippingAddress?.line1 || "",
+            country: "IN",
+            geo: orderData?.shippingAddress?.geo || null
+          },
+          items: itemSnapshots,
+          payment: {
+            method: "RAZORPAY",
+            status: "PAID",
+            gateway: "razorpay",
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: "WEBHOOK_RECONCILED",
+            paidAt: new Date()
+          },
+          status: "PLACED",
+          statusTimestamps: {
+            placedAt: new Date()
+          },
+          totals: {
+            ...totals,
+            gstTotal: totals.gstTotal || 0,
+            currency: paymentEntity?.currency || "INR"
+          },
+          coupon: coupon ? {
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue
+          } : undefined,
+          metadata: {
+            webhookReconciled: true,
+            ...orderData?.metadata
+          }
+        };
+
+        const [orderDoc] = await Order.create([orderPayload], { session });
+        createdOrder = orderDoc;
+
+        // Clean up the PendingCheckout session inside the transaction
+        await PendingCheckout.deleteOne({ razorpayOrderId: razorpay_order_id }).session(session);
+      });
+
+      if (!createdOrder) {
+        throw new Error("Reconciliation failed: Order document not created");
+      }
+
+      logger.info("🟢 [WEBHOOK] PAYMENT RECONCILIATION SUCCESSFUL", {
+        orderNumber: createdOrder.orderNumber,
+        orderId: createdOrder._id
+      });
+
+      // Emit socket event to admins
+      const io = getIo();
+      if (io) {
+        io.to("admin-room").emit("order:new", createdOrder.toObject());
+      }
+
+      // Send notifications asynchronously
+      sendPaymentSuccessEmail(createdOrder).catch(err => logger.error("Webhook failed to send payment success email", err));
+      sendOrderPlacedEmail(createdOrder).catch(err => logger.error("Webhook failed to send order placed email", err));
+      sendAdminNewOrderAlert(createdOrder).catch(err => logger.error("Webhook failed to send admin alert email", err));
+      sendNewOrderPushNotification(createdOrder).catch(err => logger.error("Webhook failed to send FCM order notification", err));
+    }
+
+    return res.status(200).json({ success: true, message: "Webhook processed" });
+  } catch (error) {
+    logger.error("❌ [WEBHOOK] Razorpay webhook failed:", error);
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (session) {
       await session.endSession();

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { logger } from "../utils/logger.js";
-import { adminOnly } from "../middleware/authMiddleware.js";
+import { adminOnly, protect } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
@@ -9,7 +9,7 @@ const router = Router();
  * Only accessible to admins
  * Returns environment variable status (without sensitive values)
  */
-router.get("/razorpay-config", (req, res) => {
+router.get("/razorpay-config", protect, adminOnly, (req, res) => {
   try {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;

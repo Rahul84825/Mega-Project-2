@@ -17,7 +17,7 @@ import { productIdValidation, productValidation, updateProductValidation } from 
 const router = Router();
 
 router.get("/", getProducts);
-router.get("/stock/info", getStockInfo); // Get stock info before /products/:id
+router.get("/stock/info", protect, getStockInfo); // Get stock info before /products/:id
 router.patch("/:id/toggle-status", protect, adminOnly, toggleProductStatus);
 router.patch("/:id/variants/:variantId/toggle-status", protect, adminOnly, toggleVariantStatus);
 router.get("/:id", productIdValidation, validateRequest, getProductById);

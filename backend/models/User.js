@@ -27,6 +27,7 @@ userSchema.set("toJSON", {
 userSchema.set("toObject", {
   transform: (_doc, ret) => {
     delete ret.password;
+    delete ret.googleId;
     return ret;
   }
 });
