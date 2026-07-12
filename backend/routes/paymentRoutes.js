@@ -9,5 +9,11 @@ const router = Router();
 router.post("/create-order", protect, paymentCreateValidation, validateRequest, createPaymentOrder);
 router.post("/verify", protect, paymentVerifyValidation, validateRequest, verifyPayment);
 router.post("/webhook", handleRazorpayWebhook);
+router.get("/webhook", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Mithai World Razorpay Webhook is active (accepts POST requests only)"
+  });
+});
 
 export default router;
