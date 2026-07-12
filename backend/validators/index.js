@@ -55,7 +55,8 @@ export const productIdValidation = [
 export const paymentCreateValidation = [
   body("amount").isFloat({ gt: 0 }).withMessage("Amount must be greater than zero").toFloat(),
   body("currency").optional().isLength({ min: 3, max: 3 }).withMessage("Currency must be a 3-letter code").toUpperCase(),
-  body("receipt").optional().isLength(safeString(1, 80)).withMessage("Receipt is too long").trim().escape()
+  body("receipt").optional().isLength(safeString(1, 80)).withMessage("Receipt is too long").trim().escape(),
+  body("orderData").optional().isObject().withMessage("orderData must be an object")
 ];
 
 export const paymentVerifyValidation = [

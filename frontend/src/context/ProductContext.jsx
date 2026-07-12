@@ -202,7 +202,7 @@ function productReducer(state, action) {
 export function ProductProvider({ children }) {
   const [state, dispatch] = useReducer(productReducer, initialState);
   const isFetchingRef = useRef(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, token } = useAuth();
   const audioRef = useRef(null);
 
   // Alert state for pending orders
@@ -388,7 +388,11 @@ export function ProductProvider({ children }) {
   useEffect(() => {
     refreshAll();
 
-    if (!socket.connected) socket.connect();
+    socket.auth = token ? { token } : {};
+    if (socket.connected) {
+      socket.disconnect();
+    }
+    socket.connect();
 
     const handleConnect = () => {
       if (isAdmin === true) {

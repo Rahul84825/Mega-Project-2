@@ -19,3 +19,18 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Capawesome Google Sign-In plugin classes
+-keep class io.capawesome.capacitorjs.plugins.googlesignin.** { *; }
+
+# AndroidX Credentials classes
+-keep class androidx.credentials.** { *; }
+
+# Google ID library classes
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+
+# GMS Auth Identity/Authorization classes
+-keep class com.google.android.gms.auth.api.identity.** { *; }
+-keep class com.google.android.gms.auth.api.** { *; }
+
+

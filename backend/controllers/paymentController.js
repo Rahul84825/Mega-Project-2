@@ -504,8 +504,13 @@ export const handleRazorpayWebhook = async (req, res) => {
 
     const event = req.body.event;
     logger.info(`🚨 RAZORPAY_WEBHOOK_RECEIVED: ${event}`, { event });
+    logger.info("🟢 RAZORPAY WEBHOOK SIGNATURE VERIFIED", {
+      event,
+      razorpayOrderId: req.body.payload?.payment?.entity?.order_id,
+      razorpayPaymentId: req.body.payload?.payment?.entity?.id
+    });
 
-    if (event === "payment.captured") {
+    if (event === "payment.captured" || event === "payment.authorized") {
       const paymentEntity = req.body.payload?.payment?.entity;
       const razorpay_payment_id = paymentEntity?.id;
       const razorpay_order_id = paymentEntity?.order_id;
@@ -540,6 +545,10 @@ export const handleRazorpayWebhook = async (req, res) => {
         });
         return res.status(200).json({ success: true, message: "Checkout session expired or not found" });
       }
+
+      logger.info("🟢 [WEBHOOK] PendingCheckout session found for recovery", {
+        razorpayOrderId: razorpay_order_id
+      });
 
       const orderData = checkout.orderData;
       let createdOrder;

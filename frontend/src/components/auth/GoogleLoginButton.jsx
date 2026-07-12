@@ -33,16 +33,11 @@ function GoogleLoginButton({ onCredential, clientId, className = "" }) {
       setAndroidLoading(true);
       setErrorText("");
       
-      const androidClientId = "53177357536-roif1v4kllp72jketot1257mts32bq30.apps.googleusercontent.com";
-      const webClientId = "53177357536-prea1mestrvmsou2137mqe1auh64ep14.apps.googleusercontent.com";
-      let finalClientId = resolvedClientId;
+      const webClientId = (import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || import.meta.env.VITE_GOOGLE_CLIENT_ID || "53177357536-prea1mestrvmsou2137mqe1auh64ep14.apps.googleusercontent.com").trim();
+      const finalClientId = webClientId;
 
-      console.log("Exact Client ID at runtime:", finalClientId);
+      console.log("Exact Client ID at runtime (Web Client ID):", finalClientId);
 
-      if (finalClientId === androidClientId) {
-        console.log("Android Client ID detected in initialize(). Replacing it with the Web Client ID:", webClientId);
-        finalClientId = webClientId;
-      }
 
       console.log("INITIALIZE START");
       if (!GoogleSignIn || typeof GoogleSignIn.initialize !== "function") {

@@ -233,37 +233,69 @@ const OrderCard = ({
       </div>
 
       {/* ── ACTIONS ── */}
-      <div className="p-4 sm:p-5 border-t border-[#e6d3b3]/50 bg-[#fffaf3]/50">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="p-5 border-t border-[#e6d3b3]/40 bg-[#fffaf3]/60 rounded-b-3xl">
+        <div className="flex flex-col items-stretch w-full">
           {status === "PLACED" && (
-            <>
+            <div className="flex flex-col w-full">
+              {/* Accept Button: Full-width, Tall, Emerald Gradient, Shadow, Elevation */}
               <button 
                 onClick={(e) => { e.stopPropagation(); onAccept(order); }}
                 disabled={isBusy}
-                className="flex-1 h-12 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full h-[58px] rounded-[18px] bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-xs font-bold uppercase tracking-widest hover:-translate-y-0.5 hover:shadow-[0_12px_20px_-4px_rgba(16,185,129,0.35)] active:translate-y-0 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none shadow-[0_8px_16px_-4px_rgba(16,185,129,0.25)] border border-emerald-600/20 cursor-pointer"
               >
-                {isBusy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                Accept Order
+                {isBusy ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Accepting...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} className="stroke-[2.5px]" />
+                    <span>Accept Order</span>
+                  </>
+                )}
               </button>
+
+              {/* Gold "or" Separator */}
+              <div className="flex items-center justify-center my-3 text-[#7a5c3a]/50 text-[10px] font-bold tracking-[0.25em] uppercase w-full select-none">
+                <span className="h-px bg-gradient-to-r from-transparent to-[#e6d3b3]/50 flex-1"></span>
+                <span className="px-4">or</span>
+                <span className="h-px bg-gradient-to-l from-transparent to-[#e6d3b3]/50 flex-1"></span>
+              </div>
+
+              {/* Reject Button: Outlined Luxury, Centered, Soft Red Hover */}
               <button 
                 onClick={(e) => { e.stopPropagation(); onReject(order); }}
                 disabled={isBusy}
-                className="flex-1 h-12 rounded-xl bg-white border-2 border-rose-200 text-rose-600 text-[11px] font-bold uppercase tracking-widest hover:bg-rose-50 hover:border-rose-300 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full max-w-[260px] mx-auto h-11 rounded-[14px] bg-white border-2 border-rose-200 text-rose-600 text-[10px] font-bold uppercase tracking-widest hover:bg-rose-50 hover:border-rose-400 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-sm cursor-pointer"
               >
-                {isBusy ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
-                Reject
+                {isBusy ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <XCircle size={14} className="stroke-[2.5px]" />
+                )}
+                <span>Reject Order</span>
               </button>
-            </>
+            </div>
           )}
 
           {status === "PREPARING" && (
             <button 
               onClick={(e) => { e.stopPropagation(); onMarkReady(order); }}
               disabled={isBusy}
-              className="w-full h-12 rounded-xl bg-[#b67b3a] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#a67f52] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full h-[58px] rounded-[18px] bg-gradient-to-r from-[#d97706] to-[#b45309] text-white text-xs font-bold uppercase tracking-widest hover:-translate-y-0.5 hover:shadow-[0_12px_20px_-4px_rgba(217,119,6,0.35)] active:translate-y-0 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none shadow-[0_8px_16px_-4px_rgba(217,119,6,0.25)] border border-[#d97706]/20 cursor-pointer"
             >
-              {isBusy ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
-              Mark Ready
+              {isBusy ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Marking Ready...</span>
+                </>
+              ) : (
+                <>
+                  <Truck size={18} className="stroke-[2.5px]" />
+                  <span>Mark Ready</span>
+                </>
+              )}
             </button>
           )}
 
@@ -271,10 +303,19 @@ const OrderCard = ({
             <button 
               onClick={(e) => { e.stopPropagation(); onHandover(order); }}
               disabled={isBusy}
-              className="w-full h-12 rounded-xl bg-blue-600 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full h-[58px] rounded-[18px] bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold uppercase tracking-widest hover:-translate-y-0.5 hover:shadow-[0_12px_20px_-4px_rgba(59,130,246,0.35)] active:translate-y-0 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none shadow-[0_8px_16px_-4px_rgba(59,130,246,0.25)] border border-blue-600/20 cursor-pointer"
             >
-              {isBusy ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
-              Confirm Handover
+              {isBusy ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Handing over...</span>
+                </>
+              ) : (
+                <>
+                  <Truck size={18} className="stroke-[2.5px]" />
+                  <span>Confirm Handover</span>
+                </>
+              )}
             </button>
           )}
 

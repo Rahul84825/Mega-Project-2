@@ -109,7 +109,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests, please try again later",
-  skip: (req) => req.path === "/api/health" // Don't count health checks
+  skip: (req) => req.path === "/api/health" || (req.originalUrl && req.originalUrl.includes("/api/payment/webhook"))
 });
 
 // Strict rate limiter for authentication endpoints (prevent brute force)
@@ -128,7 +128,7 @@ const readLimiter = rateLimit({
   max: 100, // 100 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.method === "GET" // Only apply to non-GET
+  skip: (req) => req.method === "GET" || (req.originalUrl && req.originalUrl.includes("/api/payment/webhook"))
 });
 
 // Apply global limiter to all requests

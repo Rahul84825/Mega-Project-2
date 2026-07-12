@@ -58,6 +58,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import MyOrders from "./pages/MyOrders";
+import PaymentProcessingPage from "./pages/PaymentProcessingPage";
 
 // Policy Pages (lazy loaded)
 const ShippingPolicy = lazyRetry(() => import("./pages/policies/ShippingPolicy"));
@@ -305,6 +306,17 @@ function App() {
                 <ProtectedRoute>
                   <StoreLayout hideFooter={true}>
                     <CheckoutPage />
+                  </StoreLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/payment-processing"
+              element={
+                <ProtectedRoute>
+                  <StoreLayout hideFooter={true}>
+                    <PaymentProcessingPage />
                   </StoreLayout>
                 </ProtectedRoute>
               }

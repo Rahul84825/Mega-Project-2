@@ -334,108 +334,61 @@ function CheckoutPage() {
     console.log("CREATE_ORDER_START");
     setProcessing(true);
     
-    // Helper function for backend payment verification
-    const verifyPaymentOnBackend = async (rawRes) => {
-      console.log("VERIFY_PAYMENT_START");
-      
-      // Normalize response: Capacitor Razorpay plugin may return response as a JSON string or an object
-      let res = rawRes;
-      if (Capacitor.isNativePlatform() && typeof rawRes === "string") {
-        try {
-          res = JSON.parse(rawRes);
-          console.log("Parsed Razorpay response string successfully:", res);
-        } catch (e) {
-          console.error("Failed to parse Razorpay response string:", e);
-        }
-      }
+    // Automatically generate full address string
+    const generatedFullAddress = [
+      form.flatNo,
+      form.buildingName,
+      form.area,
+      form.landmark,
+      form.city,
+      form.state,
+      form.pincode
+    ].filter(Boolean).map(s => String(s).trim()).join(", ");
 
-      console.log("🟡 PAYMENT_STEP_4_PAYMENT_SUCCESS_CALLBACK", { 
-        razorpay_order_id: res?.razorpay_order_id,
-        razorpay_payment_id: res?.razorpay_payment_id,
-        timestamp: new Date().toISOString()
-      });
-      try {
-        // Automatically generate full address string
-        const generatedFullAddress = [
-          form.flatNo,
-          form.buildingName,
-          form.area,
-          form.landmark,
-          form.city,
-          form.state,
-          form.pincode
-        ].filter(Boolean).map(s => String(s).trim()).join(", ");
-
-        const verifyPayload = {
-          razorpay_order_id: res?.razorpay_order_id || res?.razorpayOrderId || res?.orderId || res?.order_id || "",
-          razorpay_payment_id: res?.razorpay_payment_id || res?.razorpayPaymentId || res?.paymentId || res?.payment_id || "",
-          razorpay_signature: res?.razorpay_signature || res?.razorpaySignature || res?.signature || "",
-          orderData: {
-            customer: { 
-              name: form.name, 
-              phone: form.phone, 
-              email: form.email, 
-              userId: user?.userId || user?._id 
-            },
-            shippingAddress: { 
-              line1: generatedFullAddress, // Backward compatibility
-              flatNo: form.flatNo,
-              buildingName: form.buildingName,
-              area: form.area,
-              landmark: form.landmark,
-              city: form.city, 
-              state: form.state, 
-              pincode: form.pincode,
-              postalCode: form.pincode, 
-              fullAddress: generatedFullAddress,
-              country: "IN",
-              geo: deliveryInfo?.geo || null
-            },
-            items: cart.map(i => ({ ...i, productId: i.productId })),
-            amount: total,
-            totals: { 
-              itemsSubtotal: subtotal, 
-              shippingFee: deliveryFee, 
-              gstTotal, 
-              packingTotal,
-              grandTotal: total, 
-              currency: "INR",
-              couponCode: appliedCoupon?.code
-            },
-            notes: "",
-            metadata: {
-              distanceKm: deliveryInfo?.distanceKm || 0,
-              geocodedAddress: deliveryInfo?.formattedAddress || ""
-            }
-          }
-        };
-        console.log("🔵 PAYMENT_STEP_5_VERIFY_REQUEST_SENT", { 
-          orderId: verifyPayload.razorpay_order_id, 
-          paymentId: verifyPayload.razorpay_payment_id,
-          timestamp: new Date().toISOString() 
-        });
-        console.log("🔵 DEBUG_VERIFY_PAYLOAD_FULL:", JSON.stringify(verifyPayload, null, 2));
-        const { data: verifyData } = await api.post("/api/payment/verify", verifyPayload);
-        if (verifyData.success) {
-          console.log("VERIFY_PAYMENT_SUCCESS");
-          console.log("🟢 PAYMENT_STEP_9_PAYMENT_COMPLETED", { orderId: verifyData.order?._id, timestamp: new Date().toISOString() });
-          handleOrderSuccess(verifyData.order);
-        } else {
-          console.log("VERIFY_PAYMENT_FAILED");
-          throw new Error(verifyData.message || "Verification failed");
-        }
-      } catch (err) {
-        console.log("VERIFY_PAYMENT_FAILED");
-        console.error("❌ PAYMENT_VERIFICATION_ERROR", err);
-        const msg = getApiErrorMessage(err, "Payment verification failed");
-        setErrorMessage(msg);
-      } finally {
-        setProcessing(false);
+    const orderDataPayload = {
+      customer: { 
+        name: form.name, 
+        phone: form.phone, 
+        email: form.email, 
+        userId: user?.userId || user?._id 
+      },
+      shippingAddress: { 
+        line1: generatedFullAddress, // Backward compatibility
+        flatNo: form.flatNo,
+        buildingName: form.buildingName,
+        area: form.area,
+        landmark: form.landmark,
+        city: form.city, 
+        state: form.state, 
+        pincode: form.pincode,
+        postalCode: form.pincode, 
+        fullAddress: generatedFullAddress,
+        country: "IN",
+        geo: deliveryInfo?.geo || null
+      },
+      items: cart.map(i => ({ ...i, productId: i.productId })),
+      amount: total,
+      totals: { 
+        itemsSubtotal: subtotal, 
+        shippingFee: deliveryFee, 
+        gstTotal, 
+        packingTotal,
+        grandTotal: total, 
+        currency: "INR",
+        couponCode: appliedCoupon?.code
+      },
+      notes: "",
+      metadata: {
+        distanceKm: deliveryInfo?.distanceKm || 0,
+        geocodedAddress: deliveryInfo?.formattedAddress || ""
       }
     };
 
     try {
-      const { data: orderData } = await api.post("/api/payment/create-order", { amount: total });
+      const { data: orderData } = await api.post("/api/payment/create-order", { 
+        amount: total,
+        orderData: orderDataPayload
+      });
       console.log("CREATE_ORDER_SUCCESS");
       console.log("RAZORPAY_ORDER_ID:", orderData.orderId);
       console.log("RAZORPAY_AMOUNT:", orderData.amount);
@@ -473,7 +426,33 @@ function CheckoutPage() {
           const res = await Checkout.open(options);
           if (res && res.response) {
             console.log("RAZORPAY_SUCCESS");
-            await verifyPaymentOnBackend(res.response);
+            
+            let parsedRes = res.response;
+            if (typeof parsedRes === "string") {
+              try {
+                parsedRes = JSON.parse(parsedRes);
+              } catch (e) {
+                console.error("Failed to parse Razorpay response string:", e);
+              }
+            }
+
+            const normalizedRes = {
+              razorpay_order_id: parsedRes?.razorpay_order_id || parsedRes?.razorpayOrderId || parsedRes?.orderId || parsedRes?.order_id || "",
+              razorpay_payment_id: parsedRes?.razorpay_payment_id || parsedRes?.razorpayPaymentId || parsedRes?.paymentId || parsedRes?.payment_id || "",
+              razorpay_signature: parsedRes?.razorpay_signature || parsedRes?.razorpaySignature || parsedRes?.signature || ""
+            };
+
+            sessionStorage.setItem("mithai-world-pending-verification", JSON.stringify({
+              ...normalizedRes,
+              orderData: orderDataPayload
+            }));
+
+            // Clear cart immediately on redirect to prevent back-button cart replay issues
+            dispatch({ type: "CLEAR" });
+            localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+            fetchProducts().catch(console.error);
+
+            navigate("/payment-processing", { replace: true });
           } else {
             console.log("RAZORPAY_FAILURE");
             throw new Error("Payment failed: Empty response from Native Checkout SDK");
@@ -499,7 +478,24 @@ function CheckoutPage() {
           ...options,
           handler: async (res) => {
             console.log("RAZORPAY_SUCCESS");
-            await verifyPaymentOnBackend(res);
+            
+            const normalizedRes = {
+              razorpay_order_id: res?.razorpay_order_id || res?.razorpayOrderId || res?.orderId || res?.order_id || "",
+              razorpay_payment_id: res?.razorpay_payment_id || res?.razorpayPaymentId || res?.paymentId || res?.payment_id || "",
+              razorpay_signature: res?.razorpay_signature || res?.razorpaySignature || res?.signature || ""
+            };
+
+            sessionStorage.setItem("mithai-world-pending-verification", JSON.stringify({
+              ...normalizedRes,
+              orderData: orderDataPayload
+            }));
+
+            // Clear cart immediately on redirect to prevent back-button cart replay issues
+            dispatch({ type: "CLEAR" });
+            localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+            fetchProducts().catch(console.error);
+
+            navigate("/payment-processing", { replace: true });
           },
           modal: { 
             ondismiss: () => {

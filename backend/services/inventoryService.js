@@ -3,6 +3,7 @@ import InventoryLog from "../models/InventoryLog.js";
 import { getIo } from "../socket.js";
 import { getVariantPricingSnapshot, calculateTotals } from "../../shared/utils/pricing.js";
 import { validateDeliveryRadius } from "./locationService.js";
+import { logger } from "../utils/logger.js";
 
 export class InventoryError extends Error {
   constructor(message, status = 400, code = "INVENTORY_ERROR") {
