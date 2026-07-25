@@ -1,16 +1,5 @@
 import { io } from "socket.io-client";
-
-const getSocketUrl = () => {
-  if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    const isNative = window.Capacitor?.isNativePlatform() || window.location.protocol === "capacitor:";
-    if (isNative || (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("192.168."))) {
-      return "https://mega-project-2-b880.onrender.com";
-    }
-  }
-  const rawUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-  return rawUrl.replace(/\/api\/?$/, "");
-};
+import { getSocketUrl } from "./utils/backendUrl";
 
 const socketBaseUrl = getSocketUrl();
 
