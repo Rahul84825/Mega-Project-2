@@ -1,3 +1,5 @@
+import { getDeliveryConfig } from "../../shared/utils/pricing.js";
+
 /**
  * Single Source of Truth for Pune Pincode Delivery Zones.
  */
@@ -5,21 +7,24 @@ export const PINCODE_ZONES = {
   "411014": {
     area: "Viman Nagar / Vadgaon Sheri",
     city: "Pune",
-    fee: 0,
+    fee: 30,
+    threshold: 199,
     eta: "30-45 mins",
     available: true
   },
   "411006": {
     area: "Yerwada / Kalyani Nagar",
     city: "Pune",
-    fee: 0,
+    fee: 30,
+    threshold: 199,
     eta: "35-50 mins",
     available: true
   },
   "411032": {
     area: "Dhanori / Tingre Nagar",
     city: "Pune",
-    fee: 0,
+    fee: 30,
+    threshold: 199,
     eta: "40-55 mins",
     available: true
   },
@@ -27,6 +32,7 @@ export const PINCODE_ZONES = {
     area: "Lohegaon",
     city: "Pune",
     fee: 60,
+    threshold: 499,
     eta: "40-60 mins",
     available: true
   },
@@ -34,6 +40,7 @@ export const PINCODE_ZONES = {
     area: "Vishrantwadi",
     city: "Pune",
     fee: 60,
+    threshold: 499,
     eta: "40-55 mins",
     available: true
   },
@@ -41,6 +48,7 @@ export const PINCODE_ZONES = {
     area: "Mundhwa / Ghorpadi",
     city: "Pune",
     fee: 60,
+    threshold: 499,
     eta: "35-50 mins",
     available: true
   },
@@ -48,6 +56,7 @@ export const PINCODE_ZONES = {
     area: "Pune Camp / MG Road",
     city: "Pune",
     fee: 60,
+    threshold: 499,
     eta: "45-60 mins",
     available: true
   },
@@ -55,6 +64,7 @@ export const PINCODE_ZONES = {
     area: "Wagholi",
     city: "Pune",
     fee: 60,
+    threshold: 499,
     eta: "70-95 mins",
     available: true
   },
@@ -62,6 +72,7 @@ export const PINCODE_ZONES = {
     area: "Shivajinagar",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "60-80 mins",
     available: true
   },
@@ -69,6 +80,7 @@ export const PINCODE_ZONES = {
     area: "Hadapsar / Magarpatta",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "50-70 mins",
     available: true
   },
@@ -76,6 +88,7 @@ export const PINCODE_ZONES = {
     area: "Manjari",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "70-95 mins",
     available: true
   },
@@ -83,6 +96,7 @@ export const PINCODE_ZONES = {
     area: "Wanowrie",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "50-70 mins",
     available: true
   },
@@ -90,6 +104,7 @@ export const PINCODE_ZONES = {
     area: "Deccan / Erandwane",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "65-85 mins",
     available: true
   },
@@ -97,6 +112,7 @@ export const PINCODE_ZONES = {
     area: "Kasba Peth",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "55-75 mins",
     available: true
   },
@@ -104,6 +120,7 @@ export const PINCODE_ZONES = {
     area: "Swargate",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "60-80 mins",
     available: true
   },
@@ -111,6 +128,7 @@ export const PINCODE_ZONES = {
     area: "Raviwar Peth",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "60-80 mins",
     available: true
   },
@@ -118,6 +136,7 @@ export const PINCODE_ZONES = {
     area: "Aundh / University",
     city: "Pune",
     fee: 80,
+    threshold: 899,
     eta: "65-90 mins",
     available: true
   }
@@ -131,5 +150,14 @@ export const PINCODE_ZONES = {
 export const getZoneByPincode = (pincode) => {
   if (!pincode) return null;
   const cleanPincode = String(pincode).trim();
-  return PINCODE_ZONES[cleanPincode] || null;
+  const zone = PINCODE_ZONES[cleanPincode];
+  if (!zone) return null;
+
+  const dynamicConfig = getDeliveryConfig(cleanPincode);
+  return {
+    ...zone,
+    fee: dynamicConfig.charge,
+    threshold: dynamicConfig.threshold,
+    outOfReach: dynamicConfig.outOfReach
+  };
 };

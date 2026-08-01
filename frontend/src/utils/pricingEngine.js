@@ -1,47 +1,18 @@
 /**
- * Centralized Pricing Engine for Mithai World
- * BUSINESS RULE: All prices stored in DB already include GST.
- * DO NOT add GST again.
+ * Legacy Pricing Engine wrapper for Mithai World
+ * Delegated to shared/utils/pricing.js (Single Source of Truth)
  */
 
-const DELIVERY_FREE_THRESHOLD = 999;
-const DELIVERY_FEE = 60;
+import { calculateTotals as sharedCalculateTotals, formatCurrency as sharedFormatCurrency, TAX_MESSAGE as sharedTaxMessage } from "shared/utils/pricing";
 
-/**
- * Calculate order totals from cart items
- * @param {Array} items - Cart items with price and quantity
- * @returns {Object} { subtotal, deliveryFee, total }
- */
-export const calculateTotals = (items = []) => {
-  const subtotal = items.reduce((sum, item) => {
-    const price = Number(item?.price || item?.sellingPrice || 0);
-    const qty = Number(item?.quantity || 1);
-    return sum + (price * qty);
-  }, 0);
-
-  const deliveryFee = (subtotal >= DELIVERY_FREE_THRESHOLD || subtotal === 0) ? 0 : DELIVERY_FEE;
-  const total = subtotal + deliveryFee;
-
+export const calculateTotals = (items = [], options = {}) => {
+  const result = sharedCalculateTotals(items, options);
   return {
-    subtotal: Math.round(subtotal),
-    deliveryFee,
-    total: Math.round(total)
+    subtotal: result.netSubtotal,
+    deliveryFee: result.shippingFee,
+    total: result.grandTotal
   };
 };
 
-/**
- * Format number to Indian Currency (INR)
- */
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount));
-};
-
-/**
- * Get display message for taxes
- */
-export const TAX_MESSAGE = "Inclusive of all taxes";
+export const formatCurrency = sharedFormatCurrency;
+export const TAX_MESSAGE = sharedTaxMessage;

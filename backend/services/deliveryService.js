@@ -74,12 +74,36 @@ const normalizeAndGeocodeAddress = (addr) => {
     lat = 18.5626; lng = 73.9087;
   } else if (pincode === "411006" || normalizedAddress.toLowerCase().includes("yerwada")) {
     lat = 18.5529; lng = 73.8796;
-  } else if (pincode === "411001" || normalizedAddress.toLowerCase().includes("pune camp")) {
-    lat = 18.5135; lng = 73.8789;
+  } else if (pincode === "411032" || normalizedAddress.toLowerCase().includes("dhanori") || normalizedAddress.toLowerCase().includes("tingre nagar")) {
+    lat = 18.5746; lng = 73.9038;
   } else if (pincode === "411047" || normalizedAddress.toLowerCase().includes("lohegaon")) {
     lat = 18.5910; lng = 73.9189;
-  } else if (pincode === "411032" || normalizedAddress.toLowerCase().includes("tingre nagar")) {
-    lat = 18.5746; lng = 73.9038;
+  } else if (pincode === "411015" || normalizedAddress.toLowerCase().includes("vishrantwadi")) {
+    lat = 18.5665; lng = 73.8722;
+  } else if (pincode === "411036" || normalizedAddress.toLowerCase().includes("mundhwa") || normalizedAddress.toLowerCase().includes("ghorpadi")) {
+    lat = 18.5362; lng = 73.9158;
+  } else if (pincode === "411001" || normalizedAddress.toLowerCase().includes("pune camp")) {
+    lat = 18.5135; lng = 73.8789;
+  } else if (pincode === "412207" || normalizedAddress.toLowerCase().includes("wagholi")) {
+    lat = 18.5793; lng = 73.9822;
+  } else if (pincode === "411005" || normalizedAddress.toLowerCase().includes("shivajinagar")) {
+    lat = 18.5314; lng = 73.8446;
+  } else if (pincode === "411028" || normalizedAddress.toLowerCase().includes("hadapsar") || normalizedAddress.toLowerCase().includes("magarpatta")) {
+    lat = 18.5089; lng = 73.9259;
+  } else if (pincode === "412307" || normalizedAddress.toLowerCase().includes("manjari")) {
+    lat = 18.5275; lng = 73.9789;
+  } else if (pincode === "411040" || normalizedAddress.toLowerCase().includes("wanowrie")) {
+    lat = 18.4870; lng = 73.8960;
+  } else if (pincode === "411004" || normalizedAddress.toLowerCase().includes("deccan") || normalizedAddress.toLowerCase().includes("erandwane")) {
+    lat = 18.5167; lng = 73.8417;
+  } else if (pincode === "411011" || normalizedAddress.toLowerCase().includes("kasba peth")) {
+    lat = 18.5204; lng = 73.8567;
+  } else if (pincode === "411002" || normalizedAddress.toLowerCase().includes("swargate")) {
+    lat = 18.5018; lng = 73.8636;
+  } else if (pincode === "411003" || normalizedAddress.toLowerCase().includes("raviwar peth")) {
+    lat = 18.5160; lng = 73.8580;
+  } else if (pincode === "411007" || normalizedAddress.toLowerCase().includes("aundh")) {
+    lat = 18.5602; lng = 73.8031;
   }
 
   return { normalizedAddress, lat, lng, landmark };
