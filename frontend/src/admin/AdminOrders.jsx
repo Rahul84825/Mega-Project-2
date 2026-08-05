@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { Search, Sparkles, Filter, Clock, Loader2 } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
@@ -10,7 +10,7 @@ import RejectReasonModal from "./orders/RejectReasonModal";
 import AcceptOrderModal from "./orders/AcceptOrderModal";
 import OrderDetailsModal from "./orders/OrderDetailsModal";
 import KitchenReceiptPrint from "./print/KitchenReceiptPrint";
-import { ORDER_TABS, resolveStatus } from "./orders/orderUtils";
+import { ORDER_TABS, resolveStatus, isBusinessOrder } from "./orders/orderUtils";
 
 const AdminOrders = () => {
   const {
@@ -95,12 +95,17 @@ const AdminOrders = () => {
       });
   }, [orders, activeTab, search]);
 
-  const totalRevenue = useMemo(
-    () => (orders || []).reduce((sum, order) => sum + Number(order.totals?.grandTotal || order.total || 0), 0),
+  const validBusinessOrders = useMemo(
+    () => (orders || []).filter(isBusinessOrder),
     [orders]
   );
 
-  const handleAction = async (orderId, action) => {
+  const totalRevenue = useMemo(
+    () => validBusinessOrders.reduce((sum, order) => sum + Number(order.totals?.grandTotal || order.total || 0), 0),
+    [validBusinessOrders]
+  );
+
+  const handleAction = useCallback(async (orderId, action) => {
     if (busyOrderId) return;
     setBusyOrderId(orderId);
     try {
@@ -112,7 +117,35 @@ const AdminOrders = () => {
     } finally {
       setBusyOrderId(null);
     }
-  };
+  }, [busyOrderId]);
+
+  const handleCardSelect = useCallback((order) => {
+    setSelectedId(order._id);
+  }, []);
+
+  const handleCardAccept = useCallback((order) => {
+    setAcceptModal({ open: true, order });
+  }, []);
+
+  const handleCardReject = useCallback((order) => {
+    setRejectModal({ open: true, order });
+  }, []);
+
+  const handleCardHandover = useCallback((order) => {
+    handleAction(order._id, () => markOrderPickedUp(order._id));
+  }, [handleAction, markOrderPickedUp]);
+
+  const handleCardMarkReady = useCallback((order) => {
+    handleAction(order._id, () => markOrderReady(order._id));
+  }, [handleAction, markOrderReady]);
+
+  const handleCardMarkDelivered = useCallback((order) => {
+    handleAction(order._id, () => markOrderDelivered(order._id));
+  }, [handleAction, markOrderDelivered]);
+
+  const handleCardPrint = useCallback((order) => {
+    setPrintingOrder(order);
+  }, []);
 
   const handleManualSync = async () => {
     setBusyOrderId("sync");
@@ -159,7 +192,7 @@ const AdminOrders = () => {
             <Sparkles size={12} /> Realtime Control
           </div>
           <h2 className="serif text-xl sm:text-2xl md:text-3xl">Orders Management</h2>
-          <p className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">{orders.length} total orders · {formatCurrency(totalRevenue)} revenue</p>
+          <p className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">{validBusinessOrders.length} successful orders · {formatCurrency(totalRevenue)} revenue</p>
         </div>
       </div>
 
@@ -204,13 +237,13 @@ const AdminOrders = () => {
               key={order._id}
               order={order}
               isActive={selectedId === order._id}
-              onSelect={() => setSelectedId(order._id)}
-              onAccept={(o) => setAcceptModal({ open: true, order: o })}
-              onReject={(o) => setRejectModal({ open: true, order: o })}
-              onHandover={(o) => { console.log("STEP_REACHED: Admin button click (Handover)"); handleAction(o._id, () => markOrderPickedUp(o._id)); }}
-              onMarkReady={(o) => { console.log("STEP_REACHED: Admin button click (Mark Ready)"); handleAction(o._id, () => markOrderReady(o._id)); }}
-              onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
-              onPrint={(o) => setPrintingOrder(o)}
+              onSelect={handleCardSelect}
+              onAccept={handleCardAccept}
+              onReject={handleCardReject}
+              onHandover={handleCardHandover}
+              onMarkReady={handleCardMarkReady}
+              onMarkDelivered={handleCardMarkDelivered}
+              onPrint={handleCardPrint}
               isBusy={busyOrderId === order._id}
             />
           ))

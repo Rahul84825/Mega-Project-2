@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import api from "../services/api";
 import { socket } from "../services/socket";
 import { calculateTotals } from "shared/utils/pricing";
@@ -202,8 +202,13 @@ function productReducer(state, action) {
 export function ProductProvider({ children }) {
   const [state, dispatch] = useReducer(productReducer, initialState);
   const isFetchingRef = useRef(false);
+  const ordersRef = useRef(state.orders);
   const { isAdmin, token } = useAuth();
   const audioRef = useRef(null);
+
+  useEffect(() => {
+    ordersRef.current = state.orders;
+  }, [state.orders]);
 
   // Alert state for pending orders
   const [alertingOrderIds, setAlertingOrderIds] = useState([]);
@@ -360,14 +365,30 @@ export function ProductProvider({ children }) {
   }, []);
 
   const fetchOrders = useCallback(async () => {
-     const startTime = Date.now();
-     console.log(`FETCH_ORDERS_START: ${new Date().toISOString()}`);
-     try {
+    const startTime = Date.now();
+    try {
       const { data } = await api.get("/api/orders");
-      const duration = Date.now() - startTime;
-      console.log(`FETCH_ORDERS_END: ${new Date().toISOString()}`);
-      console.log(`QUERY_DURATION_MS: ${duration}ms`);
       const sorted = toArray(data?.orders || data).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      // Safe state update optimization: skip dispatch if fetched orders match current state
+      const currentOrders = ordersRef.current || [];
+      if (
+        sorted.length === currentOrders.length &&
+        sorted.every((o, idx) => {
+          const curr = currentOrders[idx];
+          return (
+            curr &&
+            curr._id === o._id &&
+            curr.status === o.status &&
+            curr.updatedAt === o.updatedAt &&
+            curr.payment?.status === o.payment?.status &&
+            curr.totals?.grandTotal === o.totals?.grandTotal
+          );
+        })
+      ) {
+        return;
+      }
+
       dispatch({ type: actionTypes.SET_DATA, payload: { orders: sorted } });
     } catch (err) { 
       const duration = Date.now() - startTime;
@@ -612,38 +633,71 @@ export function ProductProvider({ children }) {
     }
   }, [state.offers, updateOffer]);
 
-  const value = {
-    ...state,
-    refreshAll,
-    refresh: refreshAll, // alias for backwards compatibility
-    fetchProducts,
-    fetchCategories,
-    fetchOrders,
-    fetchOffers,
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    toggleProductStatus,
-    toggleVariantStatus,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    toggleCategory,
-    toggleCategoryFeatured,
-    acceptOrder,
-    rejectOrder,
-    markOrderPickedUp,
-    markOrderReady,
-    markOrderDelivered,
-    updateOrderState,
-    addOffer,
-    updateOffer,
-    deleteOffer,
-    toggleOffer,
-    playNotification,
-    alertingOrderIds,
-    clearOrderAlert
-  };
+  const value = useMemo(
+    () => ({
+      ...state,
+      refreshAll,
+      refresh: refreshAll, // alias for backwards compatibility
+      fetchProducts,
+      fetchCategories,
+      fetchOrders,
+      fetchOffers,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      toggleProductStatus,
+      toggleVariantStatus,
+      addCategory,
+      updateCategory,
+      deleteCategory,
+      toggleCategory,
+      toggleCategoryFeatured,
+      acceptOrder,
+      rejectOrder,
+      markOrderPickedUp,
+      markOrderReady,
+      markOrderDelivered,
+      updateOrderState,
+      addOffer,
+      updateOffer,
+      deleteOffer,
+      toggleOffer,
+      playNotification,
+      alertingOrderIds,
+      clearOrderAlert
+    }),
+    [
+      state,
+      refreshAll,
+      fetchProducts,
+      fetchCategories,
+      fetchOrders,
+      fetchOffers,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      toggleProductStatus,
+      toggleVariantStatus,
+      addCategory,
+      updateCategory,
+      deleteCategory,
+      toggleCategory,
+      toggleCategoryFeatured,
+      acceptOrder,
+      rejectOrder,
+      markOrderPickedUp,
+      markOrderReady,
+      markOrderDelivered,
+      updateOrderState,
+      addOffer,
+      updateOffer,
+      deleteOffer,
+      toggleOffer,
+      playNotification,
+      alertingOrderIds,
+      clearOrderAlert
+    ]
+  );
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;
 }

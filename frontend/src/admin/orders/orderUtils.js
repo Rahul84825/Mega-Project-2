@@ -64,3 +64,8 @@ export const resolvePaymentStatus = (order) =>
 
 export const resolvePaymentMethod = (order) =>
   String(order?.payment?.method || order?.paymentMethod || "RAZORPAY").toUpperCase();
+
+export const isBusinessOrder = (order) => {
+  const status = resolveStatus(order);
+  return status !== "REJECTED" && status !== "CANCELLED";
+};
