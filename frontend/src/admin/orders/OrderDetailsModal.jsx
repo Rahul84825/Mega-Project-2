@@ -3,7 +3,7 @@ import {
   X, User, MapPin, Phone, Mail, Package, 
   CreditCard, Truck, ShieldCheck, Timer, 
   ChevronRight, Receipt, Calendar, Clock, CheckCircle2,
-  ExternalLink
+  ExternalLink, Printer
 } from "lucide-react";
 import { formatCurrency } from "shared/utils/pricing";
 import { PLACEHOLDER_IMAGE } from "../../utils/imageHelper";
@@ -17,7 +17,7 @@ import {
 } from "./orderUtils";
 import OrderTimer from "./OrderTimer";
 
-const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMarkDelivered, onSync }) => {
+const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMarkDelivered, onSync, onPrint }) => {
   if (!open || !order) return null;
 
   const status = resolveStatus(order);
@@ -65,6 +65,13 @@ const OrderDetailsModal = ({ order, open, onClose, onHandover, onMarkReady, onMa
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
+              onClick={() => onPrint?.(order)}
+              className="h-8 sm:h-10 px-2.5 sm:px-4 rounded-full flex items-center justify-center gap-1.5 sm:gap-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-[#8b4513] bg-[#fffaf3] border border-[#e6d3b3] hover:bg-[#8b4513] hover:text-white transition-colors"
+              title="Print Kitchen Bill"
+            >
+              <Printer size={14} /> <span>Print Bill</span>
+            </button>
             {isDeliveryActive && (
               <button 
                 onClick={() => onSync?.()}

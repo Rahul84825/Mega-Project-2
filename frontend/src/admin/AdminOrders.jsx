@@ -9,6 +9,7 @@ import OrderTabs from "./orders/OrderTabs";
 import RejectReasonModal from "./orders/RejectReasonModal";
 import AcceptOrderModal from "./orders/AcceptOrderModal";
 import OrderDetailsModal from "./orders/OrderDetailsModal";
+import KitchenReceiptPrint from "./print/KitchenReceiptPrint";
 import { ORDER_TABS, resolveStatus } from "./orders/orderUtils";
 
 const AdminOrders = () => {
@@ -30,6 +31,7 @@ const AdminOrders = () => {
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [rejectModal, setRejectModal] = useState({ open: false, order: null });
   const [acceptModal, setAcceptModal] = useState({ open: false, order: null });
+  const [printingOrder, setPrintingOrder] = useState(null);
 
   const hasNewOrderAlert = alertingOrderIds && alertingOrderIds.length > 0;
 
@@ -208,6 +210,7 @@ const AdminOrders = () => {
               onHandover={(o) => { console.log("STEP_REACHED: Admin button click (Handover)"); handleAction(o._id, () => markOrderPickedUp(o._id)); }}
               onMarkReady={(o) => { console.log("STEP_REACHED: Admin button click (Mark Ready)"); handleAction(o._id, () => markOrderReady(o._id)); }}
               onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
+              onPrint={(o) => setPrintingOrder(o)}
               isBusy={busyOrderId === order._id}
             />
           ))
@@ -222,6 +225,12 @@ const AdminOrders = () => {
         onMarkReady={(o) => handleAction(o._id, () => markOrderReady(o._id))}
         onMarkDelivered={(o) => handleAction(o._id, () => markOrderDelivered(o._id))}
         onSync={handleManualSync}
+        onPrint={(o) => setPrintingOrder(o)}
+      />
+
+      <KitchenReceiptPrint
+        order={printingOrder}
+        onAfterPrint={() => setPrintingOrder(null)}
       />
 
       <AcceptOrderModal

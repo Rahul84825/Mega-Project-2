@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { 
   MapPin, Phone, Mail, Clock, 
   ChevronDown, ChevronUp, Package, 
-  CreditCard, Truck, Receipt, CheckCircle2, XCircle, Loader2
+  CreditCard, Truck, Receipt, CheckCircle2, XCircle, Loader2, Printer
 } from "lucide-react";
 import { formatCurrency } from "shared/utils/pricing";
 import { PLACEHOLDER_IMAGE } from "../../utils/imageHelper";
@@ -24,7 +24,8 @@ const OrderCard = ({
   onHandover,
   onMarkReady, 
   onMarkDelivered, 
-  isBusy 
+  isBusy,
+  onPrint
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -73,7 +74,18 @@ const OrderCard = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-right">
+          <div className="flex items-center gap-2 sm:gap-3 text-right">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPrint?.(order);
+              }}
+              title="Print Kitchen Bill"
+              className="px-3 py-1.5 rounded-xl border border-[#e6d3b3] bg-white hover:bg-[#8b4513] hover:text-white text-[#8b4513] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+            >
+              <Printer size={15} />
+              <span>Print Kitchen Bill</span>
+            </button>
             <div className="hidden sm:block">
               <div className="text-[10px] font-bold uppercase tracking-widest text-[#b67b3a]">Time</div>
               <div className="flex items-center gap-1.5 text-sm font-bold text-[#2d1b0e]">

@@ -1,0 +1,142 @@
+/* Thermal Kitchen Bill Print Stylesheet for Mithai World */
+
+/* Screen preview container styles */
+.kitchen-receipt-container {
+  font-family: 'Courier New', Courier, Monaco, 'Lucida Console', monospace, system-ui, sans-serif;
+  color: #000000;
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 80mm;
+  margin: 0 auto;
+  padding: 12px 10px;
+  box-sizing: border-box;
+  font-size: 11px;
+  line-height: 1.35;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thermal Separators */
+.thermal-divider {
+  border: none;
+  border-top: 1px dashed #000000;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.thermal-divider-solid {
+  border: none;
+  border-top: 1px solid #000000;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.thermal-divider-double {
+  border: none;
+  border-top: 3px double #000000;
+  margin: 8px 0;
+  width: 100%;
+}
+
+/* Typography Hierarchy Rules */
+.thermal-store-name {
+  font-size: 18px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.thermal-grand-total {
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.thermal-otp {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.thermal-customer-name {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.thermal-product-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.thermal-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.thermal-small {
+  font-size: 10px;
+}
+
+.thermal-center {
+  text-align: center;
+}
+
+.thermal-right {
+  text-align: right;
+}
+
+.thermal-bold {
+  font-weight: 800;
+}
+
+.thermal-uppercase {
+  text-transform: uppercase;
+}
+
+/* Printable Area Handling */
+@media print {
+  @page {
+    size: auto;
+    margin: 4mm;
+  }
+
+  /* Hide everything on screen */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the kitchen receipt print container */
+  .kitchen-receipt-print-wrapper,
+  .kitchen-receipt-print-wrapper * {
+    visibility: visible !important;
+  }
+
+  .kitchen-receipt-print-wrapper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Support 58mm printer override if container has narrow class */
+  .kitchen-receipt-container.receipt-58mm {
+    max-width: 58mm !important;
+  }
+
+  /* Avoid page break inside item rows and totals */
+  .thermal-item-row,
+  .thermal-section,
+  .thermal-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
