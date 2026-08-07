@@ -138,7 +138,7 @@ function ProductDetailPage() {
               <img 
                 src={product.images?.[activeImage] || PLACEHOLDER_IMAGE} 
                 onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
-                alt="" 
+                alt={product.name || "Authentic Indian Sweet"} 
                 className={`w-full h-full object-cover transition-transform duration-700 ${isOutOfStock ? 'opacity-60' : 'group-hover:scale-105'}`} 
               />
             </div>
@@ -151,7 +151,7 @@ function ProductDetailPage() {
                     className={`h-20 w-20 rounded-xl overflow-hidden border-2 transition-all shrink-0
                       ${activeImage === i ? 'border-[var(--burgundy)] shadow-lg scale-95' : 'border-transparent opacity-60 hover:opacity-100'}`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

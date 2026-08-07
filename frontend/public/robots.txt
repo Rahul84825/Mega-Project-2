@@ -1,5 +1,14 @@
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /favicon-*.png
+Allow: /apple-touch-icon.png
+Allow: /android-chrome-*.png
+Allow: /og-image.png
+Allow: /manifest.webmanifest
+Allow: /site.webmanifest
+Allow: /icons/
 Allow: /sweets
 Allow: /about
 Allow: /contact
@@ -9,7 +18,7 @@ Allow: /returns-exchanges
 Allow: /terms-conditions
 Allow: /product/
 
-# Disallow admin and internal routes
+# Disallow admin, auth and user account routes
 Disallow: /admin/
 Disallow: /login
 Disallow: /register
@@ -18,5 +27,6 @@ Disallow: /checkout
 Disallow: /my-orders
 Disallow: /payment-success
 Disallow: /order-success
+Disallow: /payment-processing
 
 Sitemap: https://mithaipune.com/sitemap.xml
