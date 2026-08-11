@@ -22,7 +22,7 @@ function PaymentProcessingPage() {
   // Load pending transaction on mount
   useEffect(() => {
     isMountedRef.current = true;
-    const rawData = sessionStorage.getItem("mithai-world-pending-verification");
+    const rawData = sessionStorage.getItem("mithai-world-pending-verification") || localStorage.getItem("mithai-world-pending-verification");
     if (!rawData) {
       setStatus("failure");
       setErrorMessage("No pending payment details found. If you were charged, please contact customer support.");
@@ -31,6 +31,8 @@ function PaymentProcessingPage() {
     
     try {
       verificationDataRef.current = JSON.parse(rawData);
+      // Immediately trigger verification if ref is set
+      verifyPayment();
     } catch (e) {
       console.error("Failed to parse verification data:", e);
       setStatus("failure");
@@ -96,8 +98,9 @@ function PaymentProcessingPage() {
 
       if (data.success) {
         setStatus("success");
-        // Clear pending session state on success
+        // Clear pending session state on success from both storage locations
         sessionStorage.removeItem("mithai-world-pending-verification");
+        localStorage.removeItem("mithai-world-pending-verification");
         if (data.order?._id) {
           sessionStorage.setItem("last_order_id", data.order._id);
         }
@@ -115,18 +118,21 @@ function PaymentProcessingPage() {
       if (!isMountedRef.current) return;
       console.error("Verification attempt failed:", err);
 
-      const status = err?.response?.status;
-      // If order already created (409 Conflict), consider it a success and navigate
-      if (status === 409) {
-        console.log("Order was already created (409 Conflict), redirecting to success");
+      const resStatus = err?.response?.status;
+      const responseOrder = err?.response?.data?.order;
+
+      // If order already created (409 Conflict or order returned), consider it a success and navigate
+      if (resStatus === 409 || responseOrder) {
+        console.log("Order was already created, redirecting to success");
         setStatus("success");
         sessionStorage.removeItem("mithai-world-pending-verification");
-        if (err?.response?.data?.order?._id) {
-          sessionStorage.setItem("last_order_id", err.response.data.order._id);
+        localStorage.removeItem("mithai-world-pending-verification");
+        if (responseOrder?._id) {
+          sessionStorage.setItem("last_order_id", responseOrder._id);
         }
         dispatch({ type: "CLEAR" });
         fetchProducts().catch(console.error);
-        navigate("/payment-success", { state: { order: err.response.data.order }, replace: true });
+        navigate("/payment-success", { state: { order: responseOrder }, replace: true });
         return;
       }
 

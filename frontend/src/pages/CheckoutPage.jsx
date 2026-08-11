@@ -442,10 +442,12 @@ function CheckoutPage() {
               razorpay_signature: parsedRes?.razorpay_signature || parsedRes?.razorpaySignature || parsedRes?.signature || ""
             };
 
-            sessionStorage.setItem("mithai-world-pending-verification", JSON.stringify({
+            const pendingVerificationPayload = JSON.stringify({
               ...normalizedRes,
               orderData: orderDataPayload
-            }));
+            });
+            sessionStorage.setItem("mithai-world-pending-verification", pendingVerificationPayload);
+            localStorage.setItem("mithai-world-pending-verification", pendingVerificationPayload);
 
             // Clear cart immediately on redirect to prevent back-button cart replay issues
             dispatch({ type: "CLEAR" });
@@ -485,10 +487,12 @@ function CheckoutPage() {
               razorpay_signature: res?.razorpay_signature || res?.razorpaySignature || res?.signature || ""
             };
 
-            sessionStorage.setItem("mithai-world-pending-verification", JSON.stringify({
+            const pendingVerificationPayload = JSON.stringify({
               ...normalizedRes,
               orderData: orderDataPayload
-            }));
+            });
+            sessionStorage.setItem("mithai-world-pending-verification", pendingVerificationPayload);
+            localStorage.setItem("mithai-world-pending-verification", pendingVerificationPayload);
 
             // Clear cart immediately on redirect to prevent back-button cart replay issues
             dispatch({ type: "CLEAR" });

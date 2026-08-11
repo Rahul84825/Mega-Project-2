@@ -9,6 +9,7 @@ import { logger } from "../utils/logger.js";
 import generateOrderId from "../utils/orderIdGenerator.js";
 import { InventoryError, reserveStock } from "../services/inventoryService.js";
 import PendingCheckout from "../models/PendingCheckout.js";
+import PaymentReconciliation from "../models/PaymentReconciliation.js";
 
 import {
   sendPaymentSuccessEmail,
@@ -110,7 +111,13 @@ export const createPaymentOrder = async (req, res) => {
     const razorpayOrder = await razorpay.orders.create({
       amount: amountInPaise,
       currency,
-      receipt: receipt || `receipt_${Date.now()}`
+      receipt: receipt || `receipt_${Date.now()}`,
+      notes: {
+        customerName: String(orderData?.customer?.name || "").substring(0, 50),
+        customerPhone: String(orderData?.customer?.phone || "").substring(0, 30),
+        customerEmail: String(orderData?.customer?.email || "").substring(0, 50),
+        userId: String(orderData?.customer?.userId || req.user?.userId || "").substring(0, 50)
+      }
     });
 
     // Hardened Webhook: Store checkout details linked to Razorpay Order ID
@@ -273,8 +280,8 @@ export const verifyPayment = async (req, res) => {
         razorpayPaymentId: razorpay_payment_id,
         razorpayOrderId: razorpay_order_id
       });
-      return res.status(409).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "This payment has already been processed and recorded.",
         order: existingOrder
       });
@@ -321,19 +328,51 @@ export const verifyPayment = async (req, res) => {
           }
         }
 
-        const { itemSnapshots, totals } = await reserveStock({
-          items: orderData?.items || [],
-          session,
-          orderNumber: `RZP-${Date.now()}`,
-          reason: "Razorpay payment verified",
-          coupon, // Pass coupon for discount calculation
-          discountTotal: orderData?.totals?.discountTotal || 0,
-          shippingFee: orderData?.totals?.shippingFee || 0,
-          pincode: orderData?.shippingAddress?.postalCode || orderData?.customer?.pincode || "",
-          roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
-        });
+        let itemSnapshots = [];
+        let totals = {};
+        let isInventoryFailure = false;
+        let inventoryFailureMessage = "";
 
-        if (coupon) {
+        try {
+          const resStock = await reserveStock({
+            items: orderData?.items || [],
+            session,
+            orderNumber: `RZP-${Date.now()}`,
+            reason: "Razorpay payment verified",
+            coupon, // Pass coupon for discount calculation
+            discountTotal: orderData?.totals?.discountTotal || 0,
+            shippingFee: orderData?.totals?.shippingFee || 0,
+            pincode: orderData?.shippingAddress?.postalCode || orderData?.customer?.pincode || "",
+            roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
+          });
+          itemSnapshots = resStock.itemSnapshots;
+          totals = resStock.totals;
+        } catch (invErr) {
+          logger.error("⚠️ Stock reservation issue post-payment:", invErr.message);
+          isInventoryFailure = true;
+          inventoryFailureMessage = invErr.message || "Stock reservation issue";
+          // Fallback snapshot formatting to ensure paid payment is NOT lost
+          itemSnapshots = (orderData?.items || []).map(i => ({
+            productId: i.productId || i._id,
+            titleSnapshot: i.titleSnapshot || i.name || "Product",
+            imageSnapshot: i.imageSnapshot || i.image || "",
+            selectedVariant: { label: i.selectedVariant?.label || i.variantLabel || "Default" },
+            gstRate: Number(i.gstRate || 0),
+            gstAmount: Number(i.gstAmount || 0),
+            mrpAtPurchase: Number(i.mrpAtPurchase || i.price || 0),
+            sellingPriceAtPurchase: Number(i.sellingPriceAtPurchase || i.price || 0),
+            quantity: Number(i.quantity || 1),
+            subtotal: Number(i.subtotal || (i.price * (i.quantity || 1)) || 0),
+            finalAmount: Number(i.finalAmount || (i.price * (i.quantity || 1)) || 0)
+          }));
+          totals = orderData?.totals || {
+            itemsSubtotal: orderData?.amount || 0,
+            gstTotal: 0,
+            grandTotal: orderData?.amount || 0
+          };
+        }
+
+        if (coupon && !isInventoryFailure) {
           await Coupon.updateOne({ _id: coupon._id }, { $inc: { usedCount: 1 } }, { session });
         }
 
@@ -371,9 +410,11 @@ export const verifyPayment = async (req, res) => {
             razorpaySignature: razorpay_signature,
             paidAt: new Date()
           },
-          status: "PLACED",
+          status: isInventoryFailure ? "REJECTED" : "PLACED",
+          rejectionReason: isInventoryFailure ? `INVENTORY_UNAVAILABLE: ${inventoryFailureMessage}` : "",
           statusTimestamps: {
-            placedAt: new Date()
+            placedAt: new Date(),
+            ...(isInventoryFailure ? { rejectedAt: new Date() } : {})
           },
           totals: {
             ...totals,
@@ -387,6 +428,7 @@ export const verifyPayment = async (req, res) => {
           } : undefined,
           metadata: {
             razorpayOrderStatus: razorpayOrder.status,
+            needsAdminAttention: isInventoryFailure,
             ...orderData?.metadata
           }
         };
@@ -443,6 +485,28 @@ export const verifyPayment = async (req, res) => {
       order: createdOrder
     });
   } catch (error) {
+    // ── E11000 RACE CONDITION RESOLUTION ──
+    if (error.code === 11000 || error.name === "MongoServerError" || String(error.message).includes("E11000")) {
+      logger.warn("⚠️ E11000 RACE CONDITION RESOLVED: Order already exists from concurrent execution", {
+        razorpayOrderId: req.body?.razorpay_order_id,
+        razorpayPaymentId: req.body?.razorpay_payment_id
+      });
+      const existingOrder = await Order.findOne({
+        $or: [
+          { "payment.razorpayPaymentId": req.body?.razorpay_payment_id },
+          { "payment.razorpayOrderId": req.body?.razorpay_order_id }
+        ]
+      });
+
+      if (existingOrder) {
+        return res.status(200).json({
+          success: true,
+          message: "Payment verified and order retrieved successfully",
+          order: existingOrder
+        });
+      }
+    }
+
     logger.error("❌ PAYMENT VERIFICATION FAILED", {
       errorMessage: error.message,
       errorCode: error.code,
@@ -537,13 +601,67 @@ export const handleRazorpayWebhook = async (req, res) => {
       }
 
       // Fetch checkout details from temporary PendingCheckout session
-      const checkout = await PendingCheckout.findOne({ razorpayOrderId: razorpay_order_id });
+      let checkout = await PendingCheckout.findOne({ razorpayOrderId: razorpay_order_id });
+      
+      // Fallback: If PendingCheckout is missing, call Razorpay API to inspect Order notes & status
       if (!checkout) {
-        logger.error("❌ [WEBHOOK] No PendingCheckout found. Reconcile aborted.", {
+        logger.warn("⚠️ [WEBHOOK] No PendingCheckout found. Attempting Razorpay SDK order notes fallback...", {
           razorpayOrderId: razorpay_order_id,
           razorpayPaymentId: razorpay_payment_id
         });
-        return res.status(200).json({ success: true, message: "Checkout session expired or not found" });
+
+        const razorpay = getRazorpayClient();
+        let fetchedRzpOrder = null;
+        try {
+          fetchedRzpOrder = await razorpay.orders.fetch(razorpay_order_id);
+        } catch (fetchErr) {
+          logger.error("❌ [WEBHOOK] Failed to fetch Razorpay Order from API", fetchErr);
+        }
+
+        // Check if durable PaymentReconciliation record already exists
+        const existingReconciliation = await PaymentReconciliation.findOne({
+          $or: [
+            { razorpayOrderId: razorpay_order_id },
+            { razorpayPaymentId: razorpay_payment_id }
+          ]
+        });
+
+        if (!existingReconciliation) {
+          await PaymentReconciliation.create({
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id,
+            amount: (paymentEntity?.amount || fetchedRzpOrder?.amount || 0) / 100,
+            currency: paymentEntity?.currency || fetchedRzpOrder?.currency || "INR",
+            customerInfo: {
+              name: paymentEntity?.notes?.customerName || fetchedRzpOrder?.notes?.customerName || paymentEntity?.email || "Guest",
+              phone: paymentEntity?.notes?.customerPhone || fetchedRzpOrder?.notes?.customerPhone || paymentEntity?.contact || "",
+              email: paymentEntity?.notes?.customerEmail || fetchedRzpOrder?.notes?.customerEmail || paymentEntity?.email || "",
+              userId: paymentEntity?.notes?.userId || fetchedRzpOrder?.notes?.userId || null
+            },
+            status: "NEEDS_ATTENTION",
+            reason: "Missing PendingCheckout during webhook execution. Payment saved to reconciliation log.",
+            rawPayload: paymentEntity || fetchedRzpOrder || {}
+          });
+
+          logger.error("🚨 [WEBHOOK RECONCILIATION] Captured payment recorded in PaymentReconciliation log for admin attention", {
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id
+          });
+
+          const io = getIo();
+          if (io) {
+            io.to("admin-room").emit("order:reconciliation", {
+              razorpayOrderId: razorpay_order_id,
+              razorpayPaymentId: razorpay_payment_id,
+              amount: (paymentEntity?.amount || 0) / 100
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Payment captured and recorded in reconciliation log for admin review"
+        });
       }
 
       logger.info("🟢 [WEBHOOK] PendingCheckout session found for recovery", {
@@ -568,19 +686,50 @@ export const handleRazorpayWebhook = async (req, res) => {
           }
         }
 
-        const { itemSnapshots, totals } = await reserveStock({
-          items: orderData?.items || [],
-          session,
-          orderNumber: `RZP-${Date.now()}`,
-          reason: "Razorpay webhook payment reconciliation",
-          coupon,
-          discountTotal: orderData?.totals?.discountTotal || 0,
-          shippingFee: orderData?.totals?.shippingFee || 0,
-          pincode: orderData?.shippingAddress?.postalCode || orderData?.customer?.pincode || "",
-          roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
-        });
+        let itemSnapshots = [];
+        let totals = {};
+        let isInventoryFailure = false;
+        let inventoryFailureMessage = "";
 
-        if (coupon) {
+        try {
+          const resStock = await reserveStock({
+            items: orderData?.items || [],
+            session,
+            orderNumber: `RZP-${Date.now()}`,
+            reason: "Razorpay webhook payment reconciliation",
+            coupon,
+            discountTotal: orderData?.totals?.discountTotal || 0,
+            shippingFee: orderData?.totals?.shippingFee || 0,
+            pincode: orderData?.shippingAddress?.postalCode || orderData?.customer?.pincode || "",
+            roundingAdjustment: orderData?.totals?.roundingAdjustment || 0
+          });
+          itemSnapshots = resStock.itemSnapshots;
+          totals = resStock.totals;
+        } catch (invErr) {
+          logger.error("⚠️ [WEBHOOK] Stock reservation issue post-payment:", invErr.message);
+          isInventoryFailure = true;
+          inventoryFailureMessage = invErr.message || "Stock reservation issue";
+          itemSnapshots = (orderData?.items || []).map(i => ({
+            productId: i.productId || i._id,
+            titleSnapshot: i.titleSnapshot || i.name || "Product",
+            imageSnapshot: i.imageSnapshot || i.image || "",
+            selectedVariant: { label: i.selectedVariant?.label || i.variantLabel || "Default" },
+            gstRate: Number(i.gstRate || 0),
+            gstAmount: Number(i.gstAmount || 0),
+            mrpAtPurchase: Number(i.mrpAtPurchase || i.price || 0),
+            sellingPriceAtPurchase: Number(i.sellingPriceAtPurchase || i.price || 0),
+            quantity: Number(i.quantity || 1),
+            subtotal: Number(i.subtotal || (i.price * (i.quantity || 1)) || 0),
+            finalAmount: Number(i.finalAmount || (i.price * (i.quantity || 1)) || 0)
+          }));
+          totals = orderData?.totals || {
+            itemsSubtotal: orderData?.amount || 0,
+            gstTotal: 0,
+            grandTotal: orderData?.amount || 0
+          };
+        }
+
+        if (coupon && !isInventoryFailure) {
           await Coupon.updateOne({ _id: coupon._id }, { $inc: { usedCount: 1 } }, { session });
         }
 
@@ -617,9 +766,11 @@ export const handleRazorpayWebhook = async (req, res) => {
             razorpaySignature: "WEBHOOK_RECONCILED",
             paidAt: new Date()
           },
-          status: "PLACED",
+          status: isInventoryFailure ? "REJECTED" : "PLACED",
+          rejectionReason: isInventoryFailure ? `INVENTORY_UNAVAILABLE: ${inventoryFailureMessage}` : "",
           statusTimestamps: {
-            placedAt: new Date()
+            placedAt: new Date(),
+            ...(isInventoryFailure ? { rejectedAt: new Date() } : {})
           },
           totals: {
             ...totals,
@@ -633,6 +784,7 @@ export const handleRazorpayWebhook = async (req, res) => {
           } : undefined,
           metadata: {
             webhookReconciled: true,
+            needsAdminAttention: isInventoryFailure,
             ...orderData?.metadata
           }
         };
@@ -668,6 +820,14 @@ export const handleRazorpayWebhook = async (req, res) => {
 
     return res.status(200).json({ success: true, message: "Webhook processed" });
   } catch (error) {
+    // ── E11000 RACE CONDITION RESOLUTION IN WEBHOOK ──
+    if (error.code === 11000 || error.name === "MongoServerError" || String(error.message).includes("E11000")) {
+      logger.warn("⏭️ [WEBHOOK] E11000 RACE CONDITION RESOLVED: Order already created by concurrent verify", {
+        razorpayOrderId: req.body.payload?.payment?.entity?.order_id
+      });
+      return res.status(200).json({ success: true, message: "Order already processed by concurrent request" });
+    }
+
     logger.error("❌ [WEBHOOK] Razorpay webhook failed:", error);
     return res.status(500).json({ success: false, message: error.message });
   } finally {
