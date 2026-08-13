@@ -15,7 +15,7 @@ const NOT_ELIGIBLE = [
 ];
 
 const STEPS = [
-  { step: "1", title: "Contact Us",         desc: "Reach out via phone (+91 95618 78293) or email within 2 days of receiving your order." },
+  { step: "1", title: "Contact Us",         desc: "Reach out via phone (+91 98819 88751) or email within 2 days of receiving your order." },
   { step: "2", title: "Share Details",      desc: "Provide your order details and photos of the damaged or defective product for quick verification." },
   { step: "3", title: "Return the Product", desc: "Once approved, bring the product back to our store in its original packaging, or we'll arrange a pickup for local orders." },
   { step: "4", title: "Get Replacement",    desc: "After inspection, we will provide a replacement product. If the same product is unavailable, a store credit or refund will be offered." },
@@ -141,10 +141,10 @@ const ReturnsExchange = () => (
             Dattawadi, Viman Nagar, Pune, Maharashtra 411035
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <a href="tel:+919561878293"
+            <a href="tel:+919881988751"
                className="inline-flex items-center gap-2 text-sm font-medium
                           text-[#7a2828] hover:underline">
-              <Phone className="h-4 w-4" /> +91 95618 78293
+              <Phone className="h-4 w-4" /> +91 98819 88751
             </a>
             <a href="mailto:mithaiworld08@gmail.com"
                className="inline-flex items-center gap-2 text-sm font-medium

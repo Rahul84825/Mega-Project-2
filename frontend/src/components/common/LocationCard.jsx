@@ -13,8 +13,8 @@ const LocationCard = ({ compact = false }) => {
     addressLine3: "Konark Nagar, Clover Park",
     city: "Viman Nagar, Pune",
     postalCode: "Maharashtra 411014",
-    phone: "+91 95112 89914",
-    phoneRaw: "9511289914",
+    phone: "+91 98819 88751",
+    phoneRaw: "9881988751",
     email: "mithaiworld08@gmail.com",
     mapsUrl: "https://maps.google.com/?q=Mithai+World+Viman+Nagar+Pune",
   };

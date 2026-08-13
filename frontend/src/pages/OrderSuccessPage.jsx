@@ -115,13 +115,13 @@ function OrderSuccessPage({ paymentInfo }) {
                 Have questions about your order? Our team is here to help!
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <a href="tel:+919511289914"
+                <a href="tel:+919881988751"
                    className="flex items-center justify-center gap-2 rounded-lg bg-[#1e0f0a]
                               py-2.5 text-sm font-medium text-white shadow-sm transition-all
                               hover:-translate-y-0.5 hover:shadow-md">
                   <Phone className="h-4 w-4" /> Call Now
                 </a>
-                <a href="https://wa.me/919511289914" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/919881988751" target="_blank" rel="noopener noreferrer"
                    className="flex items-center justify-center gap-2 rounded-lg bg-[#22c55e]
                               py-2.5 text-sm font-medium text-white shadow-sm transition-all
                               hover:-translate-y-0.5 hover:bg-[#16a34a] hover:shadow-md">

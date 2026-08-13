@@ -106,10 +106,10 @@ const ShippingPolicy = () => (
             Reach out to us anytime for delivery-related queries:
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <a href="tel:+919561878293"
+            <a href="tel:+919881988751"
                className="inline-flex items-center gap-2 text-sm font-medium
                           text-[#7a2828] hover:underline">
-              <Phone className="h-4 w-4" /> +91 95618 78293
+              <Phone className="h-4 w-4" /> +91 98819 88751
             </a>
             <a href="mailto:mithaiworld08@gmail.com"
                className="inline-flex items-center gap-2 text-sm font-medium

@@ -33,8 +33,8 @@ const CONTACT_INFO = [
   {
     icon: Phone,
     label: "Phone",
-    value: "+91 98581 06106",
-    href: "tel:+919858106106",
+    value: "+91 98819 88751",
+    href: "tel:+919881988751",
   },
   {
     icon: Mail,
@@ -60,7 +60,7 @@ const SOCIAL = [
   {
     icon: MessageCircle,
     label: "WhatsApp",
-    href: "https://wa.me/919511289914",
+    href: "https://wa.me/919881988751",
     hover: "hover:bg-green-500 hover:border-green-500 hover:text-white hover:shadow-lg hover:shadow-green-500/20",
   },
   {

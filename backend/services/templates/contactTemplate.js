@@ -79,7 +79,7 @@ export const buildCustomerContactAck = (inquiry) => {
         <div style="background-color: #FFFaf3; padding: 30px; text-align: center; border-top: 1px solid #E8D5B7;">
           <p style="margin: 0; color: #A0836B; font-family: sans-serif; font-size: 11px; letter-spacing: 0.5px;">
             © 2026 MITHAI WORLD. CRAFTING TRADITIONS.<br/>
-            Need immediate help? Call us at +91 99999 88888
+            Need immediate help? Call us at +91 98819 88751
           </p>
         </div>
       </div>

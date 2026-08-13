@@ -118,7 +118,7 @@ const KitchenReceipt = ({ order, printTimestamp }) => {
         <div className="thermal-store-name">MITHAI WORLD</div>
         <div className="thermal-bold thermal-small" style={{ marginTop: "2px" }}>Premium Sweets & Snacks</div>
         <div className="thermal-small">Viman Nagar, Pune</div>
-        <div className="thermal-small">Phone: +91 98581 06106</div>
+        <div className="thermal-small">Phone: +91 98819 88751</div>
         <div className="thermal-small">FSSAI Lic. No. 11520034000065</div>
       </div>
 

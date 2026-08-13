@@ -126,13 +126,13 @@ const BuiltBy = () => {
               </div>
 
               <div className="flex flex-wrap justify-center gap-3 sm:justify-end">
-                <a href="https://wa.me/9511289914" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/919881988751" target="_blank" rel="noopener noreferrer"
                    className="flex items-center justify-center gap-2 rounded-xl bg-[#22c55e]
                               px-5 py-3 text-sm font-medium text-white shadow-sm transition-all
                               hover:-translate-y-0.5 hover:bg-[#16a34a] hover:shadow-md">
                   <MessageCircle className="h-4 w-4" /> WhatsApp
                 </a>
-                <a href="tel:9511289914"
+                <a href="tel:+919881988751"
                    className="flex items-center justify-center gap-2 rounded-xl bg-[#1e0f0a]
                               px-5 py-3 text-sm font-medium text-white shadow-sm transition-all
                               hover:-translate-y-0.5 hover:bg-[#2d1a10] hover:shadow-md">

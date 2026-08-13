@@ -21,7 +21,7 @@ function HomePage({ showHero = true, initialCategory = "all", catalogTitle = "Ne
         "logo": "https://mithaipune.com/android-chrome-512.png",
         "image": "https://mithaipune.com/og-image.png",
         "description": "Premium authentic Indian sweets, dry fruit mithai, and festive gift boxes in Viman Nagar, Pune. Freshly handcrafted daily.",
-        "telephone": ["+91 95112 89914", "+91 98581 06106"],
+        "telephone": ["+91 98819 88751"],
         "email": "mithaipune@gmail.com",
         "priceRange": "₹₹",
         "address": {
@@ -51,7 +51,7 @@ function HomePage({ showHero = true, initialCategory = "all", catalogTitle = "Ne
         ],
         "sameAs": [
           "https://instagram.com/mithaiworld",
-          "https://wa.me/919511289914"
+          "https://wa.me/919881988751"
         ]
       },
       {
@@ -62,7 +62,7 @@ function HomePage({ showHero = true, initialCategory = "all", catalogTitle = "Ne
         "logo": "https://mithaipune.com/android-chrome-512.png",
         "contactPoint": {
           "@type": "ContactPoint",
-          "telephone": "+91 95112 89914",
+          "telephone": "+91 98819 88751",
           "contactType": "customer service",
           "areaServed": "IN",
           "availableLanguage": ["English", "Hindi", "Marathi"]
