@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useCallback, useState, useRef } from "react";
-import { Search, Sparkles, Filter, Clock, Loader2 } from "lucide-react";
+import { Search, Sparkles, Filter, Clock, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency } from "shared/utils/pricing";
@@ -10,11 +10,13 @@ import RejectReasonModal from "./orders/RejectReasonModal";
 import AcceptOrderModal from "./orders/AcceptOrderModal";
 import OrderDetailsModal from "./orders/OrderDetailsModal";
 import KitchenReceiptPrint from "./print/KitchenReceiptPrint";
-import { ORDER_TABS, resolveStatus, isBusinessOrder } from "./orders/orderUtils";
+import { ORDER_TABS, resolveStatus, isBusinessOrder, isRealizedRevenueOrder } from "./orders/orderUtils";
 
 const AdminOrders = () => {
   const {
     orders,
+    ordersPagination,
+    ordersSummary,
     fetchOrders,
     acceptOrder,
     rejectOrder,
@@ -27,6 +29,8 @@ const AdminOrders = () => {
 
   const [activeTab, setActiveTab] = useState("NEW");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [selectedId, setSelectedId] = useState(null);
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [rejectModal, setRejectModal] = useState({ open: false, order: null });
@@ -42,36 +46,59 @@ const AdminOrders = () => {
     }
   }, [selectedId, clearOrderAlert]);
 
-  // ── AUTO-REFRESH LOGIC FOR ACTIVE ORDERS (FIXED) ──
+  // Load paginated & filtered orders from backend
+  const loadOrders = useCallback((pageNum = page, limitNum = limit, tabId = activeTab, searchTerm = search) => {
+    const tab = ORDER_TABS.find((item) => item.id === tabId) || ORDER_TABS[0];
+    const statusParam = tab.statuses.join(",");
+    fetchOrders({
+      page: pageNum,
+      limit: limitNum,
+      status: statusParam,
+      search: searchTerm.trim() || undefined
+    });
+  }, [fetchOrders, page, limit, activeTab, search]);
+
+  useEffect(() => {
+    loadOrders(page, limit, activeTab, search);
+  }, [page, limit, activeTab, search, loadOrders]);
+
+  // ── AUTO-REFRESH LOGIC FOR ACTIVE ORDERS ──
   const ordersRef = useRef(orders);
   useEffect(() => {
     ordersRef.current = orders;
   }, [orders]);
 
   useEffect(() => {
-    fetchOrders();
-
     const refreshActiveOrders = () => {
       const activeStatuses = ["PLACED", "PREPARING", "READY", "PICKED_UP"];
       const hasActiveOrders = (ordersRef.current || []).some(o => activeStatuses.includes(resolveStatus(o)));
 
       if (hasActiveOrders) {
         console.log("🔄 ORDER_STATUS_REFRESHED: Polling for active orders...");
-        fetchOrders();
+        loadOrders();
       }
     };
 
     // Polling interval: 30 seconds for active orders (safe fallback, sockets handle instant sync)
     const interval = setInterval(refreshActiveOrders, 30000);
-
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [loadOrders]);
 
   const selectedOrder = useMemo(() => 
     (orders || []).find(o => o._id === selectedId),
   [orders, selectedId]);
 
+  // Database-wide tab counts from backend summary (with fallback to loaded orders)
   const tabCounts = useMemo(() => {
+    if (ordersSummary?.tabCounts) {
+      return {
+        NEW: ordersSummary.tabCounts.NEW || 0,
+        PREPARING: ordersSummary.tabCounts.PREPARING || 0,
+        READY: ordersSummary.tabCounts.READY || 0,
+        DELIVERED: ordersSummary.tabCounts.DELIVERED || 0,
+        REJECTED: ordersSummary.tabCounts.REJECTED || 0
+      };
+    }
     const counts = Object.fromEntries(ORDER_TABS.map((tab) => [tab.id, 0]));
     (orders || []).forEach((order) => {
       const status = resolveStatus(order);
@@ -80,20 +107,19 @@ const AdminOrders = () => {
       });
     });
     return counts;
-  }, [orders]);
+  }, [ordersSummary, orders]);
 
-  const filteredOrders = useMemo(() => {
-    const q = search.toLowerCase();
-    const tab = ORDER_TABS.find((item) => item.id === activeTab) || ORDER_TABS[0];
-    return (orders || [])
-      .filter((order) => tab.statuses.includes(resolveStatus(order)))
-      .filter((order) => {
-        const id = String(order.orderNumber || order._id || "").toLowerCase();
-        const name = String(order.customer?.name || "").toLowerCase();
-        const phone = String(order.customer?.phone || "");
-        return id.includes(q) || name.includes(q) || phone.includes(q);
-      });
-  }, [orders, activeTab, search]);
+  // Current view orders matching current search filter
+  const displayedOrders = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return orders || [];
+    return (orders || []).filter((order) => {
+      const id = String(order.orderNumber || order._id || "").toLowerCase();
+      const name = String(order.customer?.name || "").toLowerCase();
+      const phone = String(order.customer?.phone || "");
+      return id.includes(q) || name.includes(q) || phone.includes(q);
+    });
+  }, [orders, search]);
 
   const validBusinessOrders = useMemo(
     () => (orders || []).filter(isBusinessOrder),
@@ -101,15 +127,31 @@ const AdminOrders = () => {
   );
 
   const totalRevenue = useMemo(
-    () => validBusinessOrders.reduce((sum, order) => sum + Number(order.totals?.grandTotal || order.total || 0), 0),
-    [validBusinessOrders]
+    () => (orders || [])
+      .filter(isRealizedRevenueOrder)
+      .reduce((sum, order) => sum + Number(order.totals?.grandTotal || order.total || 0), 0),
+    [orders]
   );
+
+  const totalFilteredCount = ordersPagination?.total ?? displayedOrders.length;
+  const totalPages = ordersPagination?.totalPages ?? Math.ceil(totalFilteredCount / limit) ?? 1;
+
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
   const handleAction = useCallback(async (orderId, action) => {
     if (busyOrderId) return;
     setBusyOrderId(orderId);
     try {
       await action();
+      loadOrders();
     } catch (error) {
       console.error("Action failed:", error);
       const message = error.response?.data?.message || error.message || "Action failed";
@@ -117,7 +159,7 @@ const AdminOrders = () => {
     } finally {
       setBusyOrderId(null);
     }
-  }, [busyOrderId]);
+  }, [busyOrderId, loadOrders]);
 
   const handleCardSelect = useCallback((order) => {
     setSelectedId(order._id);
@@ -150,7 +192,7 @@ const AdminOrders = () => {
   const handleManualSync = async () => {
     setBusyOrderId("sync");
     try {
-      await fetchOrders();
+      await loadOrders();
       toast.success("Orders synchronized");
       console.log("🔄 ORDER_STATUS_REFRESHED: Manual sync complete");
     } finally {
@@ -192,7 +234,11 @@ const AdminOrders = () => {
             <Sparkles size={12} /> Realtime Control
           </div>
           <h2 className="serif text-xl sm:text-2xl md:text-3xl">Orders Management</h2>
-          <p className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">{validBusinessOrders.length} successful orders · {formatCurrency(totalRevenue)} revenue</p>
+          <p className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">
+            <span className="font-bold text-[var(--charcoal)]">{ordersSummary?.totalOrders ?? orders.length}</span> total orders{" "}
+            ({ordersSummary?.businessOrders ?? validBusinessOrders.length} successful) ·{" "}
+            <span className="font-bold text-[var(--burgundy)]">{formatCurrency(ordersSummary?.realizedRevenue ?? totalRevenue)}</span> realized revenue
+          </p>
         </div>
       </div>
 
@@ -203,9 +249,9 @@ const AdminOrders = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search by Order #, Name, Phone..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearchChange}
               className="input-field pl-10 w-full h-9 text-xs"
             />
           </div>
@@ -218,12 +264,12 @@ const AdminOrders = () => {
             <span className="truncate">Sync Delivery</span>
           </button>
         </div>
-        <OrderTabs activeTab={activeTab} counts={tabCounts} onSelect={setActiveTab} />
+        <OrderTabs activeTab={activeTab} counts={tabCounts} onSelect={handleTabChange} />
       </div>
 
       {/* ── ORDERS LIST ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-        {filteredOrders.length === 0 ? (
+        {displayedOrders.length === 0 ? (
           <div className="col-span-full py-10 sm:py-20 text-center rounded-3xl border-2 border-dashed border-[var(--surface-border)] bg-white">
             <div className="h-12 w-12 rounded-full bg-[var(--cream)] flex items-center justify-center mx-auto mb-4 text-[var(--muted)]">
               <Filter size={24} />
@@ -232,7 +278,7 @@ const AdminOrders = () => {
             <p className="text-xs text-[var(--muted)] mt-1">Try changing the filters or search query.</p>
           </div>
         ) : (
-          filteredOrders.map((order) => (
+          displayedOrders.map((order) => (
             <OrderCard
               key={order._id}
               order={order}
@@ -249,6 +295,72 @@ const AdminOrders = () => {
           ))
         )}
       </div>
+
+      {/* ── PAGINATION CONTROLS ── */}
+      {totalFilteredCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-[24px] border border-[#e6d3b3] shadow-sm mt-4">
+          <div className="text-xs text-[var(--muted)] font-medium">
+            Showing <span className="font-bold text-[var(--charcoal)]">{totalFilteredCount > 0 ? (page - 1) * limit + 1 : 0}</span> to{" "}
+            <span className="font-bold text-[var(--charcoal)]">{Math.min(page * limit, totalFilteredCount)}</span> of{" "}
+            <span className="font-bold text-[var(--charcoal)]">{totalFilteredCount}</span> orders
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <div className="flex items-center gap-1.5 mr-2">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-[var(--muted)]">Rows:</span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="text-xs font-bold border border-[#e6d3b3] rounded-lg px-2 py-1 bg-white text-[var(--charcoal)] focus:outline-none focus:ring-1 focus:ring-[var(--burgundy)]"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-3 py-1.5 rounded-xl border border-[#e6d3b3] text-xs font-bold text-[var(--charcoal)] hover:bg-[var(--cream)] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .map((p, idx, arr) => (
+                <span key={p} className="flex items-center">
+                  {idx > 0 && arr[idx - 1] !== p - 1 && (
+                    <span className="px-1 text-[var(--muted)] text-xs">...</span>
+                  )}
+                  <button
+                    onClick={() => setPage(p)}
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                      page === p
+                        ? "bg-[var(--burgundy)] text-white shadow-sm"
+                        : "border border-[#e6d3b3] text-[var(--charcoal)] hover:bg-[var(--cream)]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </span>
+              ))}
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="px-3 py-1.5 rounded-xl border border-[#e6d3b3] text-xs font-bold text-[var(--charcoal)] hover:bg-[var(--cream)] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <OrderDetailsModal
         open={!!selectedId}
@@ -284,3 +396,4 @@ const AdminOrders = () => {
 };
 
 export default AdminOrders;
+

@@ -12,12 +12,18 @@ export const getAdminStats = async (req, res, next) => {
     const totalProducts = await Product.countDocuments();
     const totalCategories = await Category.countDocuments();
     
-    // Revenue and Orders
-    const orders = await Order.find({ status: { $ne: "REJECTED" } });
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.totals?.grandTotal || o.total || 0), 0);
-    const totalOrders = orders.length;
+    // Total Orders count in MongoDB collection
+    const totalOrders = await Order.countDocuments();
 
-    // Daily Sales for chart (last 7 days)
+    // Realized Revenue and Valid Business Orders (Excludes REJECTED, CANCELLED, and REFUNDED/FAILED payments)
+    const validRevenueOrders = await Order.find({
+      status: { $nin: ["REJECTED", "CANCELLED"] },
+      "payment.status": { $nin: ["REFUNDED", "FAILED"] }
+    });
+    const totalRevenue = validRevenueOrders.reduce((sum, o) => sum + (o.totals?.grandTotal || o.total || 0), 0);
+    const successfulOrders = validRevenueOrders.length;
+
+    // Daily Sales for chart (last 7 days - realized revenue only)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -25,7 +31,8 @@ export const getAdminStats = async (req, res, next) => {
       {
         $match: {
           createdAt: { $gte: sevenDaysAgo },
-          status: { $ne: "REJECTED" }
+          status: { $nin: ["REJECTED", "CANCELLED"] },
+          "payment.status": { $nin: ["REFUNDED", "FAILED"] }
         }
       },
       {
@@ -47,6 +54,7 @@ export const getAdminStats = async (req, res, next) => {
         totalCategories,
         totalRevenue,
         totalOrders,
+        successfulOrders,
         dailyStats,
         timestamp: new Date().toISOString()
       }
@@ -60,7 +68,10 @@ export const getAdminStats = async (req, res, next) => {
 export const getSalesReport = async (req, res, next) => {
   try {
     const { start, end } = req.query;
-    let query = { status: { $ne: "REJECTED" } };
+    let query = {
+      status: { $nin: ["REJECTED", "CANCELLED"] },
+      "payment.status": { $nin: ["REFUNDED", "FAILED"] }
+    };
 
     if (start && end) {
       query.createdAt = { $gte: new Date(start), $lte: new Date(end) };
@@ -81,9 +92,13 @@ export const getCustomerReport = async (req, res, next) => {
   try {
     const customers = await User.find({ isAdmin: false }).sort({ createdAt: -1 });
     
-    // Enrich with order count and total spent
+    // Enrich with order count and total spent (successful business orders only)
     const enrichedCustomers = await Promise.all(customers.map(async (c) => {
-      const orders = await Order.find({ "customer.email": c.email, status: "DELIVERED" });
+      const orders = await Order.find({
+        "customer.email": c.email,
+        status: { $nin: ["REJECTED", "CANCELLED"] },
+        "payment.status": { $nin: ["REFUNDED", "FAILED"] }
+      });
       const totalSpent = orders.reduce((sum, o) => sum + (o.totals?.grandTotal || o.total || 0), 0);
       return {
         ...c.toObject(),
@@ -104,7 +119,10 @@ export const getCustomerReport = async (req, res, next) => {
 export const downloadSalesReport = async (req, res, next) => {
   try {
     const { start, end } = req.query;
-    let query = { status: { $ne: "REJECTED" } };
+    let query = {
+      status: { $nin: ["REJECTED", "CANCELLED"] },
+      "payment.status": { $nin: ["REFUNDED", "FAILED"] }
+    };
 
     if (start && end) {
       query.createdAt = { $gte: new Date(start), $lte: new Date(end) };

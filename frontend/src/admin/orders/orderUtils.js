@@ -69,3 +69,10 @@ export const isBusinessOrder = (order) => {
   const status = resolveStatus(order);
   return status !== "REJECTED" && status !== "CANCELLED";
 };
+
+export const isRealizedRevenueOrder = (order) => {
+  if (!isBusinessOrder(order)) return false;
+  const payStatus = resolvePaymentStatus(order);
+  return payStatus !== "REFUNDED" && payStatus !== "FAILED";
+};
+

@@ -571,28 +571,123 @@ export const getOrdersByStatus = async (req, res) => {
       console.error("❌ Background active orders sync failed:", err.message)
     );
 
-    const status = req.query.status ? String(req.query.status).toUpperCase() : null;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
 
-    if (status && !ORDER_STATUSES.includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid order status" });
+    const rawStatus = req.query.status ? String(req.query.status).trim() : null;
+    const search = req.query.search ? String(req.query.search).trim() : null;
+
+    const query = {};
+
+    // Status filtering support (single status or comma-separated list of statuses)
+    if (rawStatus && rawStatus !== "ALL") {
+      const statusList = rawStatus.split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
+      const validStatuses = statusList.filter(s => ORDER_STATUSES.includes(s) || s === "DELIVERED");
+      
+      if (validStatuses.length === 1) {
+        // Case-insensitive regex match to support any legacy case variations like "Delivered"
+        query.status = { $regex: new RegExp(`^${validStatuses[0]}$`, "i") };
+      } else if (validStatuses.length > 1) {
+        query.status = { $in: validStatuses.map(s => new RegExp(`^${s}$`, "i")) };
+      }
     }
 
-    const query = status ? { status } : {};
-    
-    // PRODUCTION FIX: Added .limit(50) and .lean() to prevent memory exhaustion
-    // as order volume grows. Admin dashboard only needs the latest 50 for the current view.
-    const orders = await Order.find(query)
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+    // Text search support across orderNumber, orderId, customer name and phone
+    if (search) {
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      query.$or = [
+        { orderNumber: searchRegex },
+        { orderId: searchRegex },
+        { "customer.name": searchRegex },
+        { "customer.phone": searchRegex },
+        { "customer.email": searchRegex }
+      ];
+    }
 
+    // Scalable database-level queries executed concurrently
+    const [
+      totalFilteredOrders,
+      orders,
+      totalOrders,
+      businessOrders,
+      rejectedOrders,
+      revenueAgg,
+      statusDistribution
+    ] = await Promise.all([
+      Order.countDocuments(query),
+      Order.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments(),
+      Order.countDocuments({ status: { $nin: ["REJECTED", "CANCELLED"] } }),
+      Order.countDocuments({ status: { $regex: /^REJECTED$/i } }),
+      Order.aggregate([
+        {
+          $match: {
+            status: { $nin: ["REJECTED", "CANCELLED"] },
+            "payment.status": { $nin: ["REFUNDED", "FAILED"] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: { $ifNull: ["$totals.grandTotal", "$total"] } }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $group: {
+            _id: { $toUpper: "$status" },
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+
+    const realizedRevenue = revenueAgg.length > 0 ? (revenueAgg[0].total || 0) : 0;
+
+    // Map status distribution to tab counts
+    const rawStatusCounts = {};
+    statusDistribution.forEach(item => {
+      if (item._id) {
+        rawStatusCounts[String(item._id).toUpperCase()] = item.count;
+      }
+    });
+
+    const tabCounts = {
+      NEW: (rawStatusCounts["PLACED"] || 0),
+      PREPARING: (rawStatusCounts["PREPARING"] || 0),
+      READY: (rawStatusCounts["READY"] || 0),
+      DELIVERED: (rawStatusCounts["PICKED_UP"] || 0) + (rawStatusCounts["DELIVERED"] || 0),
+      REJECTED: (rawStatusCounts["REJECTED"] || 0)
+    };
+
+    const totalPages = Math.ceil(totalFilteredOrders / limit) || 1;
     const duration = Date.now() - startTime;
-    console.log(`FETCH_ORDERS_END: ${new Date().toISOString()}`);
-    console.log(`QUERY_DURATION_MS: ${duration}ms`);
+    console.log(`FETCH_ORDERS_END: ${new Date().toISOString()} (duration: ${duration}ms, total: ${totalFilteredOrders})`);
 
     return res.status(200).json({
       success: true,
-      orders: sanitizeOrders(orders)
+      orders: sanitizeOrders(orders),
+      pagination: {
+        total: totalFilteredOrders,
+        page,
+        limit,
+        totalPages,
+        hasMore: page < totalPages
+      },
+      summary: {
+        totalOrders,
+        businessOrders,
+        rejectedOrders,
+        realizedRevenue,
+        tabCounts,
+        statusCounts: rawStatusCounts
+      }
     });
   } catch (error) {
     return res.status(500).json({

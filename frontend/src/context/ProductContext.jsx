@@ -114,6 +114,21 @@ const normalizeOffer = (offer = {}) => {
 const initialState = {
   products: [],
   orders: [],
+  ordersPagination: {
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasMore: false
+  },
+  ordersSummary: {
+    totalOrders: 0,
+    businessOrders: 0,
+    rejectedOrders: 0,
+    realizedRevenue: 0,
+    tabCounts: {},
+    statusCounts: {}
+  },
   offers: [],
   categories: [],
   loading: true,
@@ -332,7 +347,14 @@ export function ProductProvider({ children }) {
         payload.products = toArray(resProducts.value.data?.products || resProducts.value.data).map(normalizeProduct);
       }
       if (resOrders.status === 'fulfilled') {
-        payload.orders = toArray(resOrders.value.data?.orders || resOrders.value.data).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const orderData = resOrders.value.data;
+        payload.orders = toArray(orderData?.orders || orderData).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        if (orderData?.pagination) {
+          payload.ordersPagination = orderData.pagination;
+        }
+        if (orderData?.summary) {
+          payload.ordersSummary = orderData.summary;
+        }
       }
       if (resCategories.status === 'fulfilled') {
         payload.categories = toArray(resCategories.value.data?.categories || resCategories.value.data).map(normalizeCategory);
@@ -364,32 +386,23 @@ export function ProductProvider({ children }) {
     } catch (err) { console.error("fetchCategories error", err); }
   }, []);
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (params = {}) => {
     const startTime = Date.now();
     try {
-      const { data } = await api.get("/api/orders");
-      const sorted = toArray(data?.orders || data).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const { data } = await api.get("/api/orders", { params });
+      const rawOrders = data?.orders || data;
+      const sorted = toArray(rawOrders).map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       
-      // Safe state update optimization: skip dispatch if fetched orders match current state
-      const currentOrders = ordersRef.current || [];
-      if (
-        sorted.length === currentOrders.length &&
-        sorted.every((o, idx) => {
-          const curr = currentOrders[idx];
-          return (
-            curr &&
-            curr._id === o._id &&
-            curr.status === o.status &&
-            curr.updatedAt === o.updatedAt &&
-            curr.payment?.status === o.payment?.status &&
-            curr.totals?.grandTotal === o.totals?.grandTotal
-          );
-        })
-      ) {
-        return;
+      const payload = { orders: sorted };
+      if (data?.pagination) {
+        payload.ordersPagination = data.pagination;
+      }
+      if (data?.summary) {
+        payload.ordersSummary = data.summary;
       }
 
-      dispatch({ type: actionTypes.SET_DATA, payload: { orders: sorted } });
+      dispatch({ type: actionTypes.SET_DATA, payload });
+      return data;
     } catch (err) { 
       const duration = Date.now() - startTime;
       console.error(`fetchOrders error after ${duration}ms`, err); 
