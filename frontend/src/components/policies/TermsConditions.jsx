@@ -96,7 +96,7 @@ const TermsConditions = () => (
               Ekta Nagar, Akurdi Gaothan, Dattawadi, Viman Nagar, Pune, Maharashtra 411035
             </strong>{" "}
             and is owned and operated by{" "}
-            <strong className="text-[#24140f]">Sakharam Choudhary</strong>.
+            <strong className="text-[#24140f]">Narayan Varpa</strong>.
           </p>
         </div>
 

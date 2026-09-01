@@ -57,7 +57,7 @@ const ReturnsExchange = () => (
         {/* Intro */}
         <p className="text-[13px] leading-relaxed text-[#6e5443]">
           At <strong className="text-[#24140f]">Mithai World</strong>,
-          owned by <strong className="text-[#24140f]">Sakharam Choudhary</strong>, we stand
+          owned by <strong className="text-[#24140f]">Narayan Varpa</strong>, we stand
           behind the quality of every product we sell. If you receive a damaged or defective item,
           we offer a hassle-free replacement within 2 days of delivery.
         </p>

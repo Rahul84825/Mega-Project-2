@@ -47,7 +47,7 @@ const TIMELINE = [
   {
     year: "2022",
     title: "The Beginning",
-    desc: "Sakharam Choudhary founded Mithai World in Viman Nagar, Pune with a passion for authentic Indian sweets and traditional recipes.",
+    desc: "Narayan Varpa founded Mithai World in Viman Nagar, Pune with a passion for authentic Indian sweets and traditional recipes.",
   },
   {
     year: "2023",
@@ -140,7 +140,7 @@ const About = () => {
               <div className="space-y-4 text-[13px] leading-relaxed text-[#6e5443]">
                 <p>
                   Mithai World was started by{" "}
-                  <strong className="text-[#24140f]">Sakharam Choudhary</strong> with a simple
+                  <strong className="text-[#24140f]">Narayan Varpa</strong> with a simple
                   dream — to bring premium quality, authentic Indian sweets to families of Pune
                   at honest, affordable prices.
                 </p>

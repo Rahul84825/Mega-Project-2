@@ -86,7 +86,7 @@ const PrivacyPolicy = () => (
         <div className="space-y-3">
           <p className="text-[13px] leading-relaxed text-[#6e5443]">
             <strong className="text-[#24140f]">Mithai World</strong>,
-            owned by <strong className="text-[#24140f]">Sakharam Choudhary</strong>, is committed
+            owned by <strong className="text-[#24140f]">Narayan Varpa</strong>, is committed
             to protecting the privacy of our customers. This Privacy Policy explains what information
             we collect and how we use it when you visit our website or make a purchase.
           </p>
