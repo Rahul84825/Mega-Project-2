@@ -45,7 +45,7 @@ const WHY_US = [
 
 const TIMELINE = [
   {
-    year: "2022",
+    year: "2020",
     title: "The Beginning",
     desc: "Narayan Varpa founded Mithai World in Viman Nagar, Pune with a passion for authentic Indian sweets and traditional recipes.",
   },
@@ -271,15 +271,13 @@ const About = () => {
       {/* ── Why us ── */}
       <section className="border-t border-[rgba(83,44,22,0.08)] bg-[#fff8f0] py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 flex flex-col items-end justify-between gap-4 sm:flex-row">
-            <div>
-              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
-                Our Promise
-              </p>
-              <h2 className="text-2xl font-medium tracking-tight text-[#24140f] sm:text-3xl">
-                Why Families Choose Us
-              </h2>
-            </div>
+          <div className="mb-8 text-center">
+            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.28em] text-[#9c6a18]">
+              Our Promise
+            </p>
+            <h2 className="text-2xl font-medium tracking-tight text-[#24140f] sm:text-3xl">
+              Why Families Choose Us
+            </h2>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {WHY_US.map(({ icon: Icon, label }) => (
